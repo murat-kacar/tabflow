@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=20.9.0"
+    "node": "24.15.0"
   },
   "scripts": {
     "build": "turbo run build",
@@ -15,7 +15,7 @@
     "test:coverage": "pnpm test:dotnet && turbo run test:coverage"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.0",
-    "turbo": "^2.6.0"
+    "@biomejs/biome": "2.4.12",
+    "turbo": "2.9.6"
   }
 }

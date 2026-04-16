@@ -9,146 +9,146 @@ importers:
   .:
     devDependencies:
       '@biomejs/biome':
-        specifier: ^2.3.0
+        specifier: 2.4.12
         version: 2.4.12
       turbo:
-        specifier: ^2.6.0
+        specifier: 2.9.6
         version: 2.9.6
 
   apps/platform-web:
     dependencies:
       '@tailwindcss/postcss':
-        specifier: ^4.1.0
+        specifier: 4.2.2
         version: 4.2.2
       '@yenicafe/shared-ts':
         specifier: workspace:*
         version: link:../../packages/shared-ts
       next:
-        specifier: ^16.0.0
+        specifier: 16.2.3
         version: 16.2.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react:
-        specifier: ^19.2.0
+        specifier: 19.2.5
         version: 19.2.5
       react-dom:
-        specifier: ^19.2.0
+        specifier: 19.2.5
         version: 19.2.5(react@19.2.5)
       tailwindcss:
-        specifier: ^4.1.0
+        specifier: 4.2.2
         version: 4.2.2
     devDependencies:
       '@testing-library/jest-dom':
-        specifier: ^6.9.1
+        specifier: 6.9.1
         version: 6.9.1
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: 16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@types/node':
-        specifier: ^24.0.0
+        specifier: 24.12.2
         version: 24.12.2
       '@types/react':
-        specifier: ^19.0.0
+        specifier: 19.2.14
         version: 19.2.14
       '@types/react-dom':
-        specifier: ^19.0.0
+        specifier: 19.2.3
         version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react':
-        specifier: ^6.0.1
+        specifier: 6.0.1
         version: 6.0.1(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
       '@vitest/coverage-v8':
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(vitest@4.1.4)
       jsdom:
-        specifier: ^29.0.2
+        specifier: 29.0.2
         version: 29.0.2
       typescript:
-        specifier: ^5.9.0
+        specifier: 5.9.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
   apps/tenant-web:
     dependencies:
       '@tailwindcss/postcss':
-        specifier: ^4.1.0
+        specifier: 4.2.2
         version: 4.2.2
       '@yenicafe/shared-ts':
         specifier: workspace:*
         version: link:../../packages/shared-ts
       next:
-        specifier: ^16.0.0
+        specifier: 16.2.3
         version: 16.2.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react:
-        specifier: ^19.2.0
+        specifier: 19.2.5
         version: 19.2.5
       react-dom:
-        specifier: ^19.2.0
+        specifier: 19.2.5
         version: 19.2.5(react@19.2.5)
       tailwindcss:
-        specifier: ^4.1.0
+        specifier: 4.2.2
         version: 4.2.2
     devDependencies:
       '@testing-library/jest-dom':
-        specifier: ^6.9.1
+        specifier: 6.9.1
         version: 6.9.1
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: 16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@types/node':
-        specifier: ^24.0.0
+        specifier: 24.12.2
         version: 24.12.2
       '@types/react':
-        specifier: ^19.0.0
+        specifier: 19.2.14
         version: 19.2.14
       '@types/react-dom':
-        specifier: ^19.0.0
+        specifier: 19.2.3
         version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react':
-        specifier: ^6.0.1
+        specifier: 6.0.1
         version: 6.0.1(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
       '@vitest/coverage-v8':
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(vitest@4.1.4)
       jsdom:
-        specifier: ^29.0.2
+        specifier: 29.0.2
         version: 29.0.2
       typescript:
-        specifier: ^5.9.0
+        specifier: 5.9.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
   packages/firmware:
     dependencies:
       zod:
-        specifier: ^4.1.0
+        specifier: 4.3.6
         version: 4.3.6
     devDependencies:
       '@vitest/coverage-v8':
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(vitest@4.1.4)
       typescript:
-        specifier: ^5.9.0
+        specifier: 5.9.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
   packages/shared-ts:
     dependencies:
       zod:
-        specifier: ^4.1.0
+        specifier: 4.3.6
         version: 4.3.6
     devDependencies:
       '@vitest/coverage-v8':
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(vitest@4.1.4)
       typescript:
-        specifier: ^5.9.0
+        specifier: 5.9.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.4
+        specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
 packages:
