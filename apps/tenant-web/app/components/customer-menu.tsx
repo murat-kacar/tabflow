@@ -1,6 +1,6 @@
 "use client";
 
-import type { TenantCatalog } from "@yenicafe/shared-ts";
+import type { TenantCatalog } from "@tabflow/shared-ts";
 import { useActionState } from "react";
 import {
   type CustomerOrderActionState,

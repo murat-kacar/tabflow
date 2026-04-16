@@ -1,6 +1,6 @@
 "use client";
 
-import type { AdminDevice } from "@yenicafe/shared-ts";
+import type { AdminDevice } from "@tabflow/shared-ts";
 import { useActionState } from "react";
 import {
   refreshDeviceTokenAction,

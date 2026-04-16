@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
-export const customerSessionCookieName = "yenicafe_customer_session";
+export const customerSessionCookieName = "tabflow_customer_session";
 
 export type CustomerSession = {
   backendSessionId: string;

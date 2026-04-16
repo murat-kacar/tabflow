@@ -1,6 +1,6 @@
 "use client";
 
-import type { KitchenStationBoard } from "@yenicafe/shared-ts";
+import type { KitchenStationBoard } from "@tabflow/shared-ts";
 import { useActionState } from "react";
 import { type TenantAdminActionState, updateKitchenItemStatusAction } from "../auth-actions";
 

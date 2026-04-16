@@ -1,6 +1,6 @@
 "use client";
 
-import type { ServiceStation } from "@yenicafe/shared-ts";
+import type { ServiceStation } from "@tabflow/shared-ts";
 import { useActionState } from "react";
 import {
   createStationAction,

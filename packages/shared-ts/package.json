@@ -1,5 +1,5 @@
 {
-  "name": "@yenicafe/shared-ts",
+  "name": "@tabflow/shared-ts",
   "private": true,
   "type": "module",
   "exports": {

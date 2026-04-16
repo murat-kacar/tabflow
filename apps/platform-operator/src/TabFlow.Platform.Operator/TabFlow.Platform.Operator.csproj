@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <ItemGroup>
+    <ProjectReference Include="../../../../packages/shared-dotnet/src/TabFlow.Platform/TabFlow.Platform.csproj" />
+  </ItemGroup>
+</Project>

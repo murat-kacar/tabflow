@@ -4,7 +4,7 @@ import {
   type PlatformAdminProfile,
   platformAdminProfileSchema,
   platformProblemSchema
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 
 const defaultPlatformApiBaseUrl = "http://127.0.0.1:8200";
 

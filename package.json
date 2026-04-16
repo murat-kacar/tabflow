@@ -1,5 +1,5 @@
 {
-  "name": "yenicafe",
+  "name": "tabflow",
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "engines": {
@@ -10,7 +10,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "pnpm test:dotnet && pnpm test:ts",
-    "test:dotnet": "dotnet test Yenicafe.sln --collect:\"XPlat Code Coverage\"",
+    "test:dotnet": "dotnet test TabFlow.sln --collect:\"XPlat Code Coverage\"",
     "test:ts": "turbo run test",
     "test:coverage": "pnpm test:dotnet && turbo run test:coverage"
   },

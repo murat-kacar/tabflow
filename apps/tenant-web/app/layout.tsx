@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Yenicafe",
-  description: "QR menu and tenant admin for Yenicafe"
+  title: "TabFlow",
+  description: "QR menu and tenant admin for TabFlow"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

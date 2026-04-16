@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
-export const tenantSessionCookieName = "yenicafe_tenant_admin_session";
+export const tenantSessionCookieName = "tabflow_tenant_admin_session";
 
 export type TenantSession = {
   adminId: string;

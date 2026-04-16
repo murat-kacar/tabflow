@@ -1,6 +1,6 @@
 "use client";
 
-import type { CustomerBillSummary } from "@yenicafe/shared-ts";
+import type { CustomerBillSummary } from "@tabflow/shared-ts";
 import { useActionState } from "react";
 import { closeBillAction, type TenantAdminActionState } from "../auth-actions";
 import { formatDateTime } from "../lib/format";

@@ -1,5 +1,5 @@
 {
-  "name": "@yenicafe/tenant-web",
+  "name": "@tabflow/tenant-web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "4.2.2",
-    "@yenicafe/shared-ts": "workspace:*",
+    "@tabflow/shared-ts": "workspace:*",
     "next": "16.2.3",
     "react": "19.2.5",
     "react-dom": "19.2.5",

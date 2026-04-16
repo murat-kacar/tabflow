@@ -4,7 +4,7 @@ import {
   type TenantAdminProfile,
   tenantAdminBootstrapStatusSchema,
   tenantAdminProfileSchema
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 
 const defaultTenantApiBaseUrl = "http://127.0.0.1:8100";
 

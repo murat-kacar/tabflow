@@ -1,4 +1,4 @@
-import type { ServiceStation, TenantCatalog } from "@yenicafe/shared-ts";
+import type { ServiceStation, TenantCatalog } from "@tabflow/shared-ts";
 import { createCategoryAction, createItemAction } from "../auth-actions";
 
 function formatMoney(minor: number, currencyCode: string): string {

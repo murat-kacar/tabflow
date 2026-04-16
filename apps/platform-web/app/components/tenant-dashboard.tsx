@@ -5,7 +5,7 @@ import type {
   ProvisionJob,
   Tenant,
   TenantRuntimeSummary
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 import { useMemo, useState } from "react";
 import { setTenantStatusAction } from "../actions";
 import { formatDateTime } from "../lib/format";
@@ -114,7 +114,7 @@ export function TenantDashboard({
           </p>
           <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">Yenicafe Super Admin</h1>
+              <h1 className="text-4xl font-bold tracking-tight">TabFlow Super Admin</h1>
               <p className="mt-4 max-w-3xl text-lg text-stone-700">
                 Tenant registry, domain sahipligi, ilk admin niyeti ve provisioning akislari tek
                 operasyon panelinde yonetilir.

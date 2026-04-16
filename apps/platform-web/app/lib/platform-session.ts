@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
-export const platformSessionCookieName = "yenicafe_platform_session";
+export const platformSessionCookieName = "tabflow_platform_session";
 
 export type PlatformSession = {
   adminId: string;

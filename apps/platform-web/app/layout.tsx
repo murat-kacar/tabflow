@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Yenicafe Platform",
-  description: "Platform administration for Yenicafe"
+  title: "TabFlow Platform",
+  description: "Platform administration for TabFlow"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,5 +1,5 @@
 {
-  "name": "@yenicafe/firmware",
+  "name": "@tabflow/firmware",
   "private": true,
   "type": "module",
   "scripts": {

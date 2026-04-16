@@ -5,7 +5,7 @@ import type {
   AdminTableSummary,
   CustomerBillSummary,
   CustomerOrderSummary
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 import { useActionState, useMemo, useState } from "react";
 import {
   closeBillAction,

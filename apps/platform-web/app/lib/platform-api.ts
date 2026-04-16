@@ -12,7 +12,7 @@ import {
   tenantRuntimeSummaryListSchema,
   tenantSchema,
   tenantStatusSchema
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 import type { PlatformSession } from "./platform-session";
 
 const defaultPlatformApiBaseUrl = "http://127.0.0.1:8200";

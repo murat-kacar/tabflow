@@ -19,7 +19,7 @@ describe("TenantDashboard", () => {
       />
     );
 
-    expect(screen.getByRole("heading", { name: "Yenicafe Super Admin" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "TabFlow Super Admin" })).toBeInTheDocument();
     expect(screen.getByText(/henuz tenant yok/i)).toBeInTheDocument();
   });
 
@@ -42,8 +42,8 @@ describe("TenantDashboard", () => {
             exposureError: null,
             backendPort: 8101,
             webPort: 3101,
-            databaseName: "yenicafe_tenant_moda",
-            databaseUser: "yenicafe_moda",
+            databaseName: "tabflow_tenant_moda",
+            databaseUser: "tabflow_moda",
             artifactRoot: "/srv/generated/tenants/moda",
             latestJobId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a8",
             latestJobStatus: "succeeded",

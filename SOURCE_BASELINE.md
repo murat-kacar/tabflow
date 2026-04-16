@@ -1,6 +1,6 @@
 # Source Baseline
 
-This directory is a source-only working baseline for rebuilding Yenicafe without
+This directory is a source-only working baseline for rebuilding TabFlow without
 old VPS runtime state.
 
 Included:

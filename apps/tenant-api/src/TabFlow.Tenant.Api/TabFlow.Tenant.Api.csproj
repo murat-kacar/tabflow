@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <EmbeddedResource Include="../../../../infra/postgres/migrations/tenant/0001_initial.sql" LogicalName="TenantSchema.sql" />
+    <PackageReference Include="QRCoder" />
+    <ProjectReference Include="../../../../packages/shared-dotnet/src/TabFlow.Shared/TabFlow.Shared.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+</Project>

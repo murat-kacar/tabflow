@@ -1,4 +1,9 @@
-# Yenicafe Source
+# TabFlow Source
+
+Copyright (c) 2026 Murat Kacar. All rights reserved.
+
+TabFlow is proprietary software. See [LICENSE](LICENSE) for the full rights
+reservation and usage restrictions.
 
 Source-code-only product foundation for a generic multi-tenant cafe ordering
 platform.
@@ -82,16 +87,16 @@ Not implemented yet:
 ## Development Commands
 
 ```bash
-dotnet restore Yenicafe.sln
-dotnet build Yenicafe.sln
-dotnet test Yenicafe.sln --collect:"XPlat Code Coverage"
+dotnet restore TabFlow.sln
+dotnet build TabFlow.sln
+dotnet test TabFlow.sln --collect:"XPlat Code Coverage"
 
 pnpm install
 pnpm lint
 pnpm typecheck
 pnpm test:ts
-pnpm --filter @yenicafe/platform-web build
-pnpm --filter @yenicafe/tenant-web build
+pnpm --filter @tabflow/platform-web build
+pnpm --filter @tabflow/tenant-web build
 ```
 
 ## Documentation Map

@@ -5,7 +5,7 @@ import type {
   CustomerOrderSummary,
   ServiceStation,
   TenantCatalog
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 import { BillManager } from "./bill-manager";
 import { CatalogManager } from "./catalog-manager";
 import { DeviceManager } from "./device-manager";

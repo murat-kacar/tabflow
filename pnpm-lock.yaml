@@ -17,12 +17,12 @@ importers:
 
   apps/platform-web:
     dependencies:
+      '@tabflow/shared-ts':
+        specifier: workspace:*
+        version: link:../../packages/shared-ts
       '@tailwindcss/postcss':
         specifier: 4.2.2
         version: 4.2.2
-      '@yenicafe/shared-ts':
-        specifier: workspace:*
-        version: link:../../packages/shared-ts
       next:
         specifier: 16.2.3
         version: 16.2.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -69,12 +69,12 @@ importers:
 
   apps/tenant-web:
     dependencies:
+      '@tabflow/shared-ts':
+        specifier: workspace:*
+        version: link:../../packages/shared-ts
       '@tailwindcss/postcss':
         specifier: 4.2.2
         version: 4.2.2
-      '@yenicafe/shared-ts':
-        specifier: workspace:*
-        version: link:../../packages/shared-ts
       next:
         specifier: 16.2.3
         version: 16.2.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

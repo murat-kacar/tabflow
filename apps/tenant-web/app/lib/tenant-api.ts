@@ -29,7 +29,7 @@ import {
   upsertServiceTableInputSchema,
   type VerifiedCustomerSession,
   verifiedCustomerSessionSchema
-} from "@yenicafe/shared-ts";
+} from "@tabflow/shared-ts";
 import type { TenantSession } from "./tenant-session";
 
 const defaultTenantApiBaseUrl = "http://127.0.0.1:8100";

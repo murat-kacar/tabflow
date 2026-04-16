@@ -1,11 +1,11 @@
 # Architecture
 
-This document describes the intended long-term shape of Yenicafe. Code should
+This document describes the intended long-term shape of TabFlow. Code should
 move toward this shape in small, tested increments.
 
 ## Stack Decision
 
-Yenicafe uses a .NET + TypeScript architecture:
+TabFlow uses a .NET + TypeScript architecture:
 
 - ASP.NET Core for backend APIs
 - Next.js with TypeScript for web applications

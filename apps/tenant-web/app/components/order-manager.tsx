@@ -1,6 +1,6 @@
 "use client";
 
-import type { CustomerOrderSummary } from "@yenicafe/shared-ts";
+import type { CustomerOrderSummary } from "@tabflow/shared-ts";
 import { useActionState } from "react";
 import { type TenantAdminActionState, updateOrderStatusAction } from "../auth-actions";
 import { formatDateTime } from "../lib/format";
