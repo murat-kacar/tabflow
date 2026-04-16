@@ -2,14 +2,17 @@
   "name": "yenicafe",
   "private": true,
   "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
     "test": "pnpm test:dotnet && pnpm test:ts",
     "test:dotnet": "dotnet test Yenicafe.sln --collect:\"XPlat Code Coverage\"",
-    "test:ts": "pnpm -r test",
-    "test:coverage": "pnpm test:dotnet && pnpm -r test:coverage"
+    "test:ts": "turbo run test",
+    "test:coverage": "pnpm test:dotnet && turbo run test:coverage"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.0",
