@@ -1,22 +1,66 @@
+# Dependencies and package manager artifacts
 node_modules/
+
+# Frontend build outputs and tool caches
 .next/
 .turbo/
 dist/
 coverage/
 *.tsbuildinfo
+.cache/
+**/.cache/
 
+# .NET build outputs
 bin/
 obj/
 TestResults/
 
-.env
-.env.*
-!.env.example
-
-.DS_Store
-Thumbs.db
-
+# Deployment and generated runtime artifacts
+.deploy/
 runtime/generated/
 **/runtime/generated/
 **/runtime-config.json
 **/firmware/masa*/config.h
+
+# Environment and machine-local configuration
+.env
+.env.*
+!.env.example
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+
+# Logs, temp files, pid files, local databases, and backups
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.pid
+*.pid.lock
+*.seed
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.cache
+
+# Secrets and certificate material
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+
+# Editor and IDE files
+.vs/
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+**/.DS_Store
+**/Thumbs.db
