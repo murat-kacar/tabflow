@@ -1,0 +1,20 @@
+{
+  "name": "@yenicafe/firmware",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.4",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.4"
+  }
+}

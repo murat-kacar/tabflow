@@ -1,0 +1,241 @@
+# Platform API
+
+The Platform API manages the product control plane. It is not a tenant runtime API.
+
+Base path:
+
+```text
+/api/platform
+```
+
+## Health
+
+```http
+GET /health
+GET /health/live
+```
+
+`GET /health` returns service metadata. `GET /health/live` is intended for simple
+container/process liveness checks.
+
+## Tenants
+
+All tenant registry endpoints require:
+
+```http
+X-Platform-Admin-Key: <secret>
+```
+
+The platform web app sends this header server-side from `PLATFORM_ADMIN_API_KEY`.
+Do not expose this key to browser code.
+
+These endpoints also require forwarded actor context from the platform web:
+
+```http
+X-Platform-Actor-Id: <platform admin guid>
+X-Platform-Actor-Email: <platform admin email>
+X-Platform-Actor-Role: viewer|admin|owner
+```
+
+The platform API validates this actor against `platform_admins` before executing
+role-protected actions.
+
+### List Tenants
+
+```http
+GET /api/platform/tenants
+```
+
+Returns tenants ordered by tenant code.
+
+### Get Tenant
+
+```http
+GET /api/platform/tenants/{id}
+```
+
+Returns `404` when the tenant does not exist.
+
+### List Tenant Runtimes
+
+```http
+GET /api/platform/tenants/runtimes
+```
+
+Returns one runtime visibility summary per tenant, derived from the latest
+provisioning result.
+
+Current behavior:
+
+- exposes internal runtime readiness from host-local health probing
+- exposes external/public reachability as a separate visibility signal
+- does not expose raw database passwords
+
+### Get Tenant Runtime
+
+```http
+GET /api/platform/tenants/{id}/runtime
+```
+
+Returns one tenant runtime visibility summary or `404`.
+
+### List Jobs
+
+```http
+GET /api/platform/tenants/jobs
+```
+
+Returns the 50 most recent provision jobs.
+
+### Get Job
+
+```http
+GET /api/platform/tenants/jobs/{jobId}
+```
+
+Returns a single provision job or `404`.
+
+### List Tenant Jobs
+
+```http
+GET /api/platform/tenants/{id}/jobs
+```
+
+Returns jobs for one tenant ordered newest-first.
+
+### Create Tenant
+
+```http
+POST /api/platform/tenants
+Content-Type: application/json
+
+{
+  "code": "moda",
+  "displayName": "Moda Cafe",
+  "primaryDomain": "moda.example.com",
+  "initialAdminEmail": "admin@moda.example.com"
+}
+```
+
+Current behavior:
+
+- normalizes `code`
+- normalizes `primaryDomain`
+- accepts optional `initialAdminEmail` for the tenant's first runtime admin intent
+- validates safe tenant code format
+- validates hostname format
+- validates email format when an initial admin email is provided
+- rejects tenant code/domain collision with `409`
+- creates tenant with `provisioning` status
+- creates primary domain row
+- creates pending `tenant.create` provision job
+- stores the intended first tenant admin email as registry metadata
+
+Provisioning is intentionally not executed inline.
+
+Required role:
+
+- `admin`
+- `owner`
+
+### Update Tenant Status
+
+```http
+PATCH /api/platform/tenants/{id}/status
+Content-Type: application/json
+
+{
+  "status": "active"
+}
+```
+
+Known statuses:
+
+- `provisioning`
+- `active`
+- `suspended`
+- `archived`
+
+Required role:
+
+- `admin`
+- `owner`
+
+### List Audit Logs
+
+```http
+GET /api/platform/tenants/audit
+```
+
+Returns the 100 most recent audit rows.
+
+Required role:
+
+- `admin`
+- `owner`
+
+## Authentication
+
+Current baseline uses two layers:
+
+- tenant registry endpoints require the server-to-server `X-Platform-Admin-Key`
+- platform admins log into the platform web through `/api/platform/auth/login`
+- platform web forwards validated actor context for role-aware authorization
+
+The platform web stores a signed httpOnly session cookie and continues to call
+tenant registry endpoints from the server side using the admin API key. This is
+an intentional control-plane step: it keeps browser code away from infrastructure
+credentials while still allowing endpoint-level authorization and audit logging.
+
+Bootstrap behavior:
+
+- if `platform_admins` is empty
+- and `PlatformAdmin:BootstrapEmail` plus `PlatformAdmin:BootstrapPassword` are set
+- the first admin row is created during platform API startup
+
+Implemented today:
+
+- role-aware authorization for mutable tenant actions
+- audit log for login and tenant lifecycle actions
+- bootstrap owner creation when the platform has no admins
+
+Still pending:
+
+- admin management endpoints
+- replacing the shared API key gate with a dedicated internal trust boundary
+- richer audit filtering and export
+
+## Error Rules
+
+- validation errors return `400` with validation details
+- duplicate tenant code/domain returns `409`
+- missing records return `404`
+- infrastructure/provisioning failures belong to provision job status, not hidden
+  frontend errors
+
+## Provisioning Worker
+
+Current worker behavior:
+
+- creates provisioning jobs and exposes their state
+- allocates runtime metadata for tenant creation
+- records provisioning progress and failures in the platform database
+- keeps long-running lifecycle work outside frontend request handlers
+
+## Platform Operator
+
+`apps/platform-operator` is the worker responsible for:
+
+- polling pending or failed `tenant.create` jobs
+- allocating deterministic runtime metadata such as DB name, DB user, and ports
+- writing per-table firmware `config.h` files for the configured initial table count
+- generating per-tenant secret material for runtime configuration
+- marking the provisioning job `artifacts_ready` after local artifacts are written
+- leaving the tenant in `provisioning` until real runtime deploy and health verification are complete
+- marking the tenant `suspended` only after terminal provisioning failure
+
+Current limitation:
+
+- platform core now lives in the shared backend package, but endpoint/auth concerns
+  still live in `platform-api`; future cleanup can split auth/application services
+  even more explicitly if needed

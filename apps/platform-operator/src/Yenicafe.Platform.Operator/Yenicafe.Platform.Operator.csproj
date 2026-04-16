@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <ItemGroup>
+    <ProjectReference Include="../../../../packages/shared-dotnet/src/Yenicafe.Platform/Yenicafe.Platform.csproj" />
+  </ItemGroup>
+</Project>
