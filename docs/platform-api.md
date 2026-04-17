@@ -1,5 +1,9 @@
 # Platform API
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 The Platform API manages the product control plane. It is not a tenant runtime API.
 
 Base path:
@@ -8,15 +12,22 @@ Base path:
 /api/platform
 ```
 
+Contract governance:
+
+- current contract generation/publish rules live in `docs/api-governance.md`
+- current baseline contract version is `v1` semantics on unversioned paths
+
 ## Health
 
 ```http
 GET /health
 GET /health/live
+GET /health/ready
 ```
 
 `GET /health` returns service metadata. `GET /health/live` is intended for simple
-container/process liveness checks.
+container/process liveness checks. `GET /health/ready` checks platform database
+connectivity for readiness.
 
 ## Tenants
 
@@ -181,6 +192,13 @@ Current baseline uses two layers:
 - tenant registry endpoints require the server-to-server `X-Platform-Admin-Key`
 - platform admins log into the platform web through `/api/platform/auth/login`
 - platform web forwards validated actor context for role-aware authorization
+
+Auth endpoints:
+
+```http
+GET /api/platform/auth/bootstrap-status
+POST /api/platform/auth/login
+```
 
 The platform web stores a signed httpOnly session cookie and continues to call
 tenant registry endpoints from the server side using the admin API key. This is

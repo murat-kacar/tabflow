@@ -1,5 +1,9 @@
 # Source Baseline
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 This directory is a source-only working baseline for rebuilding TabFlow without
 old VPS runtime state.
 

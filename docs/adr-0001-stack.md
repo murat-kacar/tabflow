@@ -1,5 +1,9 @@
 # ADR 0001: Use .NET + TypeScript
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 ## Status
 
 Accepted.

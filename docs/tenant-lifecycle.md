@@ -1,5 +1,9 @@
 # Tenant Lifecycle
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 Tenant lifecycle operations are platform jobs.
 
 The tenant lifecycle is documentation-led because mistakes here create expensive
@@ -52,6 +56,21 @@ Current implementation status:
   default table seed, and starter catalog seed
 - job status, retryability, and visibility already exist in the platform registry
 - runtime packaging and host automation are outside this source-only baseline
+
+## Idempotency And Compensation Matrix
+
+| Step | Current source-baseline state | Idempotency key/input | Retry behavior | Compensation or rollback | Terminal failure rule |
+| --- | --- | --- | --- | --- | --- |
+| Validate tenant code/domain/email | Implemented | normalized tenant code + normalized domain | Safe to retry inline | none | invalid input stays failed until corrected |
+| Reserve tenant + primary domain | Implemented | unique code/domain constraints | retry on transient DB faults | no partial side effects beyond one transaction | unique conflict fails fast with `409` |
+| Create `tenant.create` job | Implemented | tenant id + job type | one pending job per requested operation | cancel job row if explicit abort is requested | repeated create should not spawn duplicate active jobs |
+| Allocate runtime identifiers | Implemented | tenant code deterministic naming rules | retry in worker lease window | release reserved metadata on compensation | collision enters failed job state with corrective action required |
+| Write runtime artifacts | Implemented | job id + output path | safe to retry by overwriting same files | delete tenant output folder on compensation | filesystem permission errors after max attempts |
+| Create tenant DB/user | Planned (operational layer) | runtime metadata | retry with bounded attempts | drop created DB/user when later steps fail | collision/privilege errors become terminal until operator fix |
+| Apply tenant migrations | Planned (operational layer) | migration history in tenant DB | retry is safe when migrations are idempotent | drop tenant DB if provisioning is rolled back | non-retryable SQL errors become terminal |
+| Seed tenant defaults | Planned (operational layer) | tenant profile singleton + table number uniqueness | retry should be upsert-style | remove seeded rows only during full rollback | invariant violations become terminal |
+| Health verify (`/health/ready`) | Planned (operational layer) | tenant runtime endpoint | retry with backoff | keep tenant in `provisioning` if probe fails | max-attempt exhaustion marks job failed |
+| Mark tenant active | Planned (operational layer) | tenant id + final successful job | single status transition guard | set tenant `suspended` on terminal provisioning failure | active transition blocked if prerequisites are incomplete |
 
 ## Platform Registry API
 
@@ -113,8 +132,7 @@ Deletion must not be the default path for unhappy tenants. Prefer archive first.
 
 ## Firmware Artifacts
 
-Tenant creation should prepare a tenant firmware base artifact. Table creation
-should prepare per-table `config.h` artifacts containing:
+Tenant provisioning should prepare per-table `config.h` artifacts containing:
 
 - backend host
 - table id

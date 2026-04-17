@@ -1,5 +1,9 @@
 # Tenant API
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 The Tenant API is the runtime backend for one business tenant.
 
 Base behavior today:
@@ -43,6 +47,11 @@ Environment/config values used today:
 The tenant API should receive these from the selected runtime configuration
 layer. This source-only baseline does not prescribe the packaging mechanism.
 
+Contract governance:
+
+- current contract generation/publish rules live in `docs/api-governance.md`
+- current baseline contract version is `v1` semantics on unversioned paths
+
 ## Endpoints
 
 ### Health
@@ -50,7 +59,11 @@ layer. This source-only baseline does not prescribe the packaging mechanism.
 ```http
 GET /health
 GET /health/live
+GET /health/ready
 ```
+
+`GET /health` returns service metadata. `GET /health/live` is a process liveness
+probe. `GET /health/ready` also checks tenant database connectivity.
 
 ### Tenant Profile
 
@@ -160,6 +173,23 @@ Current baseline returns the matching admin profile when credentials are valid.
 Tenant web currently converts this into a signed `httpOnly` session cookie and
 forwards admin identity server-side to protected tenant admin endpoints.
 
+## Tenant Admin Auth Headers
+
+Protected tenant admin endpoints under `/api/admin/*` (except `bootstrap-status`,
+`bootstrap`, and `auth/login`) require all of the following headers:
+
+```http
+X-Tenant-Admin-Key: <secret>
+X-Tenant-Admin-Id: <tenant admin guid>
+X-Tenant-Admin-Email: <tenant admin email>
+```
+
+Current behavior:
+
+- `X-Tenant-Admin-Key` must match `TenantAdmin:ApiKey` on tenant API
+- admin id/email pair must match one active `tenant_admins` row
+- missing or invalid headers return `401`
+
 ### Customer Order Create
 
 ```http
@@ -228,13 +258,6 @@ Current behavior:
 GET /api/admin/bills
 POST /api/admin/bills/{billId}/close
 ```
-
-Current behavior:
-
-- bill list includes order count per table
-- close bill ends active customer sessions on that table
-
-These endpoints are protected by tenant admin actor validation.
 
 Current behavior:
 
@@ -339,6 +362,12 @@ Current behavior:
 - `ping` -> `pong`
 - `refresh` generates and pushes a replacement token
 
+Naming convention and compatibility:
+
+- canonical domain names in docs/code are `tableNumber` and `deviceKey`
+- current wire path/query names (`/ws/masa/...` and `anahtar`) are treated as compatibility surface
+- new endpoint designs should prefer canonical English names while preserving existing compatibility routes
+
 ## Current Schema Baseline
 
 Tenant migration now creates:
@@ -351,6 +380,7 @@ Tenant migration now creates:
 - `customer_sessions`
 - `customer_bills`
 - `menu_categories`
+- `service_stations`
 - `menu_items`
 - `customer_orders`
 - `customer_order_items`

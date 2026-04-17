@@ -51,38 +51,19 @@ docs/             Architecture and operations documentation
 - Runtime packaging and host automation are separate layers, not source
   requirements.
 
+## Documentation Scope
+
+Every document should declare one scope line near the top:
+
+- `Scope: Source Baseline` for source-owned contracts and architecture.
+- `Scope: Operational Reference` for environment-specific runtime runbooks.
+
+This repository currently ships only source-baseline docs.
+
 ## Current Baseline
 
-Implemented:
-
-- Platform API health endpoint.
-- Platform tenant registry API.
-- Server-side platform API key guard for tenant registry endpoints.
-- Platform Web tenant list/create/status management screen.
-- Platform Web selected-tenant operations panel with tenant-scoped provisioning/audit context.
-- Platform runtime visibility summary from latest provisioning result and runtime health probe.
-- Platform admin login page with signed httpOnly session cookie.
-- First admin bootstrap from configuration when no admin exists.
-- Platform admin role model with endpoint-level authorization.
-- Platform audit log for login and tenant lifecycle actions.
-- Tenant create flow can capture the intended first tenant admin email.
-- Platform PostgreSQL initial migration for tenants, domains, admins, and jobs.
-- Background provisioning worker that processes queued tenant jobs.
-- Generated per-table firmware `config.h` outputs.
-- Separate `platform-operator` worker process for host-level provisioning execution.
-- Platform Web provisioning and audit visibility panels.
-- Next.js platform and tenant web shells.
-- Shared TypeScript package and shared .NET platform core package.
-- Tenant runtime schema, startup initializer, public catalog endpoints, QR token verify plus persisted customer session baseline, table-bound open bill lifecycle, admin bootstrap/login plus session guard baseline, protected admin catalog/device/bill management API, device websocket auth/token push baseline, table-centric tenant operations dashboard, waiter-style per-table action panel, service station CRUD, kitchen/KDS board, order create flow, and tenant tests.
-- Firmware package skeleton.
-- Lint, typecheck, unit/component test tooling.
-
-Not implemented yet:
-
-- Deeper bill operations, payment lifecycle flows, and a dedicated waiter workflow surface.
-- Runtime packaging.
-- Production secret management.
-- Fine-grained multi-role management UI and audit exploration screens.
+Use [docs/capability-matrix.md](docs/capability-matrix.md) as the single
+feature status reference instead of duplicating a long list in this README.
 
 ## Development Commands
 
@@ -102,9 +83,13 @@ pnpm --filter @tabflow/tenant-web build
 ## Documentation Map
 
 - `SOURCE_BASELINE.md`: what this source-only baseline includes and excludes.
+- `docs/capability-matrix.md`: implemented/partial/planned capability matrix.
 - `docs/architecture.md`: service, package, and data boundaries.
+- `docs/api-governance.md`: API versioning and OpenAPI publication policy.
 - `docs/tenant-lifecycle.md`: tenant create/archive/delete lifecycle.
 - `docs/platform-api.md`: current platform API contract.
 - `docs/tenant-api.md`: current tenant API baseline.
 - `docs/firmware.md`: ESP32 device architecture and hardware lock.
+- `docs/nfr-baseline.md`: non-functional baseline and operational targets.
 - `docs/adr-0001-stack.md`: stack decision record.
+- `docs/adr-0002-internal-trust-boundary.md`: planned internal auth boundary evolution.
