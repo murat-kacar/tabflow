@@ -4,6 +4,15 @@ This document records the current host-level runtime layout used for a live
 staging installation. It exists to make operational state explicit without
 moving deployment automation into the source baseline.
 
+## Scope
+
+- classification: operational reference (not a source baseline contract)
+- this file documents current staging host state and may change faster than
+  source contracts
+- when this file conflicts with source-contract docs, treat source contracts as
+  authoritative for application behavior and treat this file as host-state
+  notes that need reconciliation
+
 ## Current Hosts
 
 - `https://staging.tabflow.uk` -> platform web + platform API

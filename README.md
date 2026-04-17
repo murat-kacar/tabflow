@@ -108,3 +108,4 @@ pnpm --filter @tabflow/tenant-web build
 - `docs/tenant-api.md`: current tenant API baseline.
 - `docs/firmware.md`: ESP32 device architecture and hardware lock.
 - `docs/adr-0001-stack.md`: stack decision record.
+- `docs/host-operations.md`: host-specific operational reference (not a source baseline contract).
