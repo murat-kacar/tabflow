@@ -193,6 +193,13 @@ Current baseline uses two layers:
 - platform admins log into the platform web through `/api/platform/auth/login`
 - platform web forwards validated actor context for role-aware authorization
 
+Auth endpoints:
+
+```http
+GET /api/platform/auth/bootstrap-status
+POST /api/platform/auth/login
+```
+
 The platform web stores a signed httpOnly session cookie and continues to call
 tenant registry endpoints from the server side using the admin API key. This is
 an intentional control-plane step: it keeps browser code away from infrastructure

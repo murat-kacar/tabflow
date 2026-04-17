@@ -175,8 +175,8 @@ forwards admin identity server-side to protected tenant admin endpoints.
 
 ## Tenant Admin Auth Headers
 
-Protected tenant admin endpoints under `/api/admin/*` (except bootstrap and auth
-login) require all of the following headers:
+Protected tenant admin endpoints under `/api/admin/*` (except `bootstrap-status`,
+`bootstrap`, and `auth/login`) require all of the following headers:
 
 ```http
 X-Tenant-Admin-Key: <secret>
