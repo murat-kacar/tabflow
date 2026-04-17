@@ -1,7 +1,29 @@
 # Architecture
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 This document describes the intended long-term shape of TabFlow. Code should
 move toward this shape in small, tested increments.
+
+## State Split
+
+Implemented (as of snapshot date):
+
+- service boundaries between `platform-*` and `tenant-*` apps
+- shared backend/frontend package boundaries
+- separate platform and tenant databases
+- job-based tenant provisioning entrypoint
+
+Planned:
+
+- stronger internal trust boundary between web and APIs
+- explicit runtime packaging and host automation layer
+
+Out of scope for this repo:
+
+- production deployment topology and OS-level runbooks
 
 ## Stack Decision
 

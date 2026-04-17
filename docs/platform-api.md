@@ -1,5 +1,9 @@
 # Platform API
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 The Platform API manages the product control plane. It is not a tenant runtime API.
 
 Base path:
@@ -7,6 +11,11 @@ Base path:
 ```text
 /api/platform
 ```
+
+Contract governance:
+
+- current contract generation/publish rules live in `docs/api-governance.md`
+- current baseline contract version is `v1` semantics on unversioned paths
 
 ## Health
 

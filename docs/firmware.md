@@ -1,5 +1,9 @@
 # Firmware
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 Firmware is part of the tenant lifecycle, but devices are tenant runtime clients.
 They must not know platform internals.
 

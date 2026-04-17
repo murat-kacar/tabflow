@@ -1,5 +1,9 @@
 # Tenant API
 
+Scope: Source Baseline
+
+Status Snapshot: 2026-04-17
+
 The Tenant API is the runtime backend for one business tenant.
 
 Base behavior today:
@@ -42,6 +46,11 @@ Environment/config values used today:
 
 The tenant API should receive these from the selected runtime configuration
 layer. This source-only baseline does not prescribe the packaging mechanism.
+
+Contract governance:
+
+- current contract generation/publish rules live in `docs/api-governance.md`
+- current baseline contract version is `v1` semantics on unversioned paths
 
 ## Endpoints
 
@@ -352,6 +361,12 @@ Current behavior:
 - `new_token` now contains real `qr_side` and packed `qr_bits_hex`
 - `ping` -> `pong`
 - `refresh` generates and pushes a replacement token
+
+Naming convention and compatibility:
+
+- canonical domain names in docs/code are `tableNumber` and `deviceKey`
+- current wire path/query names (`/ws/masa/...` and `anahtar`) are treated as compatibility surface
+- new endpoint designs should prefer canonical English names while preserving existing compatibility routes
 
 ## Current Schema Baseline
 
