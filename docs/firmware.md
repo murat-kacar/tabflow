@@ -34,8 +34,7 @@ WebSocket delivery.
 Generated tenant artifacts:
 
 ```text
-firmware/
-  firmware.ino
+runtime/generated/tenants/<tenant-code>/firmware/
   masa001/config.h
   masa002/config.h
 ```
@@ -79,18 +78,19 @@ must not grow its own QR generation logic.
 
 ## Artifact Ownership
 
-Tenant creation should generate the tenant-level `firmware.ino` artifact. Table
-creation should generate table-level config artifacts.
+Tenant creation should generate table-level `config.h` artifacts under the
+tenant firmware directory.
 
 Example:
 
 ```text
-generated/firmware/<tenant-code>/firmware.ino
-generated/firmware/<tenant-code>/masa001/config.h
-generated/firmware/<tenant-code>/masa002/config.h
+runtime/generated/tenants/<tenant-code>/firmware/masa001/config.h
+runtime/generated/tenants/<tenant-code>/firmware/masa002/config.h
 ```
 
 Generated artifacts include operational secrets. They are runtime outputs, not
 source files. The default local output root is ignored by git; production
 deployments should point `Provisioning:OutputRoot` at an external runtime
-location with restricted filesystem permissions.
+location with restricted filesystem permissions. If `Provisioning:OutputRoot`
+is overridden, the same `tenants/<tenant-code>/firmware/...` layout still
+applies under that root.

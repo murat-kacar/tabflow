@@ -13,10 +13,12 @@ Base path:
 ```http
 GET /health
 GET /health/live
+GET /health/ready
 ```
 
 `GET /health` returns service metadata. `GET /health/live` is intended for simple
-container/process liveness checks.
+container/process liveness checks. `GET /health/ready` checks platform database
+connectivity for readiness.
 
 ## Tenants
 
