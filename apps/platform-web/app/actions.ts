@@ -30,7 +30,7 @@ export async function createTenantAction(
         code: String(formData.get("code") ?? ""),
         displayName: String(formData.get("displayName") ?? ""),
         primaryDomain: String(formData.get("primaryDomain") ?? ""),
-        initialAdminEmail: String(formData.get("initialAdminEmail") ?? "") || null
+        initialAdminEmail: null
       },
       session
     );

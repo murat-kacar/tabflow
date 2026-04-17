@@ -38,7 +38,9 @@ export function CreateTenantForm({ canManage }: { canManage: boolean }) {
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-stone-950">Isletme olustur</h2>
         <p className="mt-2 text-sm text-stone-600">
           Bu adim tenant kaydini rezerve eder ve provisioning job olusturur. Container, TLS ve
-          firmware uretimi sonraki worker adiminda calisacak.
+          firmware uretimi sonraki worker adiminda calisacak. Ilk admin e-postasi otomatik
+          olarak <span className="font-semibold">admin@&lt;tenant-kodu&gt;.tabflow.uk</span>
+          seklinde atanir.
         </p>
       </div>
 
@@ -68,15 +70,6 @@ export function CreateTenantForm({ canManage }: { canManage: boolean }) {
             name="primaryDomain"
             placeholder="demo.example.com"
             required
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-medium text-stone-700">
-          Ilk admin e-postasi
-          <input
-            className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-950 outline-none transition focus:border-stone-500 focus:bg-white"
-            name="initialAdminEmail"
-            placeholder="admin@demo.example.com"
-            type="email"
           />
         </label>
       </div>
