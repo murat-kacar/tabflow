@@ -8,6 +8,8 @@ public sealed class TenantAdmin
 
     public string PasswordHash { get; set; } = string.Empty;
 
+    public bool MustChangePassword { get; set; } = false;
+
     public bool IsActive { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

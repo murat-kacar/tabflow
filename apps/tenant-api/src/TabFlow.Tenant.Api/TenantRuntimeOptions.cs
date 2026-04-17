@@ -2,6 +2,8 @@ namespace TabFlow.Tenant.Api;
 
 public sealed class TenantRuntimeOptions
 {
+    public const string DefaultAdminPassword = "TabFlow123.";
+
     public string Code { get; set; } = "demo";
 
     public string DisplayName { get; set; } = "Demo Cafe";

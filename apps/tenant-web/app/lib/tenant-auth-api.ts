@@ -88,3 +88,35 @@ export async function loginTenantAdmin(input: {
 
   return tenantAdminProfileSchema.parse(await response.json());
 }
+
+export async function changeTenantAdminPassword(
+  session: { adminId: string; email: string },
+  input: { currentPassword: string; newPassword: string }
+): Promise<TenantAdminProfile> {
+  const apiKey = process.env.TENANT_ADMIN_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("TENANT_ADMIN_API_KEY is not configured.");
+  }
+
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Tenant-Admin-Key": apiKey,
+      "X-Tenant-Admin-Email": session.email,
+      "X-Tenant-Admin-Id": session.adminId
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Mevcut sifre hatali.");
+    }
+
+    throw new Error(await readProblem(response));
+  }
+
+  return tenantAdminProfileSchema.parse(await response.json());
+}

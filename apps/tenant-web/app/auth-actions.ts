@@ -63,7 +63,8 @@ async function establishSession(
 
   const { token, session } = createTenantSessionToken({
     adminId: profile.id,
-    email: profile.email
+    email: profile.email,
+    mustChangePassword: profile.mustChangePassword
   });
 
   await setTenantSessionCookie(token, session.expiresAt);
@@ -107,6 +108,54 @@ export async function tenantBootstrapAction(
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Ilk admin olusturulamadi."
+    };
+  }
+
+  redirect("/admin");
+}
+
+export async function changeTenantPasswordAction(
+  _previousState: TenantLoginActionState,
+  formData: FormData
+): Promise<TenantLoginActionState> {
+  const session = await getTenantSession();
+
+  if (!session) {
+    return {
+      ok: false,
+      message: "Oturum bulunamadi."
+    };
+  }
+
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (newPassword !== confirmPassword) {
+    return {
+      ok: false,
+      message: "Yeni sifre ve tekrar alani ayni olmali."
+    };
+  }
+
+  try {
+    const { changeTenantAdminPassword } = await import("./lib/tenant-auth-api");
+    const profile = await changeTenantAdminPassword(session, {
+      currentPassword,
+      newPassword
+    });
+
+    const { token, session: nextSession } = createTenantSessionToken({
+      adminId: profile.id,
+      email: profile.email,
+      mustChangePassword: profile.mustChangePassword
+    });
+
+    await setTenantSessionCookie(token, nextSession.expiresAt);
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Sifre degistirilemedi."
     };
   }
 

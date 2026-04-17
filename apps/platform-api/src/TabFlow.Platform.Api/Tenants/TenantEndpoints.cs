@@ -69,7 +69,7 @@ public static class TenantEndpoints
         var host = TenantValidation.NormalizeHost(request.PrimaryDomain);
         var displayName = request.DisplayName.Trim();
         var initialAdminEmail = string.IsNullOrWhiteSpace(request.InitialAdminEmail)
-            ? null
+            ? $"admin@{code}.tabflow.uk"
             : request.InitialAdminEmail.Trim().ToLowerInvariant();
 
         if (!TenantValidation.IsValidCode(code))

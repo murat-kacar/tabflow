@@ -254,7 +254,8 @@ describe("tenant runtime schemas", () => {
     const profile = tenantAdminProfileSchema.parse({
       id: "018f6f12-37b6-7cc2-9d37-d49943f7b7aa",
       email: "admin@moda.example.com",
-      createdAt: "2026-04-15T00:00:00.000Z"
+      createdAt: "2026-04-15T00:00:00.000Z",
+      mustChangePassword: true
     });
     const status = tenantAdminBootstrapStatusSchema.parse({
       bootstrapRequired: true,
@@ -262,6 +263,7 @@ describe("tenant runtime schemas", () => {
     });
 
     expect(profile.email).toContain("@");
+    expect(profile.mustChangePassword).toBe(true);
     expect(status.bootstrapRequired).toBe(true);
   });
 

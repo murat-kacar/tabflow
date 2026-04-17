@@ -2,11 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import {
-  type TenantLoginActionState,
-  tenantBootstrapAction,
-  tenantLoginAction
-} from "../auth-actions";
+import { type TenantLoginActionState, tenantLoginAction } from "../auth-actions";
 
 const initialState: TenantLoginActionState = {
   ok: false,
@@ -35,7 +31,6 @@ export function TenantLoginForm({
   suggestedAdminEmail: string | null;
 }) {
   const [loginState, loginAction] = useActionState(tenantLoginAction, initialState);
-  const [bootstrapState, bootstrapAction] = useActionState(tenantBootstrapAction, initialState);
 
   return (
     <div className="grid gap-6">
@@ -82,58 +77,28 @@ export function TenantLoginForm({
         </div>
       </form>
 
-      {bootstrapRequired ? (
-        <form
-          action={bootstrapAction}
-          className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 shadow-sm"
-        >
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">
-            Bootstrap
+      <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 shadow-sm">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">
+          Varsayilan Admin
+        </p>
+        <h2 className="mt-3 text-2xl font-bold tracking-tight text-amber-950">
+          Tenant olusurken ilk admin otomatik hazirlanir
+        </h2>
+        <p className="mt-3 text-sm text-amber-900">
+          Varsayilan sifre <span className="font-semibold">TabFlow123.</span> olarak atanir ve
+          ilk giriste degistirilmesi zorunludur.
+        </p>
+        {suggestedAdminEmail ? (
+          <p className="mt-2 text-sm text-amber-950">
+            Varsayilan admin email: <span className="font-semibold">{suggestedAdminEmail}</span>
           </p>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight text-amber-950">
-            Ilk tenant admini olustur
-          </h2>
-          <p className="mt-3 text-sm text-amber-900">
-            Bu tenant icin henuz aktif admin yok. Asagidan ilk yonetici hesabini ac.
+        ) : null}
+        {bootstrapRequired ? (
+          <p className="mt-2 text-sm text-amber-950">
+            Ilk admin olusumu bir sonraki tenant runtime baslangicinda otomatik tamamlanir.
           </p>
-          {suggestedAdminEmail ? (
-            <p className="mt-2 text-sm text-amber-950">
-              Onerilen ilk admin: <span className="font-semibold">{suggestedAdminEmail}</span>
-            </p>
-          ) : null}
-
-          <div className="mt-6 grid gap-4">
-            <label className="grid gap-2 text-sm font-medium text-amber-950">
-              Email
-              <input
-                autoComplete="email"
-                className="rounded-2xl border border-amber-200 bg-white px-4 py-3 text-stone-950 outline-none transition focus:border-amber-500"
-                defaultValue={suggestedAdminEmail ?? ""}
-                name="email"
-                required
-                type="email"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-medium text-amber-950">
-              Sifre
-              <input
-                autoComplete="new-password"
-                className="rounded-2xl border border-amber-200 bg-white px-4 py-3 text-stone-950 outline-none transition focus:border-amber-500"
-                name="password"
-                required
-                type="password"
-              />
-            </label>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <SubmitButton idleLabel="Ilk admini olustur" pendingLabel="Olusturuluyor..." />
-            {bootstrapState.message ? (
-              <p className="text-sm font-medium text-red-700">{bootstrapState.message}</p>
-            ) : null}
-          </div>
-        </form>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

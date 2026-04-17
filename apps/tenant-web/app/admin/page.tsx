@@ -20,6 +20,10 @@ export default async function TenantAdminPage() {
     redirect("/admin/login");
   }
 
+  if (session.mustChangePassword) {
+    redirect("/admin/change-password");
+  }
+
   const [orders, catalog, devices, bills, tables, stations] = await Promise.all([
     listTenantOrders(session),
     getAdminCatalog(session),

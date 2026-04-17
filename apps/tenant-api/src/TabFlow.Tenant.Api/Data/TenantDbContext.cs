@@ -59,6 +59,7 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.HasIndex(admin => admin.Email).IsUnique();
             entity.Property(admin => admin.Email).HasColumnName("email").HasMaxLength(254);
             entity.Property(admin => admin.PasswordHash).HasColumnName("password_hash").HasMaxLength(512);
+            entity.Property(admin => admin.MustChangePassword).HasColumnName("must_change_password");
             entity.Property(admin => admin.IsActive).HasColumnName("is_active");
             entity.Property(admin => admin.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
         });

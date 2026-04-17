@@ -10,9 +10,10 @@ Base behavior today:
 
 - initializes tenant schema from `infra/postgres/migrations/tenant/0001_initial.sql`
 - seeds tenant profile, default tables, and starter menu catalog on empty databases
+- seeds a default tenant admin on empty databases
 - optionally seeds initial per-table device keys from configuration
 - exposes read-oriented tenant and catalog endpoints
-- supports first tenant admin bootstrap and login verification
+- supports tenant admin login verification plus first-login password rotation
 - supports protected tenant admin catalog read and create/update operations
 - supports protected tenant admin device listing, key rotation, and manual token refresh
 - accepts device WebSocket connections on `/ws/masa/{tableNumber}`
@@ -40,6 +41,7 @@ Environment/config values used today:
 - `Tenant:DeviceTokenTtlSeconds`
 - `Tenant:DeviceKeySeedJson`
 - `Tenant:CustomerSessionTtlMinutes`
+- `Tenant:InitialAdminEmail`
 - `TENANT_SESSION_SECRET` on the tenant web side for signed admin cookies
 - `TENANT_ADMIN_API_KEY` on the tenant web side for server-to-server admin API calls
 - `TenantAdmin:ApiKey` on the tenant API side for protected admin endpoints
@@ -138,6 +140,7 @@ GET /api/admin/bootstrap-status
 ```
 
 Returns whether the tenant has any active admin user.
+Current baseline also returns the suggested default admin email.
 
 ### Tenant Admin Bootstrap
 
@@ -157,6 +160,15 @@ When `Tenant:BootstrapToken` is configured, callers must send
 `X-Tenant-Bootstrap-Token`. Production runtimes should configure at least one of
 these guards.
 
+Current runtime baseline now prefers automatic first-admin seeding during tenant
+startup. On empty tenant databases:
+
+- a default admin is created automatically
+- email resolves to `Tenant:InitialAdminEmail` when configured
+- otherwise email falls back to `admin@<tenant-code>.tabflow.uk`
+- default password is `TabFlow123.`
+- the seeded admin must change password on first login
+
 ### Tenant Admin Login
 
 ```http
@@ -172,6 +184,31 @@ Content-Type: application/json
 Current baseline returns the matching admin profile when credentials are valid.
 Tenant web currently converts this into a signed `httpOnly` session cookie and
 forwards admin identity server-side to protected tenant admin endpoints.
+
+The login payload now also carries `mustChangePassword`. When true, tenant web
+must redirect the admin to a forced password-change screen before allowing
+access to the main admin surfaces.
+
+### Tenant Admin Password Change
+
+```http
+POST /api/admin/auth/change-password
+Content-Type: application/json
+X-Tenant-Admin-Key: <secret>
+X-Tenant-Admin-Id: <tenant admin guid>
+X-Tenant-Admin-Email: <tenant admin email>
+
+{
+  "currentPassword": "TabFlow123.",
+  "newPassword": "a-new-password"
+}
+```
+
+Current behavior:
+
+- validates current password against the active tenant admin
+- requires a non-empty new password with a minimum baseline length
+- clears the `mustChangePassword` flag after success
 
 ## Tenant Admin Auth Headers
 

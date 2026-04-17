@@ -9,7 +9,7 @@ export default async function TenantLoginPage() {
   const session = await getTenantSession();
 
   if (session) {
-    redirect("/admin");
+    redirect(session.mustChangePassword ? "/admin/change-password" : "/admin");
   }
 
   const bootstrapStatus = await getTenantBootstrapStatus();

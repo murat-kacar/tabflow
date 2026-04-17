@@ -11,6 +11,7 @@ public sealed class TenantDbContextInvariantTests
 
         Assert.Contains("profile => profile.Code", source, StringComparison.Ordinal);
         Assert.Contains("admin => admin.Email", source, StringComparison.Ordinal);
+        Assert.Contains("admin => admin.MustChangePassword", source, StringComparison.Ordinal);
         Assert.Contains("table => table.Number", source, StringComparison.Ordinal);
         Assert.Contains("token => token.TokenHash", source, StringComparison.Ordinal);
         Assert.Contains("item => item.Sku", source, StringComparison.Ordinal);

@@ -6,6 +6,7 @@ export const tenantSessionCookieName = "tabflow_tenant_admin_session";
 export type TenantSession = {
   adminId: string;
   email: string;
+  mustChangePassword: boolean;
   expiresAt: string;
 };
 
@@ -34,17 +35,23 @@ function isTenantSession(value: unknown): value is TenantSession {
   return (
     typeof session.adminId === "string" &&
     typeof session.email === "string" &&
+    typeof session.mustChangePassword === "boolean" &&
     typeof session.expiresAt === "string"
   );
 }
 
-export function createTenantSessionToken(input: { adminId: string; email: string }): {
+export function createTenantSessionToken(input: {
+  adminId: string;
+  email: string;
+  mustChangePassword: boolean;
+}): {
   token: string;
   session: TenantSession;
 } {
   const session: TenantSession = {
     adminId: input.adminId,
     email: input.email,
+    mustChangePassword: input.mustChangePassword,
     expiresAt: new Date(Date.now() + sessionDurationMs).toISOString()
   };
   const payload = Buffer.from(JSON.stringify(session)).toString("base64url");

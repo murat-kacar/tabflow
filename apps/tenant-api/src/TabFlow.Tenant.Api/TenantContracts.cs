@@ -98,7 +98,11 @@ public sealed record CatalogResponse(
 
 public sealed record TenantAdminBootstrapStatusResponse(bool BootstrapRequired, string? SuggestedAdminEmail);
 
-public sealed record TenantAdminProfileResponse(Guid Id, string Email, DateTimeOffset CreatedAt);
+public sealed record TenantAdminProfileResponse(
+    Guid Id,
+    string Email,
+    DateTimeOffset CreatedAt,
+    bool MustChangePassword);
 
 public sealed record BootstrapTenantAdminRequest(string Email, string Password);
 
@@ -108,7 +112,10 @@ public sealed record TenantAdminSessionResponse(
     Guid Id,
     string Email,
     DateTimeOffset CreatedAt,
-    DateTimeOffset IssuedAt);
+    DateTimeOffset IssuedAt,
+    bool MustChangePassword);
+
+public sealed record ChangeTenantAdminPasswordRequest(string CurrentPassword, string NewPassword);
 
 public sealed record CustomerOrderSummaryResponse(
     Guid Id,

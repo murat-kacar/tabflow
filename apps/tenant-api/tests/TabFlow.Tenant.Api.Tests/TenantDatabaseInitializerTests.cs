@@ -40,4 +40,31 @@ public sealed class TenantDatabaseInitializerTests
 
         Assert.Throws<JsonException>(() => TenantDatabaseInitializer.ReadDeviceKeySeeds(options));
     }
+
+    [Fact]
+    public void ResolveInitialAdminEmail_uses_explicit_value_when_configured()
+    {
+        var options = new TenantRuntimeOptions
+        {
+            Code = "moda",
+            InitialAdminEmail = "Admin@Moda.TabFlow.Uk"
+        };
+
+        var email = TenantDatabaseInitializer.ResolveInitialAdminEmail(options);
+
+        Assert.Equal("admin@moda.tabflow.uk", email);
+    }
+
+    [Fact]
+    public void ResolveInitialAdminEmail_falls_back_to_tenant_code_domain()
+    {
+        var options = new TenantRuntimeOptions
+        {
+            Code = "moda-cafe"
+        };
+
+        var email = TenantDatabaseInitializer.ResolveInitialAdminEmail(options);
+
+        Assert.Equal("admin@moda-cafe.tabflow.uk", email);
+    }
 }

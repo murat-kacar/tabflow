@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TabFlow.Tenant.Api.Auth;
 using TabFlow.Tenant.Api.Catalog;
 using TabFlow.Tenant.Api.Data;
 using TabFlow.Tenant.Api.Kitchen;
@@ -15,6 +16,16 @@ public static class TenantDatabaseInitializer
     {
         PropertyNameCaseInsensitive = true
     };
+
+    internal static string ResolveInitialAdminEmail(TenantRuntimeOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.InitialAdminEmail))
+        {
+            return options.InitialAdminEmail.Trim().ToLowerInvariant();
+        }
+
+        return $"admin@{CatalogValidation.NormalizeCode(options.Code)}.tabflow.uk";
+    }
 
     public static async Task InitializeAsync(IServiceProvider services)
     {
@@ -63,6 +74,16 @@ public static class TenantDatabaseInitializer
                 DisplayName = options.DisplayName.Trim(),
                 PrimaryDomain = CatalogValidation.NormalizeHost(options.BaseUrl),
                 CurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode)
+            });
+        }
+
+        if (!await db.TenantAdmins.AnyAsync(admin => admin.IsActive))
+        {
+            db.TenantAdmins.Add(new TenantAdmin
+            {
+                Email = ResolveInitialAdminEmail(options),
+                PasswordHash = TenantPasswordHasher.Hash(TenantRuntimeOptions.DefaultAdminPassword),
+                MustChangePassword = true
             });
         }
 

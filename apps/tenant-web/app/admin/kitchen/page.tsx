@@ -12,6 +12,10 @@ export default async function TenantKitchenPage() {
     redirect("/admin/login");
   }
 
+  if (session.mustChangePassword) {
+    redirect("/admin/change-password");
+  }
+
   const boards = await getKitchenBoard(session);
   return <KitchenBoard boards={boards} />;
 }

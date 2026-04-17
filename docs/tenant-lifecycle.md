@@ -43,7 +43,7 @@ Examples:
 7. Generate per-table firmware config artifacts.
 8. Create tenant database and database user.
 9. Apply tenant migrations.
-10. Seed initial tenant data, including the default table count.
+10. Seed initial tenant data, including the default table count and default tenant admin.
 11. Verify tenant API health.
 12. Mark tenant active.
 
@@ -53,9 +53,16 @@ Current implementation status:
 
 - steps 1 to 7 exist today
 - tenant-api now owns the first real tenant schema, startup migration execution,
-  default table seed, and starter catalog seed
+  default table seed, starter catalog seed, and default tenant admin seed
 - job status, retryability, and visibility already exist in the platform registry
 - runtime packaging and host automation are outside this source-only baseline
+
+Current default tenant admin baseline:
+
+- email defaults to `admin@<tenant-code>.tabflow.uk`
+- runtime may override this through `initialAdminEmail`
+- default password is `TabFlow123.`
+- first successful login must force a password change before admin surfaces unlock
 
 ## Idempotency And Compensation Matrix
 

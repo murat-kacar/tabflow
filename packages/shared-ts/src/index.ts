@@ -266,7 +266,8 @@ export type RotateDeviceKeyResponse = z.infer<typeof rotateDeviceKeyResponseSche
 export const tenantAdminProfileSchema = z.object({
   id: z.uuid(),
   email: z.email(),
-  createdAt: z.string()
+  createdAt: z.string(),
+  mustChangePassword: z.boolean()
 });
 
 export type TenantAdminProfile = z.infer<typeof tenantAdminProfileSchema>;

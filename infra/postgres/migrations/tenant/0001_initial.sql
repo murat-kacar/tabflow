@@ -24,11 +24,15 @@ CREATE TABLE IF NOT EXISTS tenant_admins (
     id uuid PRIMARY KEY,
     email varchar(254) NOT NULL,
     password_hash varchar(512) NOT NULL,
+    must_change_password boolean NOT NULL DEFAULT false,
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tenant_admins_email ON tenant_admins (email);
+
+ALTER TABLE tenant_admins
+    ADD COLUMN IF NOT EXISTS must_change_password boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS service_tables (
     id uuid PRIMARY KEY,

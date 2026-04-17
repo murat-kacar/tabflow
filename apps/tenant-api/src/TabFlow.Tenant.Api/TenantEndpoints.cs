@@ -31,6 +31,7 @@ public static class TenantEndpoints
         routes.MapGet("/api/admin/bootstrap-status", GetBootstrapStatus);
         routes.MapPost("/api/admin/bootstrap", BootstrapAdmin);
         routes.MapPost("/api/admin/auth/login", LoginAdmin).RequireRateLimiting("auth-login");
+        adminGroup.MapPost("/auth/change-password", ChangePassword);
         adminGroup.MapGet("/catalog", GetAdminCatalog);
         adminGroup.MapGet("/stations", ListStations);
         adminGroup.MapPost("/stations", CreateStation);
@@ -122,7 +123,7 @@ public static class TenantEndpoints
 
         return Results.Ok(new TenantAdminBootstrapStatusResponse(
             !hasAdmins,
-            string.IsNullOrWhiteSpace(options.InitialAdminEmail) ? null : options.InitialAdminEmail));
+            TenantDatabaseInitializer.ResolveInitialAdminEmail(options)));
     }
 
     private static async Task<IResult> BootstrapAdmin(
@@ -178,7 +179,8 @@ public static class TenantEndpoints
         var admin = new TenantAdmin
         {
             Email = email,
-            PasswordHash = TenantPasswordHasher.Hash(request.Password)
+            PasswordHash = TenantPasswordHasher.Hash(request.Password),
+            MustChangePassword = false
         };
 
         db.TenantAdmins.Add(admin);
@@ -187,7 +189,7 @@ public static class TenantEndpoints
 
         return Results.Created(
             $"/api/admin/admins/{admin.Id}",
-            new TenantAdminProfileResponse(admin.Id, admin.Email, admin.CreatedAt));
+            new TenantAdminProfileResponse(admin.Id, admin.Email, admin.CreatedAt, admin.MustChangePassword));
     }
 
     private static bool FixedTimeEquals(string provided, string expected)
@@ -227,7 +229,58 @@ public static class TenantEndpoints
             return Results.Unauthorized();
         }
 
-        return Results.Ok(new TenantAdminSessionResponse(admin.Id, admin.Email, admin.CreatedAt, DateTimeOffset.UtcNow));
+        return Results.Ok(
+            new TenantAdminSessionResponse(
+                admin.Id,
+                admin.Email,
+                admin.CreatedAt,
+                DateTimeOffset.UtcNow,
+                admin.MustChangePassword));
+    }
+
+    private static async Task<IResult> ChangePassword(
+        ChangeTenantAdminPasswordRequest request,
+        HttpContext context,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var actor = TenantAdminActorAccessor.Read(context);
+        if (actor is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["currentPassword"] = ["Current password is required."],
+                ["newPassword"] = ["New password is required."]
+            });
+        }
+
+        if (request.NewPassword.Length < 10)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["newPassword"] = ["New password must be at least 10 characters."]
+            });
+        }
+
+        var admin = await db.TenantAdmins.FirstOrDefaultAsync(
+            current => current.Id == actor.AdminId && current.IsActive,
+            cancellationToken);
+
+        if (admin is null || !TenantPasswordHasher.Verify(request.CurrentPassword, admin.PasswordHash))
+        {
+            return Results.Problem("Current password is invalid.", statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        admin.PasswordHash = TenantPasswordHasher.Hash(request.NewPassword);
+        admin.MustChangePassword = false;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new TenantAdminProfileResponse(admin.Id, admin.Email, admin.CreatedAt, admin.MustChangePassword));
     }
 
     private static async Task<IResult> ListOrders(TenantDbContext db, CancellationToken cancellationToken)

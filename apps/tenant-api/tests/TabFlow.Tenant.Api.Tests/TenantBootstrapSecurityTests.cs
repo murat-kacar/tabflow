@@ -13,6 +13,8 @@ public sealed class TenantBootstrapSecurityTests
         Assert.Contains("BootstrapToken", source, StringComparison.Ordinal);
         Assert.Contains("X-Tenant-Bootstrap-Token", source, StringComparison.Ordinal);
         Assert.Contains("Tenant bootstrap is not configured.", source, StringComparison.Ordinal);
+        Assert.Contains("change-password", source, StringComparison.Ordinal);
+        Assert.Contains("MustChangePassword", source, StringComparison.Ordinal);
     }
 
     private static string FindRepoFile(string relativePath)
