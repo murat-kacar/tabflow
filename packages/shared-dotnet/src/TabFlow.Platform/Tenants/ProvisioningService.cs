@@ -595,6 +595,13 @@ public sealed class ProvisioningService(
             listen [::]:80;
             server_name {{runtime.PrimaryDomain}};
 
+            location /_next/static/ {
+                alias {{options.TenantWebRoot}}/.next/static/;
+                access_log off;
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+            }
+
             location /api/ {
                 proxy_pass http://127.0.0.1:{{runtime.BackendPort}};
                 proxy_http_version 1.1;
