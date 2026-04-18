@@ -505,16 +505,14 @@ public static class TenantEndpoints
             .Select(group => new { TableId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(group => group.TableId, group => group.Count, cancellationToken);
 
-        var liveOrderStatuses = new[]
-        {
-            CustomerOrderStatus.Submitted,
-            CustomerOrderStatus.Preparing,
-            CustomerOrderStatus.Ready
-        };
-
         var orderGroups = await db.CustomerOrders
             .AsNoTracking()
-            .Where(order => order.TableId != null && tableIds.Contains(order.TableId.Value) && liveOrderStatuses.Contains(order.Status))
+            .Where(order =>
+                order.TableId != null
+                && tableIds.Contains(order.TableId.Value)
+                && (order.Status == CustomerOrderStatus.Submitted
+                    || order.Status == CustomerOrderStatus.Preparing
+                    || order.Status == CustomerOrderStatus.Ready))
             .GroupBy(order => new { TableId = order.TableId!.Value, order.Status })
             .Select(group => new { group.Key.TableId, group.Key.Status, Count = group.Count() })
             .ToListAsync(cancellationToken);
