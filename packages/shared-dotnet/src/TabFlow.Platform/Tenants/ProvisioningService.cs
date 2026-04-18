@@ -494,7 +494,7 @@ public sealed class ProvisioningService(
         var runtimeConfigPath = Path.Combine(tenantRoot, "runtime-config.json");
         await using var runtimeConfigStream = File.OpenRead(runtimeConfigPath);
         using var runtimeConfig = await JsonDocument.ParseAsync(runtimeConfigStream, cancellationToken: cancellationToken);
-        var deviceSeedJson = runtimeConfig.RootElement.GetProperty("DeviceKeySeeds").GetRawText();
+        var deviceSeedJson = JsonSerializer.Serialize(runtimeConfig.RootElement.GetProperty("DeviceKeySeeds"));
 
         var apiEnvPath = Path.Combine(options.TenantEnvRoot, $"{tenant.Code}-api.env");
         var webEnvPath = Path.Combine(options.TenantEnvRoot, $"{tenant.Code}-web.env");
