@@ -73,11 +73,11 @@ Current default tenant admin baseline:
 | Create `tenant.create` job | Implemented | tenant id + job type | one pending job per requested operation | cancel job row if explicit abort is requested | repeated create should not spawn duplicate active jobs |
 | Allocate runtime identifiers | Implemented | tenant code deterministic naming rules | retry in worker lease window | release reserved metadata on compensation | collision enters failed job state with corrective action required |
 | Write runtime artifacts | Implemented | job id + output path | safe to retry by overwriting same files | delete tenant output folder on compensation | filesystem permission errors after max attempts |
-| Create tenant DB/user | Planned (operational layer) | runtime metadata | retry with bounded attempts | drop created DB/user when later steps fail | collision/privilege errors become terminal until operator fix |
-| Apply tenant migrations | Planned (operational layer) | migration history in tenant DB | retry is safe when migrations are idempotent | drop tenant DB if provisioning is rolled back | non-retryable SQL errors become terminal |
-| Seed tenant defaults | Planned (operational layer) | tenant profile singleton + table number uniqueness | retry should be upsert-style | remove seeded rows only during full rollback | invariant violations become terminal |
-| Health verify (`/health/ready`) | Planned (operational layer) | tenant runtime endpoint | retry with backoff | keep tenant in `provisioning` if probe fails | max-attempt exhaustion marks job failed |
-| Mark tenant active | Planned (operational layer) | tenant id + final successful job | single status transition guard | set tenant `suspended` on terminal provisioning failure | active transition blocked if prerequisites are incomplete |
+| Create tenant DB/user | Implemented | tenant database name | retry with bounded attempts | keep DB for idempotent retry; manual cleanup only on explicit rollback | privilege/config errors become terminal until operator fix |
+| Apply tenant migrations | Implemented via tenant API startup schema init | tenant DB connection + schema SQL | retry is safe because schema init is idempotent | drop tenant DB only on explicit rollback | non-retryable SQL errors become terminal |
+| Seed tenant defaults | Implemented via tenant API startup seed | tenant profile singleton + table number uniqueness | retry is upsert-style | remove seeded rows only during full rollback | invariant violations become terminal |
+| Health verify (`/health/ready`) | Implemented | internal API ready URL + external login/bootstrap URLs | retry with backoff through provisioning worker | keep tenant in `provisioning` if probe fails | max-attempt exhaustion marks job failed |
+| Mark tenant active | Implemented | tenant id + successful health verification | single status transition guard | set tenant `suspended` on terminal provisioning failure | active transition blocked if verification is incomplete |
 
 ## Platform Registry API
 

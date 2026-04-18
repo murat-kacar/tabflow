@@ -16,13 +16,23 @@ public sealed class ProvisioningServiceSqlTests
     }
 
     [Fact]
-    public void Provisioning_success_does_not_mark_tenant_active_before_health_verification()
+    public void Provisioning_success_marks_tenant_active_after_health_verification()
     {
         var source = File.ReadAllText(FindRepoFile("packages/shared-dotnet/src/TabFlow.Platform/Tenants/ProvisioningService.cs"));
 
-        Assert.DoesNotContain("tenant.Status = TenantStatus.Active", source, StringComparison.Ordinal);
-        Assert.Contains("Status = \"not_checked\"", source, StringComparison.Ordinal);
-        Assert.Contains("artifacts_ready", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateStep(job, \"health_verification\")", source, StringComparison.Ordinal);
+        Assert.Contains("tenant.Status = TenantStatus.Active", source, StringComparison.Ordinal);
+        Assert.Contains("EnsureCertificateAsync", source, StringComparison.Ordinal);
+        Assert.Contains("EnsureSuccessAsync", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Provisioning_writes_device_seed_json_without_env_escaping()
+    {
+        var source = File.ReadAllText(FindRepoFile("packages/shared-dotnet/src/TabFlow.Platform/Tenants/ProvisioningService.cs"));
+
+        Assert.Contains("Tenant__DeviceKeySeedJson={{deviceSeedJson}}", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("EscapeEnv(deviceSeedJson)", source, StringComparison.Ordinal);
     }
 
     private static string FindRepoFile(string relativePath)

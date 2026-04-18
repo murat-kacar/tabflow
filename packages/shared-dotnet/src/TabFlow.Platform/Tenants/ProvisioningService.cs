@@ -1,9 +1,13 @@
+using System.Data;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using TabFlow.Platform.Data;
 
 namespace TabFlow.Platform.Tenants;
@@ -64,23 +68,25 @@ public sealed class ProvisioningService(
             await using var command = connection.CreateCommand();
             command.CommandText = """
             WITH claimed AS (
-                SELECT id
+                SELECT platform_provision_jobs.id
                 FROM platform_provision_jobs
+                INNER JOIN platform_tenants ON platform_tenants.id = platform_provision_jobs.tenant_id
                 WHERE type = 'tenant.create'
-                  AND attempt_count < @max_attempts
+                  AND platform_tenants.status <> 'active'::tenant_status
+                  AND platform_provision_jobs.attempt_count < @max_attempts
                   AND (
-                      status = 'pending'::provision_job_status
+                      platform_provision_jobs.status = 'pending'::provision_job_status
                       OR (
-                          status = 'failed'::provision_job_status
-                          AND (next_attempt_at IS NULL OR next_attempt_at <= @now)
+                          platform_provision_jobs.status = 'failed'::provision_job_status
+                          AND (platform_provision_jobs.next_attempt_at IS NULL OR platform_provision_jobs.next_attempt_at <= @now)
                       )
                       OR (
-                          status = 'running'::provision_job_status
-                          AND lease_until IS NOT NULL
-                          AND lease_until <= @now
+                          platform_provision_jobs.status = 'running'::provision_job_status
+                          AND platform_provision_jobs.lease_until IS NOT NULL
+                          AND platform_provision_jobs.lease_until <= @now
                       )
                   )
-                ORDER BY created_at
+                ORDER BY platform_provision_jobs.created_at
                 LIMIT @batch_size
                 FOR UPDATE SKIP LOCKED
             )
@@ -149,13 +155,20 @@ public sealed class ProvisioningService(
 
             var artifacts = await WriteArtifactsAsync(tenant, runtime, options, cancellationToken);
 
-            if (tenant.Status != TenantStatus.Active)
-            {
-                tenant.Status = TenantStatus.Provisioning;
-            }
+            UpdateStep(job, "provisioning_runtime");
+            await db.SaveChangesAsync(cancellationToken);
+
+            await ProvisionRuntimeAsync(tenant, runtime, options, cancellationToken);
+
+            UpdateStep(job, "health_verification");
+            await db.SaveChangesAsync(cancellationToken);
+
+            var runtimeHealth = await VerifyRuntimeHealthAsync(runtime, options, cancellationToken);
+
+            tenant.Status = TenantStatus.Active;
             tenant.UpdatedAt = DateTimeOffset.UtcNow;
             job.Status = ProvisionJobStatus.Succeeded;
-            job.CurrentStep = "artifacts_ready";
+            job.CurrentStep = "completed";
             job.ResultJson = JsonSerializer.Serialize(new
             {
                 runtime.TenantBaseUrl,
@@ -163,19 +176,7 @@ public sealed class ProvisioningService(
                 runtime.DatabaseUser,
                 runtime.BackendPort,
                 runtime.WebPort,
-                RuntimeHealth = new
-                {
-                    Internal = new
-                    {
-                        Status = "not_checked",
-                        HealthUrl = $"http://127.0.0.1:{runtime.BackendPort}/health/live"
-                    },
-                    External = new
-                    {
-                        Status = "not_checked",
-                        HealthUrl = $"{runtime.TenantBaseUrl}/health/live"
-                    }
-                },
+                RuntimeHealth = runtimeHealth,
                 Artifacts = artifacts
             });
             job.CompletedAt = DateTimeOffset.UtcNow;
@@ -223,8 +224,8 @@ public sealed class ProvisioningService(
 
         var existingJobs = await db.ProvisionJobs
             .AsNoTracking()
-            .Where(job => job.Type == "tenant.create" && job.ResultJson != "{}")
-            .Select(job => job.ResultJson)
+            .Where(current => current.Type == "tenant.create" && current.ResultJson != "{}")
+            .Select(current => current.ResultJson)
             .ToListAsync(cancellationToken);
 
         var usedBackendPorts = new HashSet<int>();
@@ -239,6 +240,7 @@ public sealed class ProvisioningService(
                 {
                     usedBackendPorts.Add(backendPortElement.GetInt32());
                 }
+
                 if (document.RootElement.TryGetProperty("WebPort", out var webPortElement))
                 {
                     usedWebPorts.Add(webPortElement.GetInt32());
@@ -256,10 +258,12 @@ public sealed class ProvisioningService(
 
         return new ProvisionedRuntime(
             DatabaseName: $"tabflow_tenant_{tenant.Code}",
-            DatabaseUser: $"tabflow_{tenant.Code}",
-            DatabasePassword: GenerateSecret(),
+            DatabaseUser: ResolveTenantDatabaseOwner(options),
+            DatabasePassword: ResolveTenantDatabasePassword(options),
+            AdminApiKey: GenerateSecret(32),
             SessionSecret: GenerateSecret(48),
             TenantBaseUrl: $"https://{primaryDomain}",
+            PrimaryDomain: primaryDomain,
             BackendPort: backendPort,
             WebPort: webPort);
     }
@@ -280,7 +284,6 @@ public sealed class ProvisioningService(
         Directory.CreateDirectory(firmwareRoot);
 
         var deviceSeeds = new List<object>();
-
         var configFiles = new List<string>();
         for (var tableId = 1; tableId <= options.InitialTableCount; tableId++)
         {
@@ -312,6 +315,7 @@ public sealed class ProvisioningService(
             runtime.DatabaseName,
             runtime.DatabaseUser,
             runtime.DatabasePassword,
+            runtime.AdminApiKey,
             runtime.SessionSecret,
             runtime.BackendPort,
             runtime.WebPort,
@@ -342,19 +346,391 @@ public sealed class ProvisioningService(
 
         options.OutputRoot = string.IsNullOrWhiteSpace(options.OutputRoot)
             ? "runtime/generated"
-            : options.OutputRoot;
+            : Path.GetFullPath(options.OutputRoot);
+        options.TenantApiDeployRoot = string.IsNullOrWhiteSpace(options.TenantApiDeployRoot)
+            ? "/opt/tabflow-deploy/tenant-api"
+            : Path.GetFullPath(options.TenantApiDeployRoot);
+        options.TenantWebRoot = string.IsNullOrWhiteSpace(options.TenantWebRoot)
+            ? "/opt/tabflow/apps/tenant-web"
+            : Path.GetFullPath(options.TenantWebRoot);
+        options.TenantEnvRoot = string.IsNullOrWhiteSpace(options.TenantEnvRoot)
+            ? "/etc/tabflow/tenants"
+            : Path.GetFullPath(options.TenantEnvRoot);
+        options.NginxSitesAvailableRoot = string.IsNullOrWhiteSpace(options.NginxSitesAvailableRoot)
+            ? "/etc/nginx/sites-available"
+            : Path.GetFullPath(options.NginxSitesAvailableRoot);
+        options.NginxSitesEnabledRoot = string.IsNullOrWhiteSpace(options.NginxSitesEnabledRoot)
+            ? "/etc/nginx/sites-enabled"
+            : Path.GetFullPath(options.NginxSitesEnabledRoot);
         options.TenantBackendPortStart = options.TenantBackendPortStart <= 0 ? 8100 : options.TenantBackendPortStart;
         options.TenantWebPortStart = options.TenantWebPortStart <= 0 ? 3100 : options.TenantWebPortStart;
         options.InitialTableCount = options.InitialTableCount <= 0 ? 5 : options.InitialTableCount;
         options.MaxAttempts = options.MaxAttempts <= 0 ? 5 : options.MaxAttempts;
         options.RetryDelaySeconds = options.RetryDelaySeconds <= 0 ? 60 : options.RetryDelaySeconds;
         options.LeaseSeconds = options.LeaseSeconds <= 0 ? 300 : options.LeaseSeconds;
+        options.CertbotBinary = string.IsNullOrWhiteSpace(options.CertbotBinary) ? "certbot" : options.CertbotBinary.Trim();
+        options.SystemctlBinary = string.IsNullOrWhiteSpace(options.SystemctlBinary) ? "systemctl" : options.SystemctlBinary.Trim();
+        options.NginxBinary = string.IsNullOrWhiteSpace(options.NginxBinary) ? "nginx" : options.NginxBinary.Trim();
+        options.DotnetBinary = string.IsNullOrWhiteSpace(options.DotnetBinary) ? "/usr/bin/dotnet" : options.DotnetBinary.Trim();
+        options.NodeBinary = string.IsNullOrWhiteSpace(options.NodeBinary) ? "/usr/local/bin/node" : options.NodeBinary.Trim();
+        options.HealthCheckTimeoutSeconds = options.HealthCheckTimeoutSeconds <= 0 ? 15 : options.HealthCheckTimeoutSeconds;
         options.WorkerId = string.IsNullOrWhiteSpace(options.WorkerId)
             ? $"{Environment.MachineName}:{Environment.ProcessId}"
             : options.WorkerId.Trim();
 
         return options;
     }
+
+    private async Task ProvisionRuntimeAsync(
+        Tenant tenant,
+        ProvisionedRuntime runtime,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(options.TenantEnvRoot);
+
+        await EnsureTenantDatabaseAsync(runtime, cancellationToken);
+        await WriteRuntimeEnvironmentFilesAsync(tenant, runtime, options, cancellationToken);
+        await EnsureSystemdTemplatesAsync(options, cancellationToken);
+        await EnsureNginxSiteAsync(tenant, runtime, options, cancellationToken);
+
+        var nginxEnabledPath = Path.Combine(options.NginxSitesEnabledRoot, $"tabflow-{tenant.Code}");
+        var nginxAvailablePath = Path.Combine(options.NginxSitesAvailableRoot, $"tabflow-{tenant.Code}");
+        EnsureSymlink(nginxEnabledPath, nginxAvailablePath);
+
+        await RunCommandAsync(options.NginxBinary, "-t", cancellationToken);
+        await RunCommandAsync(options.SystemctlBinary, "daemon-reload", cancellationToken);
+        await RunCommandAsync(options.SystemctlBinary, $"enable --now tabflow-tenant-api@{tenant.Code}.service", cancellationToken);
+        await RunCommandAsync(options.SystemctlBinary, $"enable --now tabflow-tenant-web@{tenant.Code}.service", cancellationToken);
+        await RunCommandAsync(options.SystemctlBinary, "reload nginx", cancellationToken);
+        await EnsureCertificateAsync(runtime, options, cancellationToken);
+    }
+
+    private async Task<object> VerifyRuntimeHealthAsync(
+        ProvisionedRuntime runtime,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        using var http = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(options.HealthCheckTimeoutSeconds)
+        };
+
+        var internalUrl = $"http://127.0.0.1:{runtime.BackendPort}/health/ready";
+        var externalUrl = $"{runtime.TenantBaseUrl}/admin/login";
+        var bootstrapUrl = $"{runtime.TenantBaseUrl}/api/admin/bootstrap-status";
+
+        await EnsureSuccessAsync(http, internalUrl, cancellationToken);
+        await EnsureSuccessAsync(http, externalUrl, cancellationToken);
+        await EnsureSuccessAsync(http, bootstrapUrl, cancellationToken);
+
+        return new
+        {
+            Internal = new
+            {
+                Status = "ok",
+                HealthUrl = internalUrl
+            },
+            External = new
+            {
+                Status = "ok",
+                HealthUrl = externalUrl
+            },
+            Bootstrap = new
+            {
+                Status = "ok",
+                HealthUrl = bootstrapUrl
+            }
+        };
+    }
+
+    private static async Task EnsureSuccessAsync(HttpClient http, string url, CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(url, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException($"Health probe failed for {url}: {(int)response.StatusCode} {response.ReasonPhrase} {body}".Trim());
+    }
+
+    private async Task EnsureTenantDatabaseAsync(ProvisionedRuntime runtime, CancellationToken cancellationToken)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(
+            configuration.GetConnectionString("PlatformDatabase")
+            ?? throw new InvalidOperationException("ConnectionStrings:PlatformDatabase is not configured."))
+        {
+            Database = "postgres"
+        };
+
+        await using var connection = new NpgsqlConnection(builder.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using (var existsCommand = connection.CreateCommand())
+        {
+            existsCommand.CommandText = "SELECT 1 FROM pg_database WHERE datname = @database_name";
+            existsCommand.Parameters.AddWithValue("database_name", runtime.DatabaseName);
+            var exists = await existsCommand.ExecuteScalarAsync(cancellationToken);
+            if (exists is not null)
+            {
+                return;
+            }
+        }
+
+        await using var createCommand = connection.CreateCommand();
+        createCommand.CommandText = $"CREATE DATABASE {QuoteIdentifier(runtime.DatabaseName)} OWNER {QuoteIdentifier(runtime.DatabaseUser)}";
+        await createCommand.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private async Task WriteRuntimeEnvironmentFilesAsync(
+        Tenant tenant,
+        ProvisionedRuntime runtime,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        var tenantRoot = Path.Combine(options.OutputRoot, "tenants", tenant.Code);
+        var runtimeConfigPath = Path.Combine(tenantRoot, "runtime-config.json");
+        await using var runtimeConfigStream = File.OpenRead(runtimeConfigPath);
+        using var runtimeConfig = await JsonDocument.ParseAsync(runtimeConfigStream, cancellationToken: cancellationToken);
+        var deviceSeedJson = runtimeConfig.RootElement.GetProperty("DeviceKeySeeds").GetRawText();
+
+        var apiEnvPath = Path.Combine(options.TenantEnvRoot, $"{tenant.Code}-api.env");
+        var webEnvPath = Path.Combine(options.TenantEnvRoot, $"{tenant.Code}-web.env");
+        var initialAdminEmail = tenant.InitialAdminEmail ?? $"admin@{tenant.Code}.tabflow.uk";
+
+        var apiEnv = $$"""
+        ASPNETCORE_ENVIRONMENT=Production
+        DOTNET_ENVIRONMENT=Production
+        TENANT_API_PORT={{runtime.BackendPort}}
+        ConnectionStrings__TenantDatabase=Host=127.0.0.1;Port=5432;Database={{runtime.DatabaseName}};Username={{runtime.DatabaseUser}};Password={{runtime.DatabasePassword}}
+        Tenant__Code={{tenant.Code}}
+        Tenant__DisplayName={{tenant.DisplayName}}
+        Tenant__BaseUrl={{runtime.TenantBaseUrl}}
+        Tenant__InitialAdminEmail={{initialAdminEmail}}
+        Tenant__CurrencyCode=GBP
+        Tenant__InitialTableCount={{options.InitialTableCount}}
+        Tenant__DeviceTokenTtlSeconds=60
+        Tenant__CustomerSessionTtlMinutes=120
+        Tenant__DeviceKeySeedJson={{deviceSeedJson}}
+        TenantAdmin__ApiKey={{runtime.AdminApiKey}}
+        """;
+
+        var webEnv = $$"""
+        NODE_ENV=production
+        PORT={{runtime.WebPort}}
+        TENANT_API_BASE_URL=http://127.0.0.1:{{runtime.BackendPort}}
+        NEXT_PUBLIC_TENANT_API_BASE_URL={{runtime.TenantBaseUrl}}
+        TENANT_ADMIN_API_KEY={{runtime.AdminApiKey}}
+        TENANT_SESSION_SECRET={{runtime.SessionSecret}}
+        """;
+
+        await File.WriteAllTextAsync(apiEnvPath, apiEnv + Environment.NewLine, cancellationToken);
+        await File.WriteAllTextAsync(webEnvPath, webEnv + Environment.NewLine, cancellationToken);
+    }
+
+    private static async Task EnsureSystemdTemplatesAsync(ProvisioningOptions options, CancellationToken cancellationToken)
+    {
+        const string apiTemplatePath = "/etc/systemd/system/tabflow-tenant-api@.service";
+        const string webTemplatePath = "/etc/systemd/system/tabflow-tenant-web@.service";
+
+        var apiTemplate = $$"""
+        [Unit]
+        Description=TabFlow Tenant API (%i)
+        After=network.target postgresql.service
+        Wants=postgresql.service
+
+        [Service]
+        Type=simple
+        WorkingDirectory={{options.TenantApiDeployRoot}}
+        EnvironmentFile={{options.TenantEnvRoot}}/%i-api.env
+        ExecStart={{options.DotnetBinary}} {{options.TenantApiDeployRoot}}/TabFlow.Tenant.Api.dll --urls http://127.0.0.1:${TENANT_API_PORT}
+        Restart=always
+        RestartSec=5
+        User=root
+
+        [Install]
+        WantedBy=multi-user.target
+        """;
+
+        var webTemplate = $$"""
+        [Unit]
+        Description=TabFlow Tenant Web (%i)
+        After=network.target tabflow-tenant-api@%i.service
+        Wants=tabflow-tenant-api@%i.service
+
+        [Service]
+        Type=simple
+        WorkingDirectory={{options.TenantWebRoot}}
+        EnvironmentFile={{options.TenantEnvRoot}}/%i-web.env
+        ExecStartPre=/bin/mkdir -p {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/.next
+        ExecStartPre=/bin/sh -c 'rm -rf {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/.next/static && ln -s {{options.TenantWebRoot}}/.next/static {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/.next/static'
+        ExecStart={{options.NodeBinary}} {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/server.js
+        Restart=always
+        RestartSec=5
+        User=root
+
+        [Install]
+        WantedBy=multi-user.target
+        """;
+
+        await File.WriteAllTextAsync(apiTemplatePath, apiTemplate + Environment.NewLine, cancellationToken);
+        await File.WriteAllTextAsync(webTemplatePath, webTemplate + Environment.NewLine, cancellationToken);
+    }
+
+    private static async Task EnsureNginxSiteAsync(
+        Tenant tenant,
+        ProvisionedRuntime runtime,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(options.NginxSitesAvailableRoot);
+        Directory.CreateDirectory(options.NginxSitesEnabledRoot);
+
+        var sitePath = Path.Combine(options.NginxSitesAvailableRoot, $"tabflow-{tenant.Code}");
+        var config = $$"""
+        server {
+            listen 80;
+            listen [::]:80;
+            server_name {{runtime.PrimaryDomain}};
+
+            location /api/ {
+                proxy_pass http://127.0.0.1:{{runtime.BackendPort}};
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location = /health {
+                proxy_pass http://127.0.0.1:{{runtime.BackendPort}}/health;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+            }
+
+            location = /health/ready {
+                proxy_pass http://127.0.0.1:{{runtime.BackendPort}}/health/ready;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+            }
+
+            location /ws/ {
+                proxy_pass http://127.0.0.1:{{runtime.BackendPort}};
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location / {
+                proxy_pass http://127.0.0.1:{{runtime.WebPort}};
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+        """;
+
+        await File.WriteAllTextAsync(sitePath, config + Environment.NewLine, cancellationToken);
+    }
+
+    private async Task EnsureCertificateAsync(
+        ProvisionedRuntime runtime,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        var args = string.IsNullOrWhiteSpace(options.CertbotEmail)
+            ? $"--nginx --non-interactive --agree-tos --register-unsafely-without-email -d {runtime.PrimaryDomain} --redirect"
+            : $"--nginx --non-interactive --agree-tos -m {options.CertbotEmail} -d {runtime.PrimaryDomain} --redirect";
+        await RunCommandAsync(options.CertbotBinary, args, cancellationToken);
+    }
+
+    private static void EnsureSymlink(string path, string target)
+    {
+        if (File.Exists(path) || Directory.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        File.CreateSymbolicLink(path, target);
+    }
+
+    private static async Task RunCommandAsync(string fileName, string arguments, CancellationToken cancellationToken)
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            }
+        };
+
+        if (!process.Start())
+        {
+            throw new InvalidOperationException($"Failed to start process: {fileName} {arguments}");
+        }
+
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Command failed ({process.ExitCode}): {fileName} {arguments}\nSTDOUT: {stdout}\nSTDERR: {stderr}".Trim());
+        }
+    }
+
+    private string ResolveTenantDatabaseOwner(ProvisioningOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.TenantDatabaseOwner))
+        {
+            return options.TenantDatabaseOwner.Trim();
+        }
+
+        var builder = new NpgsqlConnectionStringBuilder(
+            configuration.GetConnectionString("PlatformDatabase")
+            ?? throw new InvalidOperationException("ConnectionStrings:PlatformDatabase is not configured."));
+        if (string.IsNullOrWhiteSpace(builder.Username))
+        {
+            throw new InvalidOperationException("PlatformDatabase username is not configured.");
+        }
+
+        return builder.Username;
+    }
+
+    private string ResolveTenantDatabasePassword(ProvisioningOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.TenantDatabasePassword))
+        {
+            return options.TenantDatabasePassword;
+        }
+
+        var builder = new NpgsqlConnectionStringBuilder(
+            configuration.GetConnectionString("PlatformDatabase")
+            ?? throw new InvalidOperationException("ConnectionStrings:PlatformDatabase is not configured."));
+        if (string.IsNullOrWhiteSpace(builder.Password))
+        {
+            throw new InvalidOperationException("PlatformDatabase password is not configured.");
+        }
+
+        return builder.Password;
+    }
+
+    private static string QuoteIdentifier(string identifier) => $"\"{identifier.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 
     private static string GenerateSecret(int bytes = 24) =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(bytes))
@@ -365,7 +741,7 @@ public sealed class ProvisioningService(
     private static int FindAvailablePort(int start, HashSet<int> used)
     {
         var current = start;
-        while (used.Contains(current))
+        while (used.Contains(current) || !IsPortAvailable(current))
         {
             current++;
         }
@@ -373,12 +749,28 @@ public sealed class ProvisioningService(
         return current;
     }
 
+    private static bool IsPortAvailable(int port)
+    {
+        try
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, port);
+            listener.Start();
+            return true;
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+    }
+
     private sealed record ProvisionedRuntime(
         string DatabaseName,
         string DatabaseUser,
         string DatabasePassword,
+        string AdminApiKey,
         string SessionSecret,
         string TenantBaseUrl,
+        string PrimaryDomain,
         int BackendPort,
         int WebPort);
 }

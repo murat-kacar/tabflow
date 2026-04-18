@@ -47,15 +47,19 @@ Generated runtime artifacts and logs live outside the repository:
 Systemd units:
 
 - `tabflow-platform-api.service`
+- `tabflow-platform-operator.service`
 - `tabflow-platform-web.service`
 - `tabflow-tenant-api.service`
 - `tabflow-tenant-web.service`
+- `tabflow-tenant-api@<tenant-code>.service`
+- `tabflow-tenant-web@<tenant-code>.service`
 
 Current behavior:
 
 - API services run published .NET binaries from `/opt/tabflow-deploy/...`
 - web services run Next.js standalone servers from the repository build output
 - services read environment values through `EnvironmentFile=` from `/etc/tabflow`
+- per-tenant tenant runtime instances can be provisioned automatically by the platform operator
 
 ## Reverse Proxy
 
@@ -78,3 +82,24 @@ This repository remains source-first:
 
 If host-level deployment changes, update this document to keep the gap between
 source architecture and real host operations explicit.
+
+## Automated Tenant Provisioning
+
+After DNS exists for a tenant host, the platform operator can finish the rest of
+the host lifecycle automatically:
+
+- creates the tenant PostgreSQL database
+- writes `/etc/tabflow/tenants/<code>-api.env`
+- writes `/etc/tabflow/tenants/<code>-web.env`
+- ensures templated `systemd` units exist
+- generates and enables an Nginx vhost
+- obtains TLS through Certbot
+- starts per-tenant API and web instances
+- verifies tenant health and flips platform tenant status to `active`
+
+Operational flow:
+
+1. create the DNS record
+2. create the tenant in platform
+3. wait for the provision job to complete
+4. sign in with `admin@<tenant-code>.tabflow.uk` and `TabFlow123.`

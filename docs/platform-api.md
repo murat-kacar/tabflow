@@ -248,8 +248,13 @@ Current worker behavior:
 - allocating deterministic runtime metadata such as DB name, DB user, and ports
 - writing per-table firmware `config.h` files for the configured initial table count
 - generating per-tenant secret material for runtime configuration
-- marking the provisioning job `artifacts_ready` after local artifacts are written
-- leaving the tenant in `provisioning` until real runtime deploy and health verification are complete
+- creating the tenant PostgreSQL database when it does not already exist
+- writing tenant API and tenant web environment files under `/etc/tabflow/tenants`
+- materializing templated `systemd` tenant units when they are missing
+- generating and enabling a per-tenant Nginx virtual host
+- obtaining a Let's Encrypt certificate through Certbot
+- starting per-tenant API and web instances through `tabflow-tenant-api@<code>` and `tabflow-tenant-web@<code>`
+- verifying internal and external runtime health before marking the tenant `active`
 - marking the tenant `suspended` only after terminal provisioning failure
 
 Current limitation:
