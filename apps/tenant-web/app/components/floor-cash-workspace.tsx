@@ -19,6 +19,7 @@ type FloorCashView = "floor" | "open-checks" | "payment-queue" | "closed-checks"
 type PaymentMethod = "nakit" | "kart" | "transfer" | "diger";
 type FloorZoneKey = "salon" | "balkon" | "paket";
 type FloorLayoutKey = "ana-kat" | "balkon" | "paket";
+type LayoutPlacement = { left: number; top: number };
 
 function formatMoney(minor: number, currencyCode: string | null): string {
   if (!currencyCode) {
@@ -106,6 +107,29 @@ function layoutMeta(layout: FloorLayoutKey) {
     default:
       return { label: "Ana Kat", description: "Salon ve ana servis duzeni" };
   }
+}
+
+function createInitialLayoutPlacements(
+  tables: AdminTableSummary[]
+): Record<FloorLayoutKey, Record<string, LayoutPlacement>> {
+  const placements: Record<FloorLayoutKey, Record<string, LayoutPlacement>> = {
+    "ana-kat": {},
+    balkon: {},
+    paket: {}
+  };
+
+  (["ana-kat", "balkon", "paket"] as FloorLayoutKey[]).forEach((layout) => {
+    tables
+      .filter((table) => inferLayout(table) === layout)
+      .forEach((table, index) => {
+        placements[layout][table.id] = {
+          left: 8 + (index % 4) * 21,
+          top: 10 + Math.floor(index / 4) * 24
+        };
+      });
+  });
+
+  return placements;
 }
 
 function zoneMeta(zone: FloorZoneKey) {
@@ -297,22 +321,54 @@ function FloorLayoutTabs({
 }
 
 function LayoutEditorPanel({
+  layoutPlacements,
   layout,
   selectedLayout,
+  setLayoutPlacements,
   tables
 }: {
+  layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
   layout: FloorLayoutKey | "all";
   selectedLayout: FloorLayoutKey | "all";
+  setLayoutPlacements: (
+    value:
+      | Record<FloorLayoutKey, Record<string, LayoutPlacement>>
+      | ((current: Record<FloorLayoutKey, Record<string, LayoutPlacement>>) => Record<FloorLayoutKey, Record<string, LayoutPlacement>>)
+  ) => void;
   tables: AdminTableSummary[];
 }) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const items = tables
     .filter((table) => selectedLayout === "all" || inferLayout(table) === selectedLayout)
-    .map((table, index) => ({
-      id: table.id,
-      label: table.name || `Masa ${table.number}`,
-      left: 8 + (index % 4) * 22,
-      top: 12 + Math.floor(index / 4) * 24
+    .map((table, index) => {
+      const layoutKey = selectedLayout === "all" ? inferLayout(table) : selectedLayout;
+      const fallbackPlacement = {
+        left: 8 + (index % 4) * 22,
+        top: 12 + Math.floor(index / 4) * 24
+      };
+      const placement = layoutPlacements[layoutKey]?.[table.id] ?? fallbackPlacement;
+
+      return {
+        id: table.id,
+        label: table.name || `Masa ${table.number}`,
+        layoutKey,
+        left: placement.left,
+        top: placement.top
+      };
+    });
+
+  function updatePlacement(tableId: string, layoutKey: FloorLayoutKey, left: number, top: number) {
+    setLayoutPlacements((current) => ({
+      ...current,
+      [layoutKey]: {
+        ...current[layoutKey],
+        [tableId]: {
+          left: Math.max(2, Math.min(82, left)),
+          top: Math.max(4, Math.min(78, top))
+        }
+      }
     }));
+  }
 
   return (
     <section className="rounded-[1.25rem] border border-[#9eb8d6] bg-white p-4 shadow-sm">
@@ -338,8 +394,33 @@ function LayoutEditorPanel({
         <div className="relative min-h-[24rem] overflow-hidden rounded-[0.9rem] border border-[#c7d7eb] bg-[linear-gradient(90deg,rgba(124,164,216,0.12)_1px,transparent_1px),linear-gradient(rgba(124,164,216,0.12)_1px,transparent_1px)] bg-[size:2rem_2rem]">
           {items.map((item) => (
             <div
-              className="absolute flex h-20 w-20 items-center justify-center rounded-[1rem] border-2 border-[#534449] bg-[#fff6cf] text-center text-sm font-black text-stone-950 shadow-sm"
+              className={`absolute flex h-20 w-20 cursor-move select-none items-center justify-center rounded-[1rem] border-2 border-[#534449] bg-[#fff6cf] text-center text-sm font-black text-stone-950 shadow-sm transition ${
+                draggingId === item.id ? "scale-105 shadow-lg ring-2 ring-[#7ca4d8]" : ""
+              }`}
               key={item.id}
+              onPointerDown={(event) => {
+                const canvas = event.currentTarget.parentElement;
+                if (!canvas) {
+                  return;
+                }
+
+                setDraggingId(item.id);
+                const rect = canvas.getBoundingClientRect();
+
+                const handleMove = (moveEvent: PointerEvent) => {
+                  const left = ((moveEvent.clientX - rect.left) / rect.width) * 100 - 10;
+                  const top = ((moveEvent.clientY - rect.top) / rect.height) * 100 - 10;
+                  updatePlacement(item.id, item.layoutKey, left, top);
+                };
+
+                const handleUp = () => {
+                  setDraggingId(null);
+                  window.removeEventListener("pointermove", handleMove);
+                };
+
+                window.addEventListener("pointermove", handleMove);
+                window.addEventListener("pointerup", handleUp, { once: true });
+              }}
               style={{ left: `${item.left}%`, top: `${item.top}%` }}
             >
               {item.label}
@@ -373,20 +454,28 @@ function LayoutEditorPanel({
 
 function FloorPlanBoard({
   editMode,
+  layoutPlacements,
   selectedLayout,
   selectedTable,
   selectedZone,
   setEditMode,
+  setLayoutPlacements,
   setSelectedLayout,
   setSelectedTableId,
   setSelectedZone,
   tables
 }: {
   editMode: boolean;
+  layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
   selectedLayout: FloorLayoutKey | "all";
   selectedTable?: AdminTableSummary;
   selectedZone: FloorZoneKey | "all" | "open";
   setEditMode: (value: boolean) => void;
+  setLayoutPlacements: (
+    value:
+      | Record<FloorLayoutKey, Record<string, LayoutPlacement>>
+      | ((current: Record<FloorLayoutKey, Record<string, LayoutPlacement>>) => Record<FloorLayoutKey, Record<string, LayoutPlacement>>)
+  ) => void;
   setSelectedLayout: (value: FloorLayoutKey | "all") => void;
   setSelectedTableId: (value: string) => void;
   setSelectedZone: (value: FloorZoneKey | "all" | "open") => void;
@@ -453,7 +542,13 @@ function FloorPlanBoard({
       <FloorZoneTabs current={selectedZone} onChange={setSelectedZone} zoneCounts={zoneCounts} />
       {editMode ? (
         <div className="mt-4">
-          <LayoutEditorPanel layout={selectedLayout} selectedLayout={selectedLayout} tables={tables} />
+          <LayoutEditorPanel
+            layout={selectedLayout}
+            layoutPlacements={layoutPlacements}
+            selectedLayout={selectedLayout}
+            setLayoutPlacements={setLayoutPlacements}
+            tables={tables}
+          />
         </div>
       ) : null}
       <div className="mt-3 space-y-4">
@@ -945,6 +1040,9 @@ export function FloorCashWorkspace({
   const [selectedZone, setSelectedZone] = useState<FloorZoneKey | "all" | "open">("all");
   const [selectedLayout, setSelectedLayout] = useState<FloorLayoutKey | "all">("all");
   const [editMode, setEditMode] = useState(false);
+  const [layoutPlacements, setLayoutPlacements] = useState<
+    Record<FloorLayoutKey, Record<string, LayoutPlacement>>
+  >(() => createInitialLayoutPlacements(tables));
 
   const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0];
   const selectedBill = bills.find((bill) => bill.tableId === selectedTable?.id && bill.status === "open");
@@ -987,10 +1085,12 @@ export function FloorCashWorkspace({
           <section className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_0.78fr]">
             <FloorPlanBoard
               editMode={editMode}
+              layoutPlacements={layoutPlacements}
               selectedLayout={selectedLayout}
               selectedTable={selectedTable}
               selectedZone={selectedZone}
               setEditMode={setEditMode}
+              setLayoutPlacements={setLayoutPlacements}
               setSelectedLayout={setSelectedLayout}
               setSelectedTableId={setSelectedTableId}
               setSelectedZone={setSelectedZone}
