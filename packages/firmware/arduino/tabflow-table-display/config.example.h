@@ -16,11 +16,13 @@
 #define WS_DEVICE_KEY "CHANGE_ME-masa001"
 
 // ESP32-C3 Super Mini -> 1.8 inch ST7735 SPI TFT
-#define TFT_SCLK_PIN 10
-#define TFT_MOSI_PIN 7
+// Note: GPIO2 is boot/strapping-sensitive, but this profile uses it for DC/AO
+// because the current physical wiring requires it.
+#define TFT_SCLK_PIN 0
+#define TFT_MOSI_PIN 1
 #define TFT_MISO_PIN -1
-#define TFT_CS_PIN 5
-#define TFT_DC_PIN 4
+#define TFT_CS_PIN 4
+#define TFT_DC_PIN 2
 #define TFT_RST_PIN 3
 #define TFT_BL_PIN -1
 #define TFT_BL_ON HIGH

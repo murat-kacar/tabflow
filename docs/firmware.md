@@ -28,11 +28,11 @@ Locked hardware profile:
 Default pin map:
 
 ```text
-TFT SCK/SCLK -> GPIO10
-TFT SDA/MOSI -> GPIO7
-TFT A0/DC    -> GPIO4
+TFT SCK/SCLK -> GPIO0
+TFT SDA/MOSI -> GPIO1
+TFT A0/DC    -> GPIO2
 TFT RESET    -> GPIO3
-TFT CS       -> GPIO5
+TFT CS       -> GPIO4
 TFT LED/BL   -> 3V3 or optional configured backlight pin
 TFT GND      -> GND
 TFT VCC      -> 3V3
@@ -40,8 +40,15 @@ TFT VCC      -> 3V3
 
 Pins intentionally avoided:
 
-- GPIO2, GPIO8, GPIO9 because of boot/strapping risk.
+- GPIO8, GPIO9 because of boot/strapping risk.
 - GPIO20, GPIO21 to avoid USB/serial interference.
+
+GPIO2 risk note:
+
+- GPIO2 is also boot/strapping-sensitive, but the current physical wiring uses
+  it for TFT A0/DC. This is accepted for the current prototype profile. If boot
+  instability appears, move A0/DC to a safer free GPIO and update generated
+  firmware config output at the same time.
 
 The firmware does not generate QR codes. The tenant API owns token generation and
 WebSocket delivery.

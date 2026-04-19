@@ -1637,11 +1637,11 @@ public static class TenantEndpoints
         #define MASA_ID {{tableNumber}}
         #define WS_DEVICE_KEY "{{rawDeviceKey}}"
 
-        #define TFT_SCLK_PIN 10
-        #define TFT_MOSI_PIN 7
+        #define TFT_SCLK_PIN 0
+        #define TFT_MOSI_PIN 1
         #define TFT_MISO_PIN -1
-        #define TFT_CS_PIN 5
-        #define TFT_DC_PIN 4
+        #define TFT_CS_PIN 4
+        #define TFT_DC_PIN 2
         #define TFT_RST_PIN 3
         #define TFT_BL_PIN -1
         #define TFT_BL_ON HIGH
