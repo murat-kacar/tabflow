@@ -445,6 +445,11 @@ Tenant migration now creates:
 - `customer_orders`
 - `customer_order_items`
 
+Schema initialization is intentionally idempotent for both fresh tenants and
+older tenant databases. Additive columns must be created before any index or
+constraint that references them, so partially upgraded tenants can restart
+safely.
+
 ## Known Gaps
 
 Not built yet:

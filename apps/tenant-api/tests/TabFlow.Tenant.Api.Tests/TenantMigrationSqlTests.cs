@@ -15,6 +15,18 @@ public sealed class TenantMigrationSqlTests
     }
 
     [Fact]
+    public void Initial_migration_adds_menu_item_station_column_before_index()
+    {
+        var sql = File.ReadAllText(FindRepoFile("infra/postgres/migrations/tenant/0001_initial.sql"));
+        var addColumn = sql.IndexOf("ALTER TABLE menu_items", StringComparison.Ordinal);
+        var createIndex = sql.IndexOf("ix_menu_items_station_id", StringComparison.Ordinal);
+
+        Assert.True(addColumn >= 0);
+        Assert.True(createIndex >= 0);
+        Assert.True(addColumn < createIndex);
+    }
+
+    [Fact]
     public void Initial_migration_enforces_one_active_device_key_per_table()
     {
         var sql = File.ReadAllText(FindRepoFile("infra/postgres/migrations/tenant/0001_initial.sql"));

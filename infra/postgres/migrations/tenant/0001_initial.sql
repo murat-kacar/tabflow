@@ -179,6 +179,9 @@ CREATE TABLE IF NOT EXISTS menu_items (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE menu_items
+    ADD COLUMN IF NOT EXISTS station_id uuid NULL REFERENCES service_stations (id) ON DELETE SET NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_menu_items_sku ON menu_items (sku);
 CREATE INDEX IF NOT EXISTS ix_menu_items_category_id ON menu_items (category_id);
 CREATE INDEX IF NOT EXISTS ix_menu_items_station_id ON menu_items (station_id);
