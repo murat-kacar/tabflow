@@ -10,6 +10,68 @@ const initialState: TenantAdminActionState = {
   message: ""
 };
 
+type StationVariant = {
+  actionLabel: string;
+  boardLabel: string;
+  boardTone: string;
+  emptyLabel: string;
+  heroCopy: string;
+};
+
+function stationVariant(stationCode: string): StationVariant {
+  switch (stationCode) {
+    case "barista":
+      return {
+        actionLabel: "Bardağa al",
+        boardLabel: "Barista Board",
+        boardTone: "from-[#2d1f17] via-[#4a3124] to-[#1b1512]",
+        emptyLabel: "Barista kuyruğu sakin.",
+        heroCopy: "Kahve ve sicak icecek akisi hizli ritimle ilerlemeli."
+      };
+    case "bar":
+      return {
+        actionLabel: "Shaker'a al",
+        boardLabel: "Bar Board",
+        boardTone: "from-[#1b2233] via-[#20294a] to-[#131826]",
+        emptyLabel: "Bar kuyruğunda bekleyen ticket yok.",
+        heroCopy: "Bar hattında servis temposu ve sunum hızı kritik."
+      };
+    case "hookah":
+    case "nargile":
+      return {
+        actionLabel: "Hazirlamaya basla",
+        boardLabel: "Hookah Board",
+        boardTone: "from-[#2d2232] via-[#442d52] to-[#1d1822]",
+        emptyLabel: "Nargile hattı şu an sakin.",
+        heroCopy: "Nargile akışında hazırlık, teslim ve takip daha uzun çevrimlidir."
+      };
+    case "fastfood":
+      return {
+        actionLabel: "Hatta al",
+        boardLabel: "Fastfood Board",
+        boardTone: "from-[#332316] via-[#5c3420] to-[#23170f]",
+        emptyLabel: "Fastfood hattında açık ticket yok.",
+        heroCopy: "Hız, sıralama ve sıcak teslim bu istasyonun ana KPI'ı."
+      };
+    case "dispatch":
+      return {
+        actionLabel: "Paketlemeye al",
+        boardLabel: "Dispatch Board",
+        boardTone: "from-[#1c2830] via-[#1e3a46] to-[#152026]",
+        emptyLabel: "Paketleme hattı boş.",
+        heroCopy: "Paketleme ve devir teslim akışı burada kapanır."
+      };
+    default:
+      return {
+        actionLabel: "Hazirlamaya al",
+        boardLabel: "Station Board",
+        boardTone: "from-[#143328] via-[#1b2d29] to-[#0d1413]",
+        emptyLabel: "Bu kolon için aktif ticket yok.",
+        heroCopy: "Istasyon akışını tek bakışta gör, sırayı bozma, hattı temiz tut."
+      };
+  }
+}
+
 function elapsedTone(status: KitchenStationBoard["items"][number]["itemStatus"]) {
   switch (status) {
     case "submitted":
@@ -65,7 +127,13 @@ function urgencyForItem(item: KitchenStationBoard["items"][number]) {
   };
 }
 
-function KitchenCard({ item }: { item: KitchenStationBoard["items"][number] }) {
+function KitchenCard({
+  item,
+  prepareLabel
+}: {
+  item: KitchenStationBoard["items"][number];
+  prepareLabel: string;
+}) {
   const [state, action, pending] = useActionState(updateKitchenItemStatusAction, initialState);
   const urgency = urgencyForItem(item);
 
@@ -109,7 +177,7 @@ function KitchenCard({ item }: { item: KitchenStationBoard["items"][number] }) {
             type="submit"
             value="preparing"
           >
-            Hazirlamaya al
+            {prepareLabel}
           </button>
         ) : null}
         {item.itemStatus === "preparing" ? (
@@ -155,10 +223,10 @@ function KitchenCard({ item }: { item: KitchenStationBoard["items"][number] }) {
   );
 }
 
-function EmptyColumn({ label }: { label: string }) {
+function EmptyColumn({ label, emptyLabel }: { label: string; emptyLabel: string }) {
   return (
     <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-stone-400">
-      {label} kolonunda aktif ticket yok.
+      {label === "Yeni" ? emptyLabel : `${label} kolonunda aktif ticket yok.`}
     </div>
   );
 }
@@ -251,20 +319,27 @@ export function KitchenBoard({
   focusedStationCode?: string;
 }) {
   const singleStationMode = boards.length === 1;
+  const heroVariant = stationVariant(boards[0]?.stationCode ?? "general");
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#143328,transparent_26rem),linear-gradient(135deg,#0d1413,#17211f)] px-6 py-8 text-white">
+    <main
+      className={`min-h-screen bg-[radial-gradient(circle_at_top_left,#143328,transparent_26rem),linear-gradient(135deg,#0d1413,#17211f)] px-6 py-8 text-white ${
+        singleStationMode ? `bg-gradient-to-br ${heroVariant.boardTone}` : ""
+      }`}
+    >
       <section className="mx-auto max-w-[1600px]">
         <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-sm backdrop-blur">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-200">
             Station Board
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight">
-            {singleStationMode ? `${boards[0]?.stationName ?? "Istasyon"} operator panosu` : "Istasyon bazli uretim panosu"}
+            {singleStationMode
+              ? `${boards[0]?.stationName ?? "Istasyon"} • ${heroVariant.boardLabel}`
+              : "Istasyon bazli uretim panosu"}
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
             {singleStationMode
-              ? "Bu gorunum tek bir istasyon operatorunun dikkat dagilmadan kendi hattini yonetmesi icin odaklanmis modda calisir."
+              ? heroVariant.heroCopy
               : "Her istasyon kendi ticket akisina odaklanir. Supervisor tum istasyonlari ayni panoda gorebilir; operator ise sadece kendi hattini net ve hizli sekilde yonetir."}
           </p>
           {singleStationMode ? (
@@ -308,6 +383,9 @@ export function KitchenBoard({
 
         <section className="mt-8 grid gap-5">
           {boards.map((board) => (
+            (() => {
+              const variant = stationVariant(board.stationCode);
+              return (
             <section
               className={`rounded-[2rem] border p-5 shadow-sm ${
                 singleStationMode ? "border-white/15 bg-white/[0.04]" : "border-white/10"
@@ -370,9 +448,15 @@ export function KitchenBoard({
 
                       <div className="mt-4 grid gap-4">
                         {items.length === 0 ? (
-                          <EmptyColumn label={column.label} />
+                          <EmptyColumn emptyLabel={variant.emptyLabel} label={column.label} />
                         ) : (
-                          items.map((item) => <KitchenCard item={item} key={item.orderItemId} />)
+                          items.map((item) => (
+                            <KitchenCard
+                              item={item}
+                              key={item.orderItemId}
+                              prepareLabel={variant.actionLabel}
+                            />
+                          ))
                         )}
                       </div>
                     </section>
@@ -380,6 +464,8 @@ export function KitchenBoard({
                 })}
               </div>
             </section>
+              );
+            })()
           ))}
         </section>
       </section>
