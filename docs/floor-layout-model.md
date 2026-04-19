@@ -117,6 +117,7 @@ Kurallar:
 - edit mode açıkken:
   - masalar sürüklenebilir
   - zone sınırları görünür
+  - zone bloklari yeniden boyutlandirilabilir
   - snap-to-grid aktif olabilir
   - değişiklikler kaydet / vazgeç ile yönetilir
 
@@ -126,11 +127,11 @@ Kurallar:
 2. layout sekmeleri
 3. edit mode toggle
 4. masa yerleşimini sürükle-bırak ile değiştirme
-5. layout bazlı görünüm
+5. zone bloklarini surukleme ve yeniden boyutlandirma
+6. layout bazlı görünüm
 
 ## Later Scope
 
-- resize
 - rotation
 - sabit obje ekleme
   - kasa bankosu

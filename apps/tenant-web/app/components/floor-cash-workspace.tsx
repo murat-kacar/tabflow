@@ -381,6 +381,7 @@ function LayoutEditorPanel({
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingZoneId, setDraggingZoneId] = useState<string | null>(null);
+  const [resizingZoneId, setResizingZoneId] = useState<string | null>(null);
   const [saveState, saveAction, savePending] = useActionState(
     saveFloorLayoutAction,
     tableActionInitialState
@@ -426,6 +427,21 @@ function LayoutEditorPanel({
               ...zone,
               left: Math.max(2, Math.min(84, left)),
               top: Math.max(4, Math.min(80, top))
+            }
+          : zone
+      )
+    }));
+  }
+
+  function updateZoneSize(zoneId: string, layoutKey: FloorLayoutKey, width: number, height: number) {
+    setZonePlacements((current) => ({
+      ...current,
+      [layoutKey]: current[layoutKey].map((zone) =>
+        zone.id === zoneId
+          ? {
+              ...zone,
+              width: Math.max(16, Math.min(94 - zone.left, width)),
+              height: Math.max(12, Math.min(92 - zone.top, height))
             }
           : zone
       )
@@ -523,8 +539,48 @@ function LayoutEditorPanel({
                 height: `${zoneBlock.height}%`
               }}
             >
-              <div className="rounded-sm bg-white/80 px-2 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#21406f]">
-                {zoneMeta(zoneBlock.zone).label}
+              <div className="flex h-full flex-col justify-between">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="rounded-sm bg-white/80 px-2 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#21406f]">
+                    {zoneMeta(zoneBlock.zone).label}
+                  </div>
+                  <div className="rounded-sm bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600">
+                    {Math.round(zoneBlock.width)} x {Math.round(zoneBlock.height)}
+                  </div>
+                </div>
+                <button
+                  aria-label={`${zoneMeta(zoneBlock.zone).label} boyutunu degistir`}
+                  className={`ml-auto h-7 w-7 rounded-sm border border-[#3d5f9c] bg-white/90 text-[#21406f] shadow-sm transition ${
+                    resizingZoneId === zoneBlock.id ? "scale-110" : ""
+                  }`}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    const canvas = event.currentTarget.parentElement?.parentElement;
+                    if (!canvas) {
+                      return;
+                    }
+
+                    setResizingZoneId(zoneBlock.id);
+                    const rect = canvas.getBoundingClientRect();
+
+                    const handleMove = (moveEvent: PointerEvent) => {
+                      const width = ((moveEvent.clientX - rect.left) / rect.width) * 100 - zoneBlock.left;
+                      const height = ((moveEvent.clientY - rect.top) / rect.height) * 100 - zoneBlock.top;
+                      updateZoneSize(zoneBlock.id, zoneBlock.layout, width, height);
+                    };
+
+                    const handleUp = () => {
+                      setResizingZoneId(null);
+                      window.removeEventListener("pointermove", handleMove);
+                    };
+
+                    window.addEventListener("pointermove", handleMove);
+                    window.addEventListener("pointerup", handleUp, { once: true });
+                  }}
+                  type="button"
+                >
+                  <span className="text-base font-black leading-none">+</span>
+                </button>
               </div>
             </div>
           ))}
