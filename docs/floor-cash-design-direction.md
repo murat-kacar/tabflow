@@ -44,6 +44,10 @@ Bu yüzden ekran iki ana mantık arasında çalışır:
 
 ## Information Architecture
 
+Route:
+
+- `/service`
+
 ### Core Tabs
 
 1. `Floor`
@@ -60,6 +64,8 @@ Odak:
 - aktif sipariş
 - açık hesap
 - cihaz / QR durumu
+- müdahale önceliği
+- servis baskısı
 
 ### Open Checks
 
@@ -78,6 +84,7 @@ Odak:
 - tahsil edildi işaretleme
 - ödeme tipi notu
 - kapanış onayı
+- kasiyer öncelik sırası
 
 ### Closed Checks
 
@@ -200,6 +207,8 @@ Bu bilgi muhasebe entegrasyonu değil, operasyon kaydı olarak tutulur.
 - masa taşıma / birleştirme kontrollü modal ile yapılmalı
 - kapanış aksiyonu ikinci onay istemeli
 - hesap kapandığında kart durumu anında güncellenmeli
+- acil masalar floor grid'in üst sıralarına yükselmelidir
+- servis bekleyen ve offline cihazlı masalar ayrı bir aksiyon şeridinde görünmelidir
 
 ## What To Avoid
 

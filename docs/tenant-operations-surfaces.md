@@ -32,6 +32,21 @@ Ama dördü de aynı ürün ailesine ait hissettirmelidir:
 - aynı durum rozetleri
 - aynı sipariş statü dili
 
+## Official Route Model
+
+Bu fazda legacy rota taşımıyoruz. Resmi ve tek geçerli tenant surface URL modeli:
+
+- `/login`
+- `/change-password`
+- `/console`
+- `/console/stations`
+- `/service`
+- `/stations`
+- `/stations/[stationCode]`
+- `/pda`
+
+Yeni karar alındığında eski rota ağacını korumak yerine doğrudan kırıp daha temiz yapıya geçilir.
+
 ## Shared Design System
 
 ### Shared Status Language
@@ -151,6 +166,10 @@ Kasiyer, floor supervisor veya yetkili servis personeli için günlük operasyon
 3. `Payment Queue`
 4. `Closed Checks`
 
+Route:
+
+- `/service`
+
 ### Core Components
 
 - floor map
@@ -190,6 +209,11 @@ Kasiyer, floor supervisor veya yetkili servis personeli için günlük operasyon
   - `ready`
 - ticket kartları
 
+Routes:
+
+- `/stations`
+- `/stations/[stationCode]`
+
 ### Core Components
 
 - station tab
@@ -205,6 +229,10 @@ Kasiyer, floor supervisor veya yetkili servis personeli için günlük operasyon
 Garsonun mobil web-view üzerinden masada sipariş alıp yönetmesi için tasarlanmış operasyon yüzü.
 
 Bu ekran native uygulama gibi davranmalı ama web tabanlı olmalı.
+
+Route:
+
+- `/pda`
 
 ### Main Jobs
 

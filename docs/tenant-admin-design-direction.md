@@ -66,6 +66,11 @@ Recommended admin-side navigation:
 5. `Staff`
 6. `Settings`
 
+Route model:
+
+- `/console`
+- `/console/stations`
+
 ## Recommended Screen Architecture
 
 ### Overview

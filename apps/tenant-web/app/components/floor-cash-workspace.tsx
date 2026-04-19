@@ -16,6 +16,7 @@ const initialState: TenantAdminActionState = {
 };
 
 type FloorCashView = "floor" | "open-checks" | "payment-queue" | "closed-checks";
+type PaymentMethod = "nakit" | "kart" | "transfer" | "diger";
 
 function formatMoney(minor: number, currencyCode: string | null): string {
   if (!currencyCode) {
@@ -47,6 +48,26 @@ function statusBadge(table: AdminTableSummary) {
   }
 
   return { label: "Bos", tone: "bg-stone-100 text-stone-600" };
+}
+
+function tableUrgency(table: AdminTableSummary) {
+  if (!table.deviceOnline) {
+    return { label: "Cihaz problemi", tone: "bg-rose-100 text-rose-700" };
+  }
+
+  if (table.readyOrderCount > 0) {
+    return { label: "Servis cikmali", tone: "bg-emerald-100 text-emerald-800" };
+  }
+
+  if (table.preparingOrderCount + table.submittedOrderCount >= 3) {
+    return { label: "Yogun masa", tone: "bg-amber-100 text-amber-800" };
+  }
+
+  if (table.openBillId) {
+    return { label: "Kapanis bekliyor", tone: "bg-stone-200 text-stone-800" };
+  }
+
+  return { label: "Sakin", tone: "bg-stone-100 text-stone-600" };
 }
 
 function FloorTableCard({
@@ -104,7 +125,63 @@ function FloorTableCard({
           </p>
         </div>
       </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${tableUrgency(table).tone} ${
+            isSelected ? "bg-white/10 text-white" : ""
+          }`}
+        >
+          {tableUrgency(table).label}
+        </span>
+        {table.openBillId ? (
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isSelected ? "bg-white/10 text-white" : "bg-stone-100 text-stone-700"}`}>
+            Hesap acik
+          </span>
+        ) : null}
+      </div>
     </button>
+  );
+}
+
+function ShiftSnapshot({
+  bills,
+  tables
+}: {
+  bills: CustomerBillSummary[];
+  tables: AdminTableSummary[];
+}) {
+  const activeTables = tables.filter((table) => table.isActive).length;
+  const urgentTables = tables.filter(
+    (table) => table.readyOrderCount > 0 || !table.deviceOnline
+  ).length;
+  const grossMinor = bills
+    .filter((bill) => bill.status === "open")
+    .reduce((sum, bill) => sum + bill.subtotalMinor, 0);
+
+  return (
+    <section className="mt-6 grid gap-4 lg:grid-cols-4">
+      <article className="rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Serviste masa</p>
+        <p className="mt-3 text-3xl font-bold tracking-tight text-stone-950">{activeTables}</p>
+      </article>
+      <article className="rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Acil masa</p>
+        <p className="mt-3 text-3xl font-bold tracking-tight text-stone-950">{urgentTables}</p>
+      </article>
+      <article className="rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Acik hesap</p>
+        <p className="mt-3 text-3xl font-bold tracking-tight text-stone-950">
+          {bills.filter((bill) => bill.status === "open").length}
+        </p>
+      </article>
+      <article className="rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Acik ciro</p>
+        <p className="mt-3 text-3xl font-bold tracking-tight text-stone-950">
+          {formatMoney(grossMinor, bills[0]?.currencyCode ?? "GBP")}
+        </p>
+      </article>
+    </section>
   );
 }
 
@@ -270,6 +347,77 @@ function MoveMergePanel({ table }: { table: AdminTableSummary }) {
   );
 }
 
+function ActionRail({
+  queueBills,
+  tables
+}: {
+  queueBills: CustomerBillSummary[];
+  tables: AdminTableSummary[];
+}) {
+  const urgentTables = tables.filter((table) => table.readyOrderCount > 0 || !table.deviceOnline);
+
+  return (
+    <section className="rounded-[1.75rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+            Operasyon Nabzi
+          </p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight">Hemen aksiyon gerektirenler</h2>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-[1.5rem] bg-stone-50 p-4">
+          <p className="text-sm font-semibold text-stone-950">Servis / cihaz aksiyonu</p>
+          <div className="mt-3 grid gap-2">
+            {urgentTables.length === 0 ? (
+              <p className="text-sm text-stone-600">Acil masa yok.</p>
+            ) : (
+              urgentTables.slice(0, 5).map((table) => (
+                <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3" key={table.id}>
+                  <div>
+                    <p className="font-semibold text-stone-950">
+                      Masa {table.number.toString().padStart(3, "0")} • {table.name}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-600">{tableUrgency(table).label}</p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tableUrgency(table).tone}`}>
+                    Aksiyon
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        <div className="rounded-[1.5rem] bg-stone-50 p-4">
+          <p className="text-sm font-semibold text-stone-950">Kapanis kuyrugu</p>
+          <div className="mt-3 grid gap-2">
+            {queueBills.length === 0 ? (
+              <p className="text-sm text-stone-600">Kapanisa hazir hesap yok.</p>
+            ) : (
+              queueBills.slice(0, 5).map((bill) => (
+                <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3" key={bill.id}>
+                  <div>
+                    <p className="font-semibold text-stone-950">
+                      Masa {bill.tableNumber.toString().padStart(3, "0")} • {bill.tableName}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      {formatMoney(bill.subtotalMinor, bill.currencyCode)} • {bill.orderCount} siparis
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                    Tahsilat
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SelectedTablePanel({
   bill,
   device,
@@ -282,6 +430,7 @@ function SelectedTablePanel({
   table: AdminTableSummary;
 }) {
   const [state, action, pending] = useActionState(closeBillAction, initialState);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("nakit");
 
   return (
     <aside className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
@@ -337,11 +486,27 @@ function SelectedTablePanel({
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
                 Yontem
               </p>
-              <p className="mt-1 text-sm text-stone-700">
-                POS entegresi yok, manuel tahsilat kaydi mantigi kullanilacak.
-              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["nakit", "kart", "transfer", "diger"] as PaymentMethod[]).map((option) => (
+                  <button
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      paymentMethod === option
+                        ? "bg-[#16392e] text-white"
+                        : "bg-stone-100 text-stone-700"
+                    }`}
+                    key={option}
+                    onClick={() => setPaymentMethod(option)}
+                    type="button"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+          <p className="mt-3 text-xs text-stone-500">
+            Odeme yontemi simdilik operasyon notu niteliginde. Tahsilat manuel alinip hesap kapatilir.
+          </p>
         </div>
 
         <div className="rounded-2xl bg-stone-50 px-4 py-4">
@@ -372,13 +537,22 @@ function SelectedTablePanel({
         {bill ? (
           <form action={action}>
             <input name="billId" type="hidden" value={bill.id} />
-            <button
-              className="w-full rounded-full bg-[#16392e] px-4 py-3 text-sm font-semibold text-white"
-              disabled={pending}
-              type="submit"
-            >
-              Odeme alindi ve hesap kapat
-            </button>
+            <div className="grid gap-3">
+              <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-4 py-4">
+                <p className="text-sm font-semibold text-emerald-900">Kapanis ozetı</p>
+                <p className="mt-2 text-sm text-emerald-900">
+                  {formatMoney(bill.subtotalMinor, bill.currencyCode)} tutarli hesap manuel olarak{" "}
+                  <span className="font-semibold">{paymentMethod}</span> ile tahsil edildi olarak kapanacak.
+                </p>
+              </div>
+              <button
+                className="w-full rounded-full bg-[#16392e] px-4 py-3 text-sm font-semibold text-white"
+                disabled={pending}
+                type="submit"
+              >
+                Odeme alindi ve hesap kapat
+              </button>
+            </div>
           </form>
         ) : null}
 
@@ -416,6 +590,14 @@ export function FloorCashWorkspace({
   const openBills = bills.filter((bill) => bill.status === "open");
   const closedBills = bills.filter((bill) => bill.status !== "open");
   const queueBills = [...openBills].sort((a, b) => a.openedAt.localeCompare(b.openedAt));
+  const floorTables = [...tables].sort((a, b) => {
+    const score = (table: AdminTableSummary) =>
+      Number(!table.deviceOnline) * 5 +
+      Number(table.readyOrderCount > 0) * 4 +
+      (table.preparingOrderCount + table.submittedOrderCount > 0 ? 3 : 0) +
+      Number(Boolean(table.openBillId));
+    return score(b) - score(a) || a.number - b.number;
+  });
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f0e0bd,transparent_28rem),radial-gradient(circle_at_bottom_right,#dce7f0,transparent_30rem),linear-gradient(135deg,#f6f1e7,#e6e1d6)] px-6 py-8 text-stone-950">
@@ -430,6 +612,8 @@ export function FloorCashWorkspace({
             Bu yuzey kasiyer ve floor supervisor icin operasyonun kalbi olacak.
           </p>
         </section>
+
+        <ShiftSnapshot bills={bills} tables={tables} />
 
         <FloorCashTabs current={view} onChange={setView} />
 
@@ -446,7 +630,7 @@ export function FloorCashWorkspace({
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {tables.map((table) => (
+                {floorTables.map((table) => (
                   <FloorTableCard
                     isSelected={selectedTable?.id === table.id}
                     key={table.id}
@@ -465,6 +649,12 @@ export function FloorCashWorkspace({
                 table={selectedTable}
               />
             ) : null}
+          </section>
+        ) : null}
+
+        {view === "floor" ? (
+          <section className="mt-6">
+            <ActionRail queueBills={queueBills} tables={tables} />
           </section>
         ) : null}
 
