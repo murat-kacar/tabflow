@@ -1,0 +1,332 @@
+"use client";
+
+import type {
+  AdminDevice,
+  AdminTableSummary,
+  CustomerBillSummary,
+  CustomerOrderSummary
+} from "@tabflow/shared-ts";
+import { useActionState, useMemo, useState } from "react";
+import { closeBillAction, type TenantAdminActionState } from "../auth-actions";
+import { formatDateTime } from "../lib/format";
+
+const initialState: TenantAdminActionState = {
+  ok: false,
+  message: ""
+};
+
+function formatMoney(minor: number, currencyCode: string | null): string {
+  if (!currencyCode) {
+    return "-";
+  }
+
+  return `${(minor / 100).toFixed(2)} ${currencyCode}`;
+}
+
+function statusBadge(table: AdminTableSummary) {
+  if (!table.isActive) {
+    return { label: "Pasif", tone: "bg-stone-200 text-stone-700" };
+  }
+
+  if (!table.deviceOnline) {
+    return { label: "Offline", tone: "bg-rose-100 text-rose-700" };
+  }
+
+  if (table.readyOrderCount > 0) {
+    return { label: "Hazir servis", tone: "bg-emerald-100 text-emerald-800" };
+  }
+
+  if (table.submittedOrderCount + table.preparingOrderCount > 0) {
+    return { label: "Aktif siparis", tone: "bg-amber-100 text-amber-800" };
+  }
+
+  if (table.openBillId) {
+    return { label: "Acik hesap", tone: "bg-stone-200 text-stone-800" };
+  }
+
+  return { label: "Bos", tone: "bg-stone-100 text-stone-600" };
+}
+
+function FloorTableCard({
+  isSelected,
+  onSelect,
+  table
+}: {
+  isSelected: boolean;
+  onSelect: () => void;
+  table: AdminTableSummary;
+}) {
+  const badge = statusBadge(table);
+
+  return (
+    <button
+      className={`rounded-[1.6rem] border p-5 text-left shadow-sm transition ${
+        isSelected
+          ? "border-[#16392e] bg-[#16392e] text-white"
+          : "border-stone-200 bg-white text-stone-950 hover:border-stone-400"
+      }`}
+      onClick={onSelect}
+      type="button"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.22em] ${
+              isSelected ? "text-stone-300" : "text-stone-500"
+            }`}
+          >
+            Masa {table.number.toString().padStart(3, "0")}
+          </p>
+          <h3 className="mt-2 text-2xl font-bold tracking-tight">{table.name}</h3>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            isSelected ? "bg-white/10 text-white" : badge.tone
+          }`}
+        >
+          {badge.label}
+        </span>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+        <div className={`rounded-2xl px-4 py-3 ${isSelected ? "bg-white/10" : "bg-stone-50"}`}>
+          <p className={isSelected ? "text-stone-300" : "text-stone-500"}>Acik hesap</p>
+          <p className="mt-1 text-lg font-semibold">
+            {formatMoney(table.openBillSubtotalMinor, table.openBillCurrencyCode)}
+          </p>
+        </div>
+        <div className={`rounded-2xl px-4 py-3 ${isSelected ? "bg-white/10" : "bg-stone-50"}`}>
+          <p className={isSelected ? "text-stone-300" : "text-stone-500"}>Hazir / Yeni</p>
+          <p className="mt-1 text-lg font-semibold">
+            {table.readyOrderCount} / {table.submittedOrderCount + table.preparingOrderCount}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function PaymentQueue({
+  bills
+}: {
+  bills: CustomerBillSummary[];
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+        Payment Queue
+      </p>
+      <h2 className="mt-2 text-2xl font-bold tracking-tight">Kapatilmaya hazir hesaplar</h2>
+      <div className="mt-5 grid gap-3">
+        {bills.length === 0 ? (
+          <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
+            Acik hesap kuyrugu bos.
+          </p>
+        ) : (
+          bills.map((bill) => (
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-stone-50 px-4 py-4"
+              key={bill.id}
+            >
+              <div>
+                <p className="font-semibold text-stone-950">
+                  Masa {bill.tableNumber.toString().padStart(3, "0")} • {bill.tableName}
+                </p>
+                <p className="mt-1 text-sm text-stone-600">
+                  {formatMoney(bill.subtotalMinor, bill.currencyCode)} • {bill.orderCount} siparis
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-stone-700">
+                {bill.status}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SelectedTablePanel({
+  bill,
+  device,
+  orders,
+  table
+}: {
+  bill?: CustomerBillSummary;
+  device?: AdminDevice;
+  orders: CustomerOrderSummary[];
+  table: AdminTableSummary;
+}) {
+  const [state, action, pending] = useActionState(closeBillAction, initialState);
+
+  return (
+    <aside className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+            Secili masa
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-stone-950">
+            Masa {table.number.toString().padStart(3, "0")}
+          </h2>
+          <p className="mt-2 text-sm text-stone-600">{table.name}</p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(table).tone}`}>
+          {statusBadge(table).label}
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        <div className="rounded-2xl bg-stone-50 px-4 py-4">
+          <p className="text-sm font-semibold text-stone-950">Acik adisyon</p>
+          <p className="mt-1 text-lg font-bold text-stone-950">
+            {bill ? formatMoney(bill.subtotalMinor, bill.currencyCode) : "Yok"}
+          </p>
+          <p className="mt-1 text-sm text-stone-600">
+            {bill ? `${bill.orderCount} siparis • ${formatDateTime(bill.openedAt)}` : "Bu masada acik hesap yok."}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-stone-50 px-4 py-4">
+          <p className="text-sm font-semibold text-stone-950">Cihaz / QR durumu</p>
+          <p className="mt-1 text-sm text-stone-600">
+            {device
+              ? device.deviceOnline
+                ? "Cihaz online, masa QR akisi canli."
+                : "Cihaz offline, takip gerektiriyor."
+              : "Bu masa icin cihaz kaydi bulunmuyor."}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-stone-50 px-4 py-4">
+          <p className="text-sm font-semibold text-stone-950">Canli siparisler</p>
+          <div className="mt-3 grid gap-2">
+            {orders.length === 0 ? (
+              <p className="text-sm text-stone-600">Bu masaya bagli canli siparis yok.</p>
+            ) : (
+              orders.slice(0, 4).map((order) => (
+                <div className="rounded-2xl bg-white px-4 py-3" key={order.id}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-stone-950">Siparis #{order.id.slice(0, 8)}</p>
+                    <span className="text-xs text-stone-500">{order.status}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {formatMoney(order.subtotalMinor, order.currencyCode)} • {formatDateTime(order.updatedAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        <div className="flex flex-wrap gap-3">
+          <button className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700" type="button">
+            Masayi tasi
+          </button>
+          <button className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700" type="button">
+            Masalari birlestir
+          </button>
+        </div>
+
+        {bill ? (
+          <form action={action}>
+            <input name="billId" type="hidden" value={bill.id} />
+            <button
+              className="w-full rounded-full bg-[#16392e] px-4 py-3 text-sm font-semibold text-white"
+              disabled={pending}
+              type="submit"
+            >
+              Odeme alindi ve hesap kapat
+            </button>
+          </form>
+        ) : null}
+
+        {state.message ? (
+          <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-rose-700"}`}>
+            {state.message}
+          </p>
+        ) : null}
+      </div>
+    </aside>
+  );
+}
+
+export function FloorCashWorkspace({
+  bills,
+  devices,
+  orders,
+  tables
+}: {
+  bills: CustomerBillSummary[];
+  devices: AdminDevice[];
+  orders: CustomerOrderSummary[];
+  tables: AdminTableSummary[];
+}) {
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(tables[0]?.id ?? null);
+
+  const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0];
+  const selectedBill = bills.find((bill) => bill.tableId === selectedTable?.id && bill.status === "open");
+  const selectedDevice = devices.find((device) => device.tableId === selectedTable?.id);
+  const selectedOrders = useMemo(
+    () => orders.filter((order) => order.tableId === selectedTable?.id),
+    [orders, selectedTable?.id]
+  );
+  const openBills = bills.filter((bill) => bill.status === "open");
+
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f0e0bd,transparent_28rem),radial-gradient(circle_at_bottom_right,#dce7f0,transparent_30rem),linear-gradient(135deg,#f6f1e7,#e6e1d6)] px-6 py-8 text-stone-950">
+      <section className="mx-auto max-w-7xl">
+        <section className="rounded-[2rem] border border-black/10 bg-[#1c2a24] p-8 text-white shadow-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-200">
+            Masa + Kasa
+          </p>
+          <h1 className="mt-4 text-5xl font-bold tracking-tight">Floor, adisyon ve kapanis akisi tek yuzeyde</h1>
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-stone-200">
+            Masalarin fiziksel durumunu, acik hesaplari ve kapanis kuyrugunu ayni baglamda tut.
+            Bu yuzey kasiyer ve floor supervisor icin operasyonun kalbi olacak.
+          </p>
+        </section>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
+          <section className="rounded-[1.75rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+                  Floor
+                </p>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight">Masa durumu ve acik adisyonlar</h2>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {tables.map((table) => (
+                <FloorTableCard
+                  isSelected={selectedTable?.id === table.id}
+                  key={table.id}
+                  onSelect={() => setSelectedTableId(table.id)}
+                  table={table}
+                />
+              ))}
+            </div>
+          </section>
+
+          {selectedTable ? (
+            <SelectedTablePanel
+              bill={selectedBill}
+              device={selectedDevice}
+              orders={selectedOrders}
+              table={selectedTable}
+            />
+          ) : null}
+        </section>
+
+        <section className="mt-6">
+          <PaymentQueue bills={openBills} />
+        </section>
+      </section>
+    </main>
+  );
+}

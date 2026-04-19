@@ -18,13 +18,19 @@ export function TenantAdminShell({ children, email }: { children: ReactNode; ema
               className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950"
               href="/admin"
             >
-              Operasyon
+              Overview
+            </Link>
+            <Link
+              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950"
+              href="/admin/floor"
+            >
+              Masa + Kasa
             </Link>
             <Link
               className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950"
               href="/admin/kitchen"
             >
-              Mutfak
+              Station Board
             </Link>
             <form action={tenantLogoutAction}>
               <button
