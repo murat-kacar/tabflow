@@ -25,18 +25,35 @@ function StationCard({ station }: { station: ServiceStation }) {
   );
 
   return (
-    <article className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
+    <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="h-4 w-4 rounded-full" style={{ backgroundColor: station.colorHex }} />
           <div>
-            <p className="font-semibold text-stone-950">{station.name}</p>
-            <p className="font-mono text-xs text-stone-500">{station.code}</p>
+            <p className="text-lg font-bold tracking-tight text-stone-950">{station.name}</p>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-stone-500">
+              {station.code}
+            </p>
           </div>
         </div>
-        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            station.isActive ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-700"
+          }`}
+        >
           {station.isActive ? "Aktif" : "Pasif"}
         </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-2xl bg-stone-50 px-4 py-3">
+          <p className="text-stone-500">Sira</p>
+          <p className="mt-1 font-semibold text-stone-950">{station.sortOrder}</p>
+        </div>
+        <div className="rounded-2xl bg-stone-50 px-4 py-3">
+          <p className="text-stone-500">Renk</p>
+          <p className="mt-1 font-mono font-semibold text-stone-950">{station.colorHex}</p>
+        </div>
       </div>
 
       <form action={updateAction} className="mt-4 grid gap-3">
@@ -68,7 +85,7 @@ function StationCard({ station }: { station: ServiceStation }) {
         </label>
         <div className="flex flex-wrap gap-3">
           <button
-            className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
             disabled={updatePending}
             type="submit"
           >
@@ -105,62 +122,111 @@ export function StationManager({ stations }: { stations: ServiceStation[] }) {
     createStationAction,
     initialState
   );
+  const activeStations = stations.filter((station) => station.isActive).length;
 
   return (
-    <section className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">Stations</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight">Istasyon duzeni</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          {stations.map((station) => (
-            <StationCard key={station.id} station={station} />
-          ))}
-        </div>
-      </div>
-      <aside className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-          Yeni istasyon
-        </p>
-        <form action={createAction} className="mt-4 grid gap-3">
-          <input
-            className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3"
-            name="name"
-            placeholder="Bar"
-          />
-          <input
-            className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 font-mono"
-            name="code"
-            placeholder="bar"
-          />
-          <input
-            className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 font-mono"
-            defaultValue="#64748b"
-            name="colorHex"
-          />
-          <input
-            className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3"
-            defaultValue={0}
-            name="sortOrder"
-            type="number"
-          />
-          <label className="flex items-center gap-2 text-sm text-stone-700">
-            <input defaultChecked name="isActive" type="checkbox" />
-            Aktif
-          </label>
-          <button
-            className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white"
-            disabled={createPending}
-            type="submit"
-          >
-            Istasyon ekle
-          </button>
-        </form>
-        {createState.message ? (
-          <p className={`mt-3 text-sm ${createState.ok ? "text-emerald-700" : "text-rose-700"}`}>
-            {createState.message}
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3e5c8,transparent_28rem),radial-gradient(circle_at_bottom_right,#d9e8de,transparent_30rem),linear-gradient(135deg,#f7f3ec,#ebe5d8)] px-6 py-8 text-stone-950">
+      <section className="mx-auto max-w-7xl">
+        <section className="rounded-[2rem] border border-black/10 bg-[#19352d] p-8 text-white shadow-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">
+            Stations
           </p>
-        ) : null}
-      </aside>
-    </section>
+          <h1 className="mt-4 text-5xl font-bold tracking-tight">
+            Istasyon kurulumunu ve akisini tek yerden yonet
+          </h1>
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-emerald-50/85">
+            Station-first operasyon modeli burada kurulur. Barista, bar, nargile, fastfood veya
+            sana ozel hatlarin hepsi bu yuzeyde tanimlanir.
+          </p>
+        </section>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-3">
+          <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+              Toplam istasyon
+            </p>
+            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">{stations.length}</p>
+          </article>
+          <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+              Aktif istasyon
+            </p>
+            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">{activeStations}</p>
+          </article>
+          <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+              Fallback adaylari
+            </p>
+            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">
+              {stations.filter((station) => station.code === "general").length}
+            </p>
+          </article>
+        </section>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <div className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+              Station Grid
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">Istasyon duzeni</h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {stations.map((station) => (
+                <StationCard key={station.id} station={station} />
+              ))}
+            </div>
+          </div>
+
+          <aside className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+              Yeni station
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">Kurulum sihirbazi</h2>
+            <p className="mt-3 text-sm leading-6 text-stone-600">
+              Ilk adimda istasyon kimligini tanimla. Sonraki iterasyonda urun kapsami ve gorunur
+              roller de bu panelde wizard adimlari olarak acilacak.
+            </p>
+            <form action={createAction} className="mt-5 grid gap-3">
+              <input
+                className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3"
+                name="name"
+                placeholder="Barista"
+              />
+              <input
+                className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 font-mono"
+                name="code"
+                placeholder="barista"
+              />
+              <input
+                className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 font-mono"
+                defaultValue="#64748b"
+                name="colorHex"
+              />
+              <input
+                className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3"
+                defaultValue={0}
+                name="sortOrder"
+                type="number"
+              />
+              <label className="flex items-center gap-2 text-sm text-stone-700">
+                <input defaultChecked name="isActive" type="checkbox" />
+                Aktif
+              </label>
+              <button
+                className="rounded-full bg-[#16392e] px-5 py-3 text-sm font-semibold text-white"
+                disabled={createPending}
+                type="submit"
+              >
+                Istasyon ekle
+              </button>
+            </form>
+            {createState.message ? (
+              <p className={`mt-3 text-sm ${createState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                {createState.message}
+              </p>
+            ) : null}
+          </aside>
+        </section>
+      </section>
+    </main>
   );
 }

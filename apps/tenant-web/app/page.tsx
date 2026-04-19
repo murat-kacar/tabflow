@@ -28,7 +28,7 @@ export default async function TenantHome() {
           ) : null}
           <Link
             className="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700"
-            href="/admin/login"
+            href="/login"
           >
             Tenant admin
           </Link>

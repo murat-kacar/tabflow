@@ -89,7 +89,7 @@ export async function tenantLoginAction(
     };
   }
 
-  redirect("/admin");
+  redirect("/console");
 }
 
 export async function tenantBootstrapAction(
@@ -111,7 +111,7 @@ export async function tenantBootstrapAction(
     };
   }
 
-  redirect("/admin");
+  redirect("/console");
 }
 
 export async function changeTenantPasswordAction(
@@ -159,12 +159,12 @@ export async function changeTenantPasswordAction(
     };
   }
 
-  redirect("/admin");
+  redirect("/console");
 }
 
 export async function tenantLogoutAction(): Promise<void> {
   await clearTenantSessionCookie();
-  redirect("/admin/login");
+  redirect("/login");
 }
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
@@ -182,7 +182,7 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
     isActive: formData.get("isActive") === "on"
   });
 
-  revalidatePath("/admin");
+  revalidatePath("/console");
 }
 
 export async function createItemAction(formData: FormData): Promise<void> {
@@ -203,7 +203,7 @@ export async function createItemAction(formData: FormData): Promise<void> {
     isAvailable: formData.get("isAvailable") === "on"
   });
 
-  revalidatePath("/admin");
+  revalidatePath("/console");
 }
 
 export async function rotateDeviceKeyAction(
@@ -221,7 +221,7 @@ export async function rotateDeviceKeyAction(
 
   try {
     const result = await rotateDeviceKey(session, String(formData.get("tableId") ?? ""));
-    revalidatePath("/admin");
+    revalidatePath("/console");
 
     return {
       ok: true,
@@ -252,7 +252,7 @@ export async function refreshDeviceTokenAction(
 
   try {
     const result = await refreshDeviceToken(session, String(formData.get("tableId") ?? ""));
-    revalidatePath("/admin");
+    revalidatePath("/console");
 
     return {
       ok: true,
@@ -281,7 +281,7 @@ export async function closeBillAction(
 
   try {
     await closeTenantBill(session, String(formData.get("billId") ?? ""));
-    revalidatePath("/admin");
+    revalidatePath("/console");
 
     return {
       ok: true,
@@ -314,7 +314,7 @@ export async function updateOrderStatusAction(
       String(formData.get("orderId") ?? ""),
       String(formData.get("status") ?? "") as never
     );
-    revalidatePath("/admin");
+    revalidatePath("/console");
 
     return {
       ok: true,
@@ -345,7 +345,7 @@ export async function createTableAction(
       serviceNote: String(formData.get("serviceNote") ?? ""),
       isActive: formData.get("isActive") === "on"
     });
-    revalidatePath("/admin");
+    revalidatePath("/console");
     return { ok: true, message: "Masa eklendi." };
   } catch (error) {
     return {
@@ -372,7 +372,7 @@ export async function updateTableAction(
       serviceNote: String(formData.get("serviceNote") ?? ""),
       isActive: formData.get("isActive") === "on"
     });
-    revalidatePath("/admin");
+    revalidatePath("/console");
     return { ok: true, message: "Masa guncellendi." };
   } catch (error) {
     return {
@@ -394,7 +394,8 @@ export async function deleteTableAction(
 
   try {
     await deleteAdminTable(session, String(formData.get("tableId") ?? ""));
-    revalidatePath("/admin");
+    revalidatePath("/console");
+    revalidatePath("/service");
     return { ok: true, message: "Masa silindi." };
   } catch (error) {
     return {
@@ -422,8 +423,9 @@ export async function createStationAction(
       sortOrder: Number(formData.get("sortOrder") ?? 0),
       isActive: formData.get("isActive") === "on"
     });
-    revalidatePath("/admin");
-    revalidatePath("/admin/kitchen");
+    revalidatePath("/console");
+    revalidatePath("/console/stations");
+    revalidatePath("/stations");
     return { ok: true, message: "Istasyon eklendi." };
   } catch (error) {
     return {
@@ -451,8 +453,9 @@ export async function updateStationAction(
       sortOrder: Number(formData.get("sortOrder") ?? 0),
       isActive: formData.get("isActive") === "on"
     });
-    revalidatePath("/admin");
-    revalidatePath("/admin/kitchen");
+    revalidatePath("/console");
+    revalidatePath("/console/stations");
+    revalidatePath("/stations");
     return { ok: true, message: "Istasyon guncellendi." };
   } catch (error) {
     return {
@@ -474,8 +477,9 @@ export async function deleteStationAction(
 
   try {
     await deleteStation(session, String(formData.get("stationId") ?? ""));
-    revalidatePath("/admin");
-    revalidatePath("/admin/kitchen");
+    revalidatePath("/console");
+    revalidatePath("/console/stations");
+    revalidatePath("/stations");
     return { ok: true, message: "Istasyon silindi." };
   } catch (error) {
     return {
@@ -501,8 +505,8 @@ export async function updateKitchenItemStatusAction(
       String(formData.get("orderItemId") ?? ""),
       String(formData.get("status") ?? "") as "preparing" | "ready" | "cancelled"
     );
-    revalidatePath("/admin");
-    revalidatePath("/admin/kitchen");
+    revalidatePath("/console");
+    revalidatePath("/stations");
     return { ok: true, message: "Mutfak kalemi guncellendi." };
   } catch (error) {
     return {
