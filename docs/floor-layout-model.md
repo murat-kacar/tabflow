@@ -96,6 +96,31 @@ Masa görsel özellikleri:
 - `shape`
 - `width`
 - `height`
+- `rotation`
+
+### Fixed Objects
+
+Layout icindeki sabit ama edit edilebilir mekan ankrajlari.
+
+Ornek:
+
+- `Kasiyer Bankosu`
+- `Mutfak Servis Alani`
+- `WC`
+- `Giris`
+- `Duvar`
+
+Alanlar:
+
+- `id`
+- `layoutId`
+- `kind`
+- `label`
+- `x`
+- `y`
+- `w`
+- `h`
+- `rotation`
 
 ## Screen Behavior
 
@@ -124,8 +149,10 @@ Kurallar:
   - masalar sürüklenebilir
   - masalar yeniden boyutlandirilabilir
   - masalar kare / yuvarlak / dikdortgen varyantlarina alinabilir
+  - masalar dondurulebilir
   - zone sınırları görünür
   - zone bloklari yeniden boyutlandirilabilir
+  - sabit objeler eklenebilir, tasinabilir, boyutlandirilabilir ve dondurulebilir
   - snap-to-grid aktif olabilir
   - değişiklikler kaydet / vazgeç ile yönetilir
 
@@ -137,17 +164,12 @@ Kurallar:
 4. masa yerleşimini sürükle-bırak ile değiştirme
 5. masa boyutu ve sekil varyantlarini kaydetme
 6. zone bloklarini surukleme ve yeniden boyutlandirma
-7. layout bazlı görünüm
+7. masa ve sabit obje rotation
+8. sabit obje ekleme
+9. layout bazlı görünüm
 
 ## Later Scope
 
-- rotation
-- sabit obje ekleme
-  - kasa bankosu
-  - mutfak servis alanı
-  - WC
-  - giriş
-  - duvar
 - çoklu zone düzenleme
 - layout çoğaltma
 - kat bazlı personel görünürlüğü

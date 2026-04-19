@@ -31,7 +31,19 @@ type FloorZoneKey = "salon" | "balkon" | "paket";
 type FloorLayoutKey = "ana-kat" | "balkon" | "paket";
 type TableShape = "square" | "round" | "rect";
 type LayoutPlacement = { left: number; top: number };
-type TableVisual = { width: number; height: number; shape: TableShape };
+type TableVisual = { width: number; height: number; shape: TableShape; rotation: 0 | 90 | 180 | 270 };
+type FixedObjectKind = "cashier" | "service-pass" | "wc" | "entrance" | "wall";
+type FixedObjectPlacement = {
+  id: string;
+  layout: FloorLayoutKey;
+  kind: FixedObjectKind;
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  rotation: 0 | 90 | 180 | 270;
+};
 type ZonePlacement = {
   id: string;
   zone: FloorZoneKey;
@@ -45,6 +57,7 @@ type ZonePlacement = {
 type FloorLayoutDocument = {
   zones?: Partial<Record<FloorLayoutKey, ZonePlacement[]>>;
   tables?: Record<string, Partial<TableVisual>>;
+  objects?: Partial<Record<FloorLayoutKey, FixedObjectPlacement[]>>;
 };
 
 function formatMoney(minor: number, currencyCode: string | null): string {
@@ -173,6 +186,59 @@ function createInitialZonePlacements(): Record<FloorLayoutKey, ZonePlacement[]> 
   };
 }
 
+function createInitialFixedObjects(): Record<FloorLayoutKey, FixedObjectPlacement[]> {
+  return {
+    "ana-kat": [
+      {
+        id: "ana-kat-cashier",
+        layout: "ana-kat",
+        kind: "cashier",
+        label: "Kasiyer Bankosu",
+        left: 44,
+        top: 4,
+        width: 16,
+        height: 8,
+        rotation: 0
+      },
+      {
+        id: "ana-kat-pass",
+        layout: "ana-kat",
+        kind: "service-pass",
+        label: "Mutfak Servis Alani",
+        left: 18,
+        top: 2,
+        width: 28,
+        height: 12,
+        rotation: 0
+      },
+      {
+        id: "ana-kat-wc",
+        layout: "ana-kat",
+        kind: "wc",
+        label: "WC",
+        left: 72,
+        top: 2,
+        width: 18,
+        height: 12,
+        rotation: 0
+      },
+      {
+        id: "ana-kat-entrance",
+        layout: "ana-kat",
+        kind: "entrance",
+        label: "Giris",
+        left: 10,
+        top: 84,
+        width: 14,
+        height: 10,
+        rotation: 0
+      }
+    ],
+    balkon: [],
+    paket: []
+  };
+}
+
 function defaultTableShape(zone: FloorZoneKey): TableShape {
   if (zone === "balkon") {
     return "round";
@@ -198,6 +264,10 @@ function createInitialTableVisuals(
         {
           width: Math.max(10, Math.min(26, Math.round(stored?.width ?? (zone === "paket" ? 18 : 14)))),
           height: Math.max(10, Math.min(26, Math.round(stored?.height ?? 14))),
+          rotation:
+            stored?.rotation === 90 || stored?.rotation === 180 || stored?.rotation === 270
+              ? stored.rotation
+              : 0,
           shape: stored?.shape === "round" || stored?.shape === "rect" || stored?.shape === "square"
             ? stored.shape
             : defaultTableShape(zone)
@@ -236,6 +306,28 @@ function createZonePlacementsFromDocument(
   };
 }
 
+function createFixedObjectsFromDocument(
+  document?: FloorLayoutDocument | null
+): Record<FloorLayoutKey, FixedObjectPlacement[]> {
+  const fallback = createInitialFixedObjects();
+
+  if (!document?.objects) {
+    return fallback;
+  }
+
+  return {
+    "ana-kat": Array.isArray(document.objects["ana-kat"])
+      ? (document.objects["ana-kat"] as FixedObjectPlacement[])
+      : fallback["ana-kat"],
+    balkon: Array.isArray(document.objects.balkon)
+      ? (document.objects.balkon as FixedObjectPlacement[])
+      : fallback.balkon,
+    paket: Array.isArray(document.objects.paket)
+      ? (document.objects.paket as FixedObjectPlacement[])
+      : fallback.paket
+  };
+}
+
 function shapeClassForTable(shape: TableShape): string {
   switch (shape) {
     case "round":
@@ -244,6 +336,49 @@ function shapeClassForTable(shape: TableShape): string {
       return "rounded-[1rem]";
     default:
       return "rounded-[1.8rem]";
+  }
+}
+
+function rotateNext(rotation: 0 | 90 | 180 | 270): 0 | 90 | 180 | 270 {
+  switch (rotation) {
+    case 90:
+      return 180;
+    case 180:
+      return 270;
+    case 270:
+      return 0;
+    default:
+      return 90;
+  }
+}
+
+function fixedObjectMeta(kind: FixedObjectKind) {
+  switch (kind) {
+    case "cashier":
+      return {
+        label: "Kasiyer Bankosu",
+        className: "border-[#3d5f9c] bg-white text-[#21406f]"
+      };
+    case "service-pass":
+      return {
+        label: "Mutfak Servis Alani",
+        className: "border-[#6b5b2d] bg-[#fff5cc] text-[#5f4c14]"
+      };
+    case "wc":
+      return {
+        label: "WC",
+        className: "border-[#6b648f] bg-[#f3efff] text-[#463f6a]"
+      };
+    case "entrance":
+      return {
+        label: "Giris",
+        className: "border-[#386d3d] bg-[#e4f7e6] text-[#214d25]"
+      };
+    default:
+      return {
+        label: "Duvar",
+        className: "border-[#5a5a5a] bg-[#dadada] text-[#303030]"
+      };
   }
 }
 
@@ -435,16 +570,19 @@ function FloorLayoutTabs({
 function LayoutEditorPanel({
   layoutPlacements,
   tableVisuals,
+  fixedObjects,
   zonePlacements,
   layout,
   selectedLayout,
   setLayoutPlacements,
   setTableVisuals,
+  setFixedObjects,
   setZonePlacements,
   tables
 }: {
   layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
   tableVisuals: Record<string, TableVisual>;
+  fixedObjects: Record<FloorLayoutKey, FixedObjectPlacement[]>;
   zonePlacements: Record<FloorLayoutKey, ZonePlacement[]>;
   layout: FloorLayoutKey | "all";
   selectedLayout: FloorLayoutKey | "all";
@@ -455,6 +593,11 @@ function LayoutEditorPanel({
   ) => void;
   setTableVisuals: (
     value: Record<string, TableVisual> | ((current: Record<string, TableVisual>) => Record<string, TableVisual>)
+  ) => void;
+  setFixedObjects: (
+    value:
+      | Record<FloorLayoutKey, FixedObjectPlacement[]>
+      | ((current: Record<FloorLayoutKey, FixedObjectPlacement[]>) => Record<FloorLayoutKey, FixedObjectPlacement[]>)
   ) => void;
   setZonePlacements: (
     value:
@@ -467,6 +610,8 @@ function LayoutEditorPanel({
   const [draggingZoneId, setDraggingZoneId] = useState<string | null>(null);
   const [resizingZoneId, setResizingZoneId] = useState<string | null>(null);
   const [resizingTableId, setResizingTableId] = useState<string | null>(null);
+  const [draggingObjectId, setDraggingObjectId] = useState<string | null>(null);
+  const [resizingObjectId, setResizingObjectId] = useState<string | null>(null);
   const [saveState, saveAction, savePending] = useActionState(
     saveFloorLayoutAction,
     tableActionInitialState
@@ -494,7 +639,8 @@ function LayoutEditorPanel({
         top: placement.top,
         width: visual.width,
         height: visual.height,
-        shape: visual.shape
+        shape: visual.shape,
+        rotation: visual.rotation
       };
     });
 
@@ -550,6 +696,11 @@ function LayoutEditorPanel({
     updateTableVisual(tableId, { shape: nextShape });
   }
 
+  function rotateTable(tableId: string) {
+    const currentRotation = tableVisuals[tableId]?.rotation ?? 0;
+    updateTableVisual(tableId, { rotation: rotateNext(currentRotation) });
+  }
+
   function updateZonePlacement(zoneId: string, layoutKey: FloorLayoutKey, left: number, top: number) {
     setZonePlacements((current) => ({
       ...current,
@@ -602,6 +753,85 @@ function LayoutEditorPanel({
     }));
   }
 
+  function addFixedObject(kind: FixedObjectKind) {
+    if (selectedLayout === "all") {
+      return;
+    }
+
+    const meta = fixedObjectMeta(kind);
+    setFixedObjects((current) => ({
+      ...current,
+      [selectedLayout]: [
+        ...current[selectedLayout],
+        {
+          id: `${selectedLayout}-${kind}-${current[selectedLayout].length + 1}`,
+          layout: selectedLayout,
+          kind,
+          label: meta.label,
+          left: 14,
+          top: 14 + current[selectedLayout].length * 7,
+          width: kind === "wall" ? 26 : kind === "service-pass" ? 22 : 16,
+          height: kind === "wall" ? 4 : 10,
+          rotation: 0
+        }
+      ]
+    }));
+  }
+
+  function updateFixedObjectPlacement(
+    objectId: string,
+    layoutKey: FloorLayoutKey,
+    left: number,
+    top: number
+  ) {
+    setFixedObjects((current) => ({
+      ...current,
+      [layoutKey]: current[layoutKey].map((item) =>
+        item.id === objectId
+          ? {
+              ...item,
+              left: Math.max(2, Math.min(96 - item.width, left)),
+              top: Math.max(2, Math.min(96 - item.height, top))
+            }
+          : item
+      )
+    }));
+  }
+
+  function updateFixedObjectSize(
+    objectId: string,
+    layoutKey: FloorLayoutKey,
+    width: number,
+    height: number
+  ) {
+    setFixedObjects((current) => ({
+      ...current,
+      [layoutKey]: current[layoutKey].map((item) =>
+        item.id === objectId
+          ? {
+              ...item,
+              width: Math.max(10, Math.min(96 - item.left, width)),
+              height: Math.max(4, Math.min(96 - item.top, height))
+            }
+          : item
+      )
+    }));
+  }
+
+  function rotateFixedObject(objectId: string, layoutKey: FloorLayoutKey) {
+    setFixedObjects((current) => ({
+      ...current,
+      [layoutKey]: current[layoutKey].map((item) =>
+        item.id === objectId
+          ? {
+              ...item,
+              rotation: rotateNext(item.rotation)
+            }
+          : item
+      )
+    }));
+  }
+
   const visibleZones =
     selectedLayout === "all"
       ? ([] as ZonePlacement[]).concat(
@@ -610,6 +840,14 @@ function LayoutEditorPanel({
           zonePlacements.paket
         )
       : zonePlacements[selectedLayout];
+  const visibleObjects =
+    selectedLayout === "all"
+      ? ([] as FixedObjectPlacement[]).concat(
+          fixedObjects["ana-kat"],
+          fixedObjects.balkon,
+          fixedObjects.paket
+        )
+      : fixedObjects[selectedLayout];
 
   return (
     <section className="rounded-[1.25rem] border border-[#9eb8d6] bg-white p-4 shadow-sm">
@@ -716,6 +954,100 @@ function LayoutEditorPanel({
               </div>
             </div>
           ))}
+          {visibleObjects.map((item) => {
+            const meta = fixedObjectMeta(item.kind);
+
+            return (
+              <div
+                className={`absolute border-2 p-3 shadow-sm transition ${meta.className} ${
+                  draggingObjectId === item.id ? "shadow-lg ring-2 ring-[#7ca4d8]" : ""
+                }`}
+                key={item.id}
+                onPointerDown={(event) => {
+                  const canvas = event.currentTarget.parentElement;
+                  if (!canvas) {
+                    return;
+                  }
+
+                  setDraggingObjectId(item.id);
+                  const rect = canvas.getBoundingClientRect();
+
+                  const handleMove = (moveEvent: PointerEvent) => {
+                    const left = ((moveEvent.clientX - rect.left) / rect.width) * 100 - item.width / 2;
+                    const top = ((moveEvent.clientY - rect.top) / rect.height) * 100 - item.height / 2;
+                    updateFixedObjectPlacement(item.id, item.layout, left, top);
+                  };
+
+                  const handleUp = () => {
+                    setDraggingObjectId(null);
+                    window.removeEventListener("pointermove", handleMove);
+                  };
+
+                  window.addEventListener("pointermove", handleMove);
+                  window.addEventListener("pointerup", handleUp, { once: true });
+                }}
+                style={{
+                  left: `${item.left}%`,
+                  top: `${item.top}%`,
+                  width: `${item.width}%`,
+                  height: `${item.height}%`,
+                  transform: `rotate(${item.rotation}deg)`,
+                  transformOrigin: "center center"
+                }}
+              >
+                <div className="flex h-full flex-col justify-between gap-2">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em]">
+                    {item.label}
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      className="h-7 rounded-sm border border-current bg-white/80 px-2 text-[10px] font-bold uppercase tracking-[0.12em]"
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        rotateFixedObject(item.id, item.layout);
+                      }}
+                      type="button"
+                    >
+                      Dondur
+                    </button>
+                    <button
+                      aria-label={`${item.label} boyutunu degistir`}
+                      className={`h-7 w-7 rounded-sm border border-current bg-white/80 text-sm font-black ${
+                        resizingObjectId === item.id ? "scale-110" : ""
+                      }`}
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        const canvas = event.currentTarget.parentElement?.parentElement?.parentElement;
+                        if (!canvas) {
+                          return;
+                        }
+
+                        setResizingObjectId(item.id);
+                        const rect = canvas.getBoundingClientRect();
+
+                        const handleMove = (moveEvent: PointerEvent) => {
+                          const width = ((moveEvent.clientX - rect.left) / rect.width) * 100 - item.left;
+                          const height = ((moveEvent.clientY - rect.top) / rect.height) * 100 - item.top;
+                          updateFixedObjectSize(item.id, item.layout, width, height);
+                        };
+
+                        const handleUp = () => {
+                          setResizingObjectId(null);
+                          window.removeEventListener("pointermove", handleMove);
+                        };
+
+                        window.addEventListener("pointermove", handleMove);
+                        window.addEventListener("pointerup", handleUp, { once: true });
+                      }}
+                      type="button"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
           {items.map((item) => (
             <div
               className={`absolute flex cursor-move select-none items-center justify-center border-2 border-[#534449] bg-[#fff6cf] text-center text-sm font-black text-stone-950 shadow-sm transition ${shapeClassForTable(item.shape)} ${
@@ -749,7 +1081,9 @@ function LayoutEditorPanel({
                 left: `${item.left}%`,
                 top: `${item.top}%`,
                 width: `${item.width}%`,
-                height: `${item.height}%`
+                height: `${item.height}%`,
+                transform: `rotate(${item.rotation}deg)`,
+                transformOrigin: "center center"
               }}
             >
               <div className="pointer-events-none px-3">
@@ -768,6 +1102,16 @@ function LayoutEditorPanel({
                   type="button"
                 >
                   Sekil
+                </button>
+                <button
+                  className="z-10 h-7 rounded-sm border border-[#3d5f9c] bg-white/90 px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#21406f]"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    rotateTable(item.id);
+                  }}
+                  type="button"
+                >
+                  Dondur
                 </button>
                 <button
                   aria-label={`${item.label} boyutunu degistir`}
@@ -827,6 +1171,41 @@ function LayoutEditorPanel({
           >
             Zone ekle
           </button>
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            onClick={() => addFixedObject("cashier")}
+            type="button"
+          >
+            Kasa bankosu
+          </button>
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            onClick={() => addFixedObject("service-pass")}
+            type="button"
+          >
+            Servis alani
+          </button>
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            onClick={() => addFixedObject("wc")}
+            type="button"
+          >
+            WC
+          </button>
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            onClick={() => addFixedObject("entrance")}
+            type="button"
+          >
+            Giris
+          </button>
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            onClick={() => addFixedObject("wall")}
+            type="button"
+          >
+            Duvar
+          </button>
           <form action={saveAction}>
             <input
               name="layoutPayload"
@@ -847,7 +1226,8 @@ function LayoutEditorPanel({
               type="hidden"
               value={JSON.stringify({
                 zones: zonePlacements,
-                tables: tableVisuals
+                tables: tableVisuals,
+                objects: fixedObjects
               })}
             />
             <button
@@ -873,6 +1253,7 @@ function FloorPlanBoard({
   editMode,
   layoutPlacements,
   tableVisuals,
+  fixedObjects,
   zonePlacements,
   selectedLayout,
   selectedTable,
@@ -880,6 +1261,7 @@ function FloorPlanBoard({
   setEditMode,
   setLayoutPlacements,
   setTableVisuals,
+  setFixedObjects,
   setZonePlacements,
   setSelectedLayout,
   setSelectedTableId,
@@ -889,6 +1271,7 @@ function FloorPlanBoard({
   editMode: boolean;
   layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
   tableVisuals: Record<string, TableVisual>;
+  fixedObjects: Record<FloorLayoutKey, FixedObjectPlacement[]>;
   zonePlacements: Record<FloorLayoutKey, ZonePlacement[]>;
   selectedLayout: FloorLayoutKey | "all";
   selectedTable?: AdminTableSummary;
@@ -901,6 +1284,11 @@ function FloorPlanBoard({
   ) => void;
   setTableVisuals: (
     value: Record<string, TableVisual> | ((current: Record<string, TableVisual>) => Record<string, TableVisual>)
+  ) => void;
+  setFixedObjects: (
+    value:
+      | Record<FloorLayoutKey, FixedObjectPlacement[]>
+      | ((current: Record<FloorLayoutKey, FixedObjectPlacement[]>) => Record<FloorLayoutKey, FixedObjectPlacement[]>)
   ) => void;
   setZonePlacements: (
     value:
@@ -977,10 +1365,12 @@ function FloorPlanBoard({
             layout={selectedLayout}
             layoutPlacements={layoutPlacements}
             tableVisuals={tableVisuals}
+            fixedObjects={fixedObjects}
             zonePlacements={zonePlacements}
             selectedLayout={selectedLayout}
             setLayoutPlacements={setLayoutPlacements}
             setTableVisuals={setTableVisuals}
+            setFixedObjects={setFixedObjects}
             setZonePlacements={setZonePlacements}
             tables={tables}
           />
@@ -1485,6 +1875,9 @@ export function FloorCashWorkspace({
   const [tableVisuals, setTableVisuals] = useState<Record<string, TableVisual>>(() =>
     createInitialTableVisuals(tables, floorLayoutDocument ?? undefined)
   );
+  const [fixedObjects, setFixedObjects] = useState<Record<FloorLayoutKey, FixedObjectPlacement[]>>(
+    () => createFixedObjectsFromDocument(floorLayoutDocument)
+  );
   const [zonePlacements, setZonePlacements] = useState<Record<FloorLayoutKey, ZonePlacement[]>>(
     () => createZonePlacementsFromDocument(floorLayoutDocument)
   );
@@ -1532,6 +1925,7 @@ export function FloorCashWorkspace({
               editMode={editMode}
               layoutPlacements={layoutPlacements}
               tableVisuals={tableVisuals}
+              fixedObjects={fixedObjects}
               zonePlacements={zonePlacements}
               selectedLayout={selectedLayout}
               selectedTable={selectedTable}
@@ -1539,6 +1933,7 @@ export function FloorCashWorkspace({
               setEditMode={setEditMode}
               setLayoutPlacements={setLayoutPlacements}
               setTableVisuals={setTableVisuals}
+              setFixedObjects={setFixedObjects}
               setZonePlacements={setZonePlacements}
               setSelectedLayout={setSelectedLayout}
               setSelectedTableId={setSelectedTableId}
