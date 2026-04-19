@@ -35,8 +35,38 @@ function statusLabel(status: KitchenStationBoard["items"][number]["itemStatus"])
   }
 }
 
+function urgencyForItem(item: KitchenStationBoard["items"][number]) {
+  const createdAt = new Date(item.createdAt).getTime();
+  const elapsedMinutes = Number.isFinite(createdAt)
+    ? Math.max(0, Math.floor((Date.now() - createdAt) / 60000))
+    : 0;
+
+  if (elapsedMinutes >= 7) {
+    return {
+      elapsedMinutes,
+      label: "Urgent",
+      tone: "bg-rose-500/20 text-rose-100 ring-1 ring-rose-400/30"
+    };
+  }
+
+  if (elapsedMinutes >= 3) {
+    return {
+      elapsedMinutes,
+      label: "Warning",
+      tone: "bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/30"
+    };
+  }
+
+  return {
+    elapsedMinutes,
+    label: "Fresh",
+    tone: "bg-emerald-500/20 text-emerald-100 ring-1 ring-emerald-400/30"
+  };
+}
+
 function KitchenCard({ item }: { item: KitchenStationBoard["items"][number] }) {
   const [state, action, pending] = useActionState(updateKitchenItemStatusAction, initialState);
+  const urgency = urgencyForItem(item);
 
   return (
     <article className="rounded-[1.6rem] border border-white/10 bg-black/20 p-4 shadow-sm backdrop-blur">
@@ -49,6 +79,12 @@ function KitchenCard({ item }: { item: KitchenStationBoard["items"][number] }) {
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${elapsedTone(item.itemStatus)}`}>
           {statusLabel(item.itemStatus)}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${urgency.tone}`}>
+          {urgency.label} • {urgency.elapsedMinutes} dk
         </span>
       </div>
 
@@ -126,6 +162,31 @@ function EmptyColumn({ label }: { label: string }) {
   );
 }
 
+function StationPulse({ board }: { board: KitchenStationBoard }) {
+  const urgentItems = board.items.filter((item) => urgencyForItem(item).label === "Urgent").length;
+  const warningItems = board.items.filter((item) => urgencyForItem(item).label === "Warning").length;
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-3">
+      <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Hat kimligi</p>
+        <p className="mt-2 text-lg font-bold text-white">{board.stationName}</p>
+        <p className="mt-1 text-sm text-stone-300">{board.stationCode} uretim akisi canli.</p>
+      </article>
+      <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Warning</p>
+        <p className="mt-2 text-lg font-bold text-amber-100">{warningItems}</p>
+        <p className="mt-1 text-sm text-stone-300">3 dakika uzerine cikan ticket sayisi.</p>
+      </article>
+      <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Urgent</p>
+        <p className="mt-2 text-lg font-bold text-rose-100">{urgentItems}</p>
+        <p className="mt-1 text-sm text-stone-300">7 dakika ve uzeri ticket baskisi.</p>
+      </article>
+    </div>
+  );
+}
+
 export function KitchenBoard({ boards }: { boards: KitchenStationBoard[] }) {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#143328,transparent_26rem),linear-gradient(135deg,#0d1413,#17211f)] px-6 py-8 text-white">
@@ -175,6 +236,10 @@ export function KitchenBoard({ boards }: { boards: KitchenStationBoard[] }) {
                     Hazir {board.items.filter((item) => item.itemStatus === "ready").length}
                   </span>
                 </div>
+              </div>
+
+              <div className="mt-5">
+                <StationPulse board={board} />
               </div>
 
               <div className="mt-6 grid gap-4 xl:grid-cols-3">

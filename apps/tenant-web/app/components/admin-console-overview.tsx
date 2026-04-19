@@ -4,7 +4,6 @@ import type {
   AdminDevice,
   AdminTableSummary,
   CustomerBillSummary,
-  CustomerOrderSummary,
   ServiceStation,
   TenantCatalog
 } from "@tabflow/shared-ts";
@@ -71,6 +70,98 @@ function AttentionCard({
   );
 }
 
+function QuickActionCard({
+  detail,
+  title,
+  tone
+}: {
+  detail: string;
+  title: string;
+  tone: string;
+}) {
+  return (
+    <article className={`rounded-[1.5rem] border p-4 ${tone}`}>
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-2 text-sm opacity-90">{detail}</p>
+    </article>
+  );
+}
+
+function SetupPulse({
+  activeStations,
+  fallbackLikeStations,
+  mappedCatalogItems,
+  offlineDeviceCount
+}: {
+  activeStations: number;
+  fallbackLikeStations: number;
+  mappedCatalogItems: number;
+  offlineDeviceCount: number;
+}) {
+  const checks = [
+    {
+      label: "Istasyon yapisi",
+      ok: activeStations > 0,
+      detail: activeStations > 0 ? `${activeStations} aktif istasyon tanimli.` : "En az bir aktif istasyon gerekli."
+    },
+    {
+      label: "Fallback guvencesi",
+      ok: fallbackLikeStations > 0,
+      detail:
+        fallbackLikeStations > 0
+          ? "Genel fallback istasyonu hazir."
+          : "Urunlerin bosluga dusmemesi icin fallback station tanimlanmali."
+    },
+    {
+      label: "Katalog kapsami",
+      ok: mappedCatalogItems > 0,
+      detail:
+        mappedCatalogItems > 0
+          ? `${mappedCatalogItems} urun operasyon modeline bagli.`
+          : "Henuz urun baglantisi yok."
+    },
+    {
+      label: "Cihaz guveni",
+      ok: offlineDeviceCount === 0,
+      detail:
+        offlineDeviceCount === 0
+          ? "Tum masa cihazlari online."
+          : `${offlineDeviceCount} cihaz icin saha takibi gerekli.`
+    }
+  ];
+
+  return (
+    <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
+      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+        Setup Pulse
+      </p>
+      <h2 className="mt-2 text-2xl font-bold tracking-tight">Kurulumun zayif halkalari</h2>
+      <div className="mt-5 grid gap-3">
+        {checks.map((check) => (
+          <article
+            className={`rounded-[1.4rem] border px-4 py-4 ${
+              check.ok
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+            key={check.label}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">{check.label}</p>
+                <p className="mt-1 text-sm opacity-90">{check.detail}</p>
+              </div>
+              <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold">
+                {check.ok ? "Tamam" : "Takip"}
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function AdminConsoleOverview({
   catalog,
   bills,
@@ -97,6 +188,12 @@ export function AdminConsoleOverview({
     .slice(0, 6);
   const activeStations = stations.filter((station) => station.isActive).length;
   const mappedCatalogItems = catalog.categories.reduce((sum, category) => sum + category.items.length, 0);
+  const totalSubmitted = tables.reduce((sum, table) => sum + table.submittedOrderCount, 0);
+  const totalPreparing = tables.reduce((sum, table) => sum + table.preparingOrderCount, 0);
+  const totalOpenRevenue = bills
+    .filter((bill) => bill.status === "open")
+    .reduce((sum, bill) => sum + bill.subtotalMinor, 0);
+  const currencyCode = bills[0]?.currencyCode ?? "GBP";
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3e5c8,transparent_28rem),radial-gradient(circle_at_bottom_right,#dce9df,transparent_30rem),linear-gradient(135deg,#f7f3ec,#ebe5d8)] px-6 py-8 text-stone-950">
@@ -159,7 +256,7 @@ export function AdminConsoleOverview({
           />
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -204,46 +301,95 @@ export function AdminConsoleOverview({
             </div>
           </section>
 
+          <SetupPulse
+            activeStations={activeStations}
+            fallbackLikeStations={fallbackLikeStations}
+            mappedCatalogItems={mappedCatalogItems}
+            offlineDeviceCount={offlineDeviceCount}
+          />
+        </section>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Istasyon Sagligi
+              Quick Actions
             </p>
             <div className="mt-5 grid gap-3">
-              {stations.length === 0 ? (
+              <QuickActionCard
+                detail={`${offlineDeviceCount} cihaz saha kontrolu bekliyor. Device rail sonraki sprintte ayrisacak.`}
+                title="Device health takip et"
+                tone="border-rose-200 bg-rose-50 text-rose-900"
+              />
+              <QuickActionCard
+                detail={`${totalSubmitted} yeni ve ${totalPreparing} hazirlanan kalem station board ile birlikte kapanacak.`}
+                title="Istasyon yogunlugunu incele"
+                tone="border-amber-200 bg-amber-50 text-amber-900"
+              />
+              <QuickActionCard
+                detail={`${(totalOpenRevenue / 100).toFixed(2)} ${currencyCode} acik ciro service yuzeyinde kasaya aktarilmayi bekliyor.`}
+                title="Masa + Kasa kuyruğunu ac"
+                tone="border-emerald-200 bg-emerald-50 text-emerald-900"
+              />
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+                  Sicak Masalar
+                </p>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight">
+                  En cok dikkat isteyen masa akislari
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {hotTables.length === 0 ? (
                 <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
-                  Henuz istasyon tanimi yok.
+                  Su an dikkat gerektiren masa yok.
                 </p>
               ) : (
-                stations.map((station) => (
-                  <article
-                    className="rounded-[1.5rem] border border-stone-200 bg-stone-50 px-4 py-4"
-                    key={station.id}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="h-3.5 w-3.5 rounded-full"
-                          style={{ backgroundColor: station.colorHex }}
-                        />
+                hotTables.map((table) => {
+                  const tone = toneForTable(table);
+
+                  return (
+                    <article
+                      className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-5"
+                      key={table.id}
+                    >
+                      <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-stone-950">{station.name}</p>
-                          <p className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                            {station.code}
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+                            Masa {table.number.toString().padStart(3, "0")}
+                          </p>
+                          <p className="mt-2 text-xl font-bold tracking-tight text-stone-950">
+                            {table.name}
+                          </p>
+                        </div>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone.tone}`}>
+                          {tone.label}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-2xl bg-white px-4 py-3">
+                          <p className="text-stone-500">Hazir</p>
+                          <p className="mt-1 text-lg font-semibold text-stone-950">
+                            {table.readyOrderCount}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl bg-white px-4 py-3">
+                          <p className="text-stone-500">Acik hesap</p>
+                          <p className="mt-1 text-lg font-semibold text-stone-950">
+                            {table.openBillId ? "Var" : "Yok"}
                           </p>
                         </div>
                       </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          station.isActive
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-stone-200 text-stone-700"
-                        }`}
-                      >
-                        {station.isActive ? "Aktif" : "Pasif"}
-                      </span>
-                    </div>
-                  </article>
-                ))
+                    </article>
+                  );
+                })
               )}
             </div>
           </section>
@@ -253,59 +399,61 @@ export function AdminConsoleOverview({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                Sicak Masalar
+                Istasyon Sagligi
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                En cok dikkat isteyen masa akislari
+                Uretim hatlarinin canli durumu
               </h2>
             </div>
           </div>
-
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {hotTables.length === 0 ? (
+            {stations.length === 0 ? (
               <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
-                Su an dikkat gerektiren masa yok.
+                Henuz istasyon tanimi yok.
               </p>
             ) : (
-              hotTables.map((table) => {
-                const tone = toneForTable(table);
-
-                return (
-                  <article
-                    className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-5"
-                    key={table.id}
-                  >
-                    <div className="flex items-start justify-between gap-3">
+              stations.map((station) => (
+                <article
+                  className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-5"
+                  key={station.id}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="h-3.5 w-3.5 rounded-full"
+                        style={{ backgroundColor: station.colorHex }}
+                      />
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                          Masa {table.number.toString().padStart(3, "0")}
-                        </p>
-                        <p className="mt-2 text-xl font-bold tracking-tight text-stone-950">
-                          {table.name}
-                        </p>
-                      </div>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone.tone}`}>
-                        {tone.label}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                      <div className="rounded-2xl bg-white px-4 py-3">
-                        <p className="text-stone-500">Hazir</p>
-                        <p className="mt-1 text-lg font-semibold text-stone-950">
-                          {table.readyOrderCount}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-white px-4 py-3">
-                        <p className="text-stone-500">Acik hesap</p>
-                        <p className="mt-1 text-lg font-semibold text-stone-950">
-                          {table.openBillId ? "Var" : "Yok"}
+                        <p className="font-semibold text-stone-950">{station.name}</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                          {station.code}
                         </p>
                       </div>
                     </div>
-                  </article>
-                );
-              })
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        station.isActive
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-stone-200 text-stone-700"
+                      }`}
+                    >
+                      {station.isActive ? "Aktif" : "Pasif"}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                      <p className="text-stone-500">Sira</p>
+                      <p className="mt-1 font-semibold text-stone-950">{station.sortOrder}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                      <p className="text-stone-500">Rol</p>
+                      <p className="mt-1 font-semibold text-stone-950">
+                        {station.code === "general" ? "Fallback" : "Uretim"}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))
             )}
           </div>
         </section>
