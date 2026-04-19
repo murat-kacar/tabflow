@@ -206,6 +206,14 @@ Masa + Kasa yüzeyi floor ve tahsilat operasyonunu yönetir:
 
 Garson istasyon görmeyebilir ama sistem siparişi istasyona doğru yönlendirir.
 
+Current PDA baseline:
+
+- `/pda` uses the tenant admin session for authenticated waiter operation.
+- waiters select an active table, add catalog items with quantities and item notes, add an order note, and submit.
+- table search, quick note chips, and cart clear support fast one-handed service use.
+- submitted PDA orders use protected admin order creation and therefore do not require a customer QR session.
+- order items keep the same station routing rules as QR customer orders.
+
 Opsiyonel olarak:
 
 - ürün detayında üretim etiketi gösterilebilir

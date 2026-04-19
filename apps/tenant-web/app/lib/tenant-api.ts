@@ -3,10 +3,12 @@ import {
   type AdminTableSummary,
   adminDeviceListSchema,
   adminTableSummaryListSchema,
+  type CreateAdminOrderInput,
   type CustomerBillSummary,
   type CustomerOrderDetail,
   type CustomerOrderSummary,
   type CustomerSessionStatus,
+  createAdminOrderInputSchema,
   customerBillSummaryListSchema,
   customerOrderDetailSchema,
   customerOrderSummaryListSchema,
@@ -14,25 +16,25 @@ import {
   deviceTokenSummarySchema,
   kitchenStationBoardListSchema,
   type MergeBillInput,
-  mergeBillInputSchema,
   type MoveBillInput,
+  mergeBillInputSchema,
   moveBillInputSchema,
   platformProblemSchema,
   rotateDeviceKeyResponseSchema,
   type ServiceStation,
-  serviceStationListSchema,
   type SplitBillInput,
+  serviceStationListSchema,
   splitBillInputSchema,
   type TenantCatalog,
   tenantCatalogSchema,
+  type UpdateTableLayoutEntry,
   type UpsertMenuCategoryInput,
   type UpsertMenuItemInput,
-  type UpdateTableLayoutEntry,
   type UpsertServiceStationInput,
   type UpsertServiceTableInput,
+  updateTableLayoutEntryListSchema,
   upsertMenuCategoryInputSchema,
   upsertMenuItemInputSchema,
-  updateTableLayoutEntryListSchema,
   upsertServiceStationInputSchema,
   upsertServiceTableInputSchema,
   type VerifiedCustomerSession,
@@ -98,6 +100,27 @@ export async function listTenantOrders(session: TenantSession): Promise<Customer
   }
 
   return customerOrderSummaryListSchema.parse(await response.json());
+}
+
+export async function createAdminOrder(
+  session: TenantSession,
+  input: CreateAdminOrderInput
+): Promise<CustomerOrderDetail> {
+  const payload = createAdminOrderInputSchema.parse(input);
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/orders`, {
+    method: "POST",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+
+  return customerOrderDetailSchema.parse(await response.json());
 }
 
 export async function listTenantBills(session: TenantSession): Promise<CustomerBillSummary[]> {

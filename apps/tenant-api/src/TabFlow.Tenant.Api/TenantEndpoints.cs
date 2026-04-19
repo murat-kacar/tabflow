@@ -56,6 +56,7 @@ public static class TenantEndpoints
         adminGroup.MapPost("/catalog/items", CreateItem);
         adminGroup.MapPut("/catalog/items/{itemId:guid}", UpdateItem);
         adminGroup.MapGet("/orders", ListOrders);
+        adminGroup.MapPost("/orders", CreateAdminOrder);
         adminGroup.MapPost("/orders/{orderId:guid}/status", UpdateOrderStatus);
         adminGroup.MapGet("/devices", ListDevices);
         adminGroup.MapPost("/devices/{tableId:guid}/rotate-key", RotateDeviceKey);
@@ -368,6 +369,28 @@ public static class TenantEndpoints
         }
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> CreateAdminOrder(
+        CreateAdminOrderRequest request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (request.TableId == Guid.Empty)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["tableId"] = ["Table is required."]
+            });
+        }
+
+        return await CreateOrderForTableAsync(
+            db,
+            request.TableId,
+            request.Note,
+            request.Items,
+            "/api/admin/orders",
+            cancellationToken);
     }
 
     private static async Task<IResult> GetAdminCatalog(TenantDbContext db, CancellationToken cancellationToken)
@@ -1036,14 +1059,6 @@ public static class TenantEndpoints
         CustomerSessionService sessionService,
         CancellationToken cancellationToken)
     {
-        if (request.Items.Count == 0)
-        {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["items"] = ["Order must contain at least one item."]
-            });
-        }
-
         var sessionToken = context.Request.Headers["X-Customer-Session-Token"].ToString();
         var activeSession = await sessionService.ValidateAsync(db, sessionToken, cancellationToken);
         if (activeSession is null)
@@ -1055,11 +1070,7 @@ public static class TenantEndpoints
         }
 
         var effectiveTableId = activeSession.TableId;
-        var table = await db.ServiceTables
-            .AsNoTracking()
-            .FirstOrDefaultAsync(current => current.Id == effectiveTableId && current.IsActive, cancellationToken);
-
-        if (table is null)
+        if (!await db.ServiceTables.AsNoTracking().AnyAsync(current => current.Id == effectiveTableId && current.IsActive, cancellationToken))
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
@@ -1067,7 +1078,61 @@ public static class TenantEndpoints
             });
         }
 
-        var menuItemIds = request.Items.Select(item => item.MenuItemId).Distinct().ToArray();
+        var currentSession = await db.CustomerSessions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                session => session.Id == activeSession.SessionId
+                    && session.TableId == effectiveTableId
+                    && session.ClosedAt == null
+                    && session.ExpiresAt > DateTimeOffset.UtcNow,
+                cancellationToken);
+
+        if (currentSession is null)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["session"] = ["Active customer session is required to create an order."]
+            });
+        }
+
+        return await CreateOrderForTableAsync(
+            db,
+            effectiveTableId,
+            request.Note,
+            request.Items,
+            "/api/public/orders",
+            cancellationToken);
+    }
+
+    private static async Task<IResult> CreateOrderForTableAsync(
+        TenantDbContext db,
+        Guid tableId,
+        string note,
+        IReadOnlyList<CreateCustomerOrderItemRequest> items,
+        string locationBasePath,
+        CancellationToken cancellationToken)
+    {
+        if (items.Count == 0)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["items"] = ["Order must contain at least one item."]
+            });
+        }
+
+        var table = await db.ServiceTables
+            .AsNoTracking()
+            .FirstOrDefaultAsync(current => current.Id == tableId && current.IsActive, cancellationToken);
+
+        if (table is null)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["tableId"] = ["Table was not found or is not active."]
+            });
+        }
+
+        var menuItemIds = items.Select(item => item.MenuItemId).Distinct().ToArray();
         var menuItems = await db.MenuItems
             .AsNoTracking()
             .Where(item => menuItemIds.Contains(item.Id))
@@ -1084,28 +1149,11 @@ public static class TenantEndpoints
         try
         {
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-            await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{effectiveTableId}", cancellationToken);
-
-            var currentSession = await db.CustomerSessions
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    session => session.Id == activeSession.SessionId
-                        && session.TableId == effectiveTableId
-                        && session.ClosedAt == null
-                        && session.ExpiresAt > DateTimeOffset.UtcNow,
-                    cancellationToken);
-
-            if (currentSession is null)
-            {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    ["session"] = ["Active customer session is required to create an order."]
-                });
-            }
+            await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{tableId}", cancellationToken);
 
             var currencyCode = menuItems.Select(item => item.CurrencyCode).Distinct().Single();
-            var order = CustomerOrderFactory.Build(effectiveTableId, request.Note, currencyCode, menuItems, request.Items);
-            var bill = await CustomerBillService.GetOrCreateOpenBillAsync(db, effectiveTableId, currencyCode, cancellationToken);
+            var order = CustomerOrderFactory.Build(tableId, note, currencyCode, menuItems, items);
+            var bill = await CustomerBillService.GetOrCreateOpenBillAsync(db, tableId, currencyCode, cancellationToken);
             order.BillId = bill.Id;
 
             db.CustomerOrders.Add(order);
@@ -1122,7 +1170,7 @@ public static class TenantEndpoints
 
             await transaction.CommitAsync(cancellationToken);
 
-            return Results.Created($"/api/public/orders/{order.Id}", ToDetailResponse(createdOrder));
+            return Results.Created($"{locationBasePath}/{order.Id}", ToDetailResponse(createdOrder));
         }
         catch (InvalidOperationException exception)
         {

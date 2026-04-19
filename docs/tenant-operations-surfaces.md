@@ -251,13 +251,14 @@ Route:
 
 ### Main Jobs
 
-- şifreli kullanıcı girişi
+- şifreli tenant admin/garson girişi
 - masa seçimi
 - masa siparişi oluşturma
 - ürün ekleme / çıkarma
 - ürün notu ekleme
 - siparişi ilgili istasyonlara gönderme
 - masa hesabını görme
+- son masa hareketlerini görme
 - yetkiye bağlı olarak hesabı kapatma veya kapatma talebi gönderme
 
 ### Design Character
@@ -274,6 +275,14 @@ Route:
 3. `Order Composer`
 4. `Open Bill / Table Summary`
 5. `Service Actions`
+
+Current implementation baseline:
+
+- `/pda` is authenticated through the tenant admin session.
+- it loads admin catalog, active tables, bills, and recent orders server-side.
+- it creates table-bound orders through protected `POST /api/admin/orders`.
+- the UI is optimized for mobile web-view usage with large table buttons, table search, category tabs, product steppers, quick item note chips, cart clear, cart summary, order note, open bill summary, and recent table movement.
+- customer QR session is not required for waiter-created orders.
 
 ### Core Components
 
@@ -301,6 +310,7 @@ Station Board üretim adımını yürütür.
 
 Garson siparişi yollar.
 Station Board ticket üretir.
+Product/category station assignment routes each item to the right station board.
 
 ## Suggested Build Order
 

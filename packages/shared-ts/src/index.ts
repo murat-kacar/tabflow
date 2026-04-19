@@ -402,6 +402,20 @@ export const customerOrderDetailSchema = z.object({
 
 export type CustomerOrderDetail = z.infer<typeof customerOrderDetailSchema>;
 
+export const createAdminOrderItemInputSchema = z.object({
+  menuItemId: z.uuid(),
+  quantity: z.number().int().positive(),
+  note: z.string()
+});
+
+export const createAdminOrderInputSchema = z.object({
+  tableId: z.uuid(),
+  note: z.string(),
+  items: z.array(createAdminOrderItemInputSchema).min(1)
+});
+
+export type CreateAdminOrderInput = z.infer<typeof createAdminOrderInputSchema>;
+
 export const kitchenTicketItemSchema = z.object({
   orderItemId: z.uuid(),
   orderId: z.uuid(),

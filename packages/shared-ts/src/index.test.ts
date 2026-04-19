@@ -3,6 +3,7 @@ import {
   adminDeviceSchema,
   adminTableSummarySchema,
   bootstrapStatusSchema,
+  createAdminOrderInputSchema,
   createTenantInputSchema,
   customerBillSummarySchema,
   customerOrderDetailSchema,
@@ -328,6 +329,22 @@ describe("tenant runtime schemas", () => {
     expect(summary.status).toBe("submitted");
     expect(summary.items[0]?.itemName).toBe("Latte");
     expect(detail.items).toHaveLength(1);
+  });
+
+  it("accepts admin-created PDA order input", () => {
+    const input = createAdminOrderInputSchema.parse({
+      tableId: "018f6f12-37b6-7cc2-9d37-d49943f7b7aa",
+      note: "Once icecekler",
+      items: [
+        {
+          menuItemId: "018f6f12-37b6-7cc2-9d37-d49943f7b7ad",
+          quantity: 2,
+          note: "Az sekerli"
+        }
+      ]
+    });
+
+    expect(input.items[0]?.quantity).toBe(2);
   });
 
   it("accepts customer bill summaries", () => {

@@ -18,6 +18,6 @@ Use this matrix as the canonical status summary for the source baseline.
 | Tenant admin catalog/tables/stations/kitchen/devices | Implemented | Protected admin endpoints exist with actor + API key validation. |
 | Device WebSocket token push | Implemented | Device auth, token push, refresh, and ping/pong are active. |
 | Payment lifecycle and advanced bill operations | Planned | Split/merge/reassign/payment closure metadata are pending. |
-| Dedicated waiter workflow UI | Planned | Current operations surface is table-centric but not waiter-specialized. |
+| Dedicated waiter workflow UI | Implemented baseline | `/pda` supports authenticated table selection, mobile order composition, item notes, and admin-created table orders. |
 | Runtime packaging and host automation | Out of scope | Explicitly excluded from source-only baseline. |
 | Production secret management and rotation automation | Out of scope | Source baseline documents contracts but not production secret infra. |

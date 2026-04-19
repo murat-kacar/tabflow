@@ -169,6 +169,11 @@ public sealed record CreateCustomerOrderRequest(
     string Note,
     IReadOnlyList<CreateCustomerOrderItemRequest> Items);
 
+public sealed record CreateAdminOrderRequest(
+    Guid TableId,
+    string Note,
+    IReadOnlyList<CreateCustomerOrderItemRequest> Items);
+
 public sealed record UpdateCustomerOrderStatusRequest(CustomerOrderStatus Status);
 
 public sealed record VerifyTableTokenRequest(string Token);

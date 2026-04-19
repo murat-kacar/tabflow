@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   closeTenantBill,
+  createAdminOrder,
   createAdminTable,
   createMenuCategory,
   createMenuItem,
@@ -45,6 +46,12 @@ export type TenantDeviceActionState = {
 export type TenantAdminActionState = {
   ok: boolean;
   message: string;
+};
+
+export type TenantPdaOrderActionState = {
+  ok: boolean;
+  message: string;
+  createdOrderId?: string;
 };
 
 export type TenantTableActionState = {
@@ -424,6 +431,62 @@ export async function updateOrderStatusAction(
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Siparis durumu guncellenemedi."
+    };
+  }
+}
+
+export async function createPdaOrderAction(
+  _previousState: TenantPdaOrderActionState,
+  formData: FormData
+): Promise<TenantPdaOrderActionState> {
+  const session = await getTenantSession();
+
+  if (!session) {
+    return {
+      ok: false,
+      message: "Oturum bulunamadi."
+    };
+  }
+
+  const items = Array.from(formData.entries())
+    .filter(([key]) => key.startsWith("qty-"))
+    .map(([key, value]) => {
+      const menuItemId = key.slice(4);
+      return {
+        menuItemId,
+        quantity: Number(value),
+        note: String(formData.get(`note-${menuItemId}`) ?? "")
+      };
+    })
+    .filter((item) => Number.isInteger(item.quantity) && item.quantity > 0);
+
+  if (items.length === 0) {
+    return {
+      ok: false,
+      message: "En az bir urun secmelisin."
+    };
+  }
+
+  try {
+    const order = await createAdminOrder(session, {
+      tableId: String(formData.get("tableId") ?? ""),
+      note: String(formData.get("orderNote") ?? ""),
+      items
+    });
+    revalidatePath("/pda");
+    revalidatePath("/service");
+    revalidatePath("/stations");
+    revalidatePath("/console");
+
+    return {
+      ok: true,
+      message: `Siparis gonderildi. Kayit #${order.id.slice(0, 8)}`,
+      createdOrderId: order.id
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Siparis gonderilemedi."
     };
   }
 }

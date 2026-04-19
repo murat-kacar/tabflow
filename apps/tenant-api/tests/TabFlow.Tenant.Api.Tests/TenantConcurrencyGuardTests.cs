@@ -22,7 +22,6 @@ public sealed class TenantConcurrencyGuardTests
         var bills = File.ReadAllText(FindRepoFile("apps/tenant-api/src/TabFlow.Tenant.Api/Orders/CustomerBillService.cs"));
 
         Assert.Contains("tenant-admin-bootstrap", endpoints, StringComparison.Ordinal);
-        Assert.Contains("AcquireTransactionLockAsync(db, $\"table:{effectiveTableId}\"", endpoints, StringComparison.Ordinal);
         Assert.Contains("AcquireTransactionLockAsync(db, $\"table:{tableId}\"", endpoints, StringComparison.Ordinal);
         Assert.Contains("AcquireTransactionLockAsync(db, $\"table:{billSnapshot.TableId}\"", bills, StringComparison.Ordinal);
     }

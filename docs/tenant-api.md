@@ -263,6 +263,7 @@ Current bill behavior:
 
 ```http
 GET /api/admin/orders
+POST /api/admin/orders
 ```
 
 This endpoint is now protected by tenant admin actor validation.
@@ -271,6 +272,25 @@ Current behavior:
 
 - returns latest orders with table identity when present
 - includes allowed next statuses for admin workflow actions
+- tenant admin can create a table-bound order without a customer QR session for Garson PDA Web
+- admin-created orders open or reuse the selected table's open bill
+- admin-created orders use the same item validation, subtotal calculation, and station routing model as customer QR orders
+
+Admin order create payload:
+
+```json
+{
+  "tableId": "00000000-0000-0000-0000-000000000000",
+  "note": "Once icecekler",
+  "items": [
+    {
+      "menuItemId": "00000000-0000-0000-0000-000000000000",
+      "quantity": 2,
+      "note": "Az sekerli"
+    }
+  ]
+}
+```
 
 ### Order Status Update
 
