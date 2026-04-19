@@ -28,5 +28,5 @@ export default async function TenantStationBoardPage({
     notFound();
   }
 
-  return <KitchenBoard boards={filteredBoards} />;
+  return <KitchenBoard boards={filteredBoards} focusedStationCode={stationCode} />;
 }

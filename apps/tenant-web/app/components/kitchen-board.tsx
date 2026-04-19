@@ -1,6 +1,7 @@
 "use client";
 
 import type { KitchenStationBoard } from "@tabflow/shared-ts";
+import Link from "next/link";
 import { useActionState } from "react";
 import { type TenantAdminActionState, updateKitchenItemStatusAction } from "../auth-actions";
 
@@ -187,7 +188,70 @@ function StationPulse({ board }: { board: KitchenStationBoard }) {
   );
 }
 
-export function KitchenBoard({ boards }: { boards: KitchenStationBoard[] }) {
+function QueueFocus({
+  board,
+  focused
+}: {
+  board: KitchenStationBoard;
+  focused: boolean;
+}) {
+  const submitted = board.items.filter((item) => item.itemStatus === "submitted").length;
+  const preparing = board.items.filter((item) => item.itemStatus === "preparing").length;
+  const ready = board.items.filter((item) => item.itemStatus === "ready").length;
+  const urgent = board.items.filter((item) => urgencyForItem(item).label === "Urgent").length;
+
+  return (
+    <section
+      className={`rounded-[1.6rem] border px-4 py-4 transition ${
+        focused
+          ? "border-white/20 bg-white/10 text-white"
+          : "border-white/10 bg-black/15 text-stone-300 hover:border-white/20 hover:bg-white/5"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: board.colorHex }} />
+          <div>
+            <p className="text-sm font-semibold">{board.stationName}</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-stone-400">{board.stationCode}</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
+          {board.items.length}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs">
+        <div className="rounded-2xl bg-black/20 px-2 py-3">
+          <p className="text-stone-400">Yeni</p>
+          <p className="mt-1 text-sm font-bold text-white">{submitted}</p>
+        </div>
+        <div className="rounded-2xl bg-black/20 px-2 py-3">
+          <p className="text-stone-400">Haz.</p>
+          <p className="mt-1 text-sm font-bold text-white">{preparing}</p>
+        </div>
+        <div className="rounded-2xl bg-black/20 px-2 py-3">
+          <p className="text-stone-400">Ready</p>
+          <p className="mt-1 text-sm font-bold text-white">{ready}</p>
+        </div>
+        <div className="rounded-2xl bg-black/20 px-2 py-3">
+          <p className="text-stone-400">Urgent</p>
+          <p className="mt-1 text-sm font-bold text-white">{urgent}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function KitchenBoard({
+  boards,
+  focusedStationCode
+}: {
+  boards: KitchenStationBoard[];
+  focusedStationCode?: string;
+}) {
+  const singleStationMode = boards.length === 1;
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#143328,transparent_26rem),linear-gradient(135deg,#0d1413,#17211f)] px-6 py-8 text-white">
       <section className="mx-auto max-w-[1600px]">
@@ -195,17 +259,59 @@ export function KitchenBoard({ boards }: { boards: KitchenStationBoard[] }) {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-200">
             Station Board
           </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight">Istasyon bazli uretim panosu</h1>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight">
+            {singleStationMode ? `${boards[0]?.stationName ?? "Istasyon"} operator panosu` : "Istasyon bazli uretim panosu"}
+          </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
-            Her istasyon kendi ticket akisina odaklanir. Supervisor tum istasyonlari ayni panoda
-            gorebilir; operator ise sadece kendi hattini net ve hizli sekilde yonetir.
+            {singleStationMode
+              ? "Bu gorunum tek bir istasyon operatorunun dikkat dagilmadan kendi hattini yonetmesi icin odaklanmis modda calisir."
+              : "Her istasyon kendi ticket akisina odaklanir. Supervisor tum istasyonlari ayni panoda gorebilir; operator ise sadece kendi hattini net ve hizli sekilde yonetir."}
           </p>
+          {singleStationMode ? (
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30"
+                href="/stations"
+              >
+                Tum istasyonlara don
+              </Link>
+              <Link
+                className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30"
+                href="/service"
+              >
+                Masa + Kasa
+              </Link>
+            </div>
+          ) : null}
         </div>
+
+        <section className="mt-6">
+          <div
+            className={`grid gap-3 ${
+              singleStationMode ? "md:grid-cols-1" : "md:grid-cols-2 xl:grid-cols-4"
+            }`}
+          >
+            {boards.map((board) => (
+              <Link
+                href={`/stations/${board.stationCode}`}
+                key={board.stationCode}
+                className="block"
+              >
+                <QueueFocus
+                  board={board}
+                  focused={focusedStationCode === board.stationCode || (singleStationMode && boards.length === 1)}
+                />
+              </Link>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-8 grid gap-5">
           {boards.map((board) => (
             <section
-              className="rounded-[2rem] border border-white/10 p-5 shadow-sm"
+              className={`rounded-[2rem] border p-5 shadow-sm ${
+                singleStationMode ? "border-white/15 bg-white/[0.04]" : "border-white/10"
+              }`}
               key={board.stationCode}
               style={{ backgroundColor: `${board.colorHex}18` }}
             >
