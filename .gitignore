@@ -21,6 +21,7 @@ runtime/generated/
 **/runtime/generated/
 **/runtime-config.json
 **/firmware/masa*/config.h
+packages/firmware/arduino/**/config.h
 
 # Environment and machine-local configuration
 .env

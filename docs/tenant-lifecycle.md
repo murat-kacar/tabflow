@@ -144,6 +144,12 @@ Tenant provisioning should prepare per-table `config.h` artifacts containing:
 - backend host
 - table id
 - device key
-- hardware profile identifier
+- Wi-Fi placeholders for the physical site
+- locked ESP32-C3 + ST7735 hardware pin map
+- firmware timing constants
 
 Generated firmware config files contain secrets and must not be committed.
+The committed Arduino source lives under
+`packages/firmware/arduino/tabflow-table-display/`, while generated
+`config.h` files stay in ignored runtime artifact paths or local flashing
+workspaces.

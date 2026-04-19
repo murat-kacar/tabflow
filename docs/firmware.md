@@ -7,6 +7,17 @@ Status Snapshot: 2026-04-17
 Firmware is part of the tenant lifecycle, but devices are tenant runtime clients.
 They must not know platform internals.
 
+Source location:
+
+```text
+packages/firmware/arduino/tabflow-table-display/
+  firmware.ino
+  config.example.h
+```
+
+`config.example.h` is the committed safe template. A real `config.h` contains
+Wi-Fi credentials and a device key, so it is ignored by git.
+
 Locked hardware profile:
 
 - ESP32-C3 Super Mini V1.6.0.1
@@ -55,15 +66,16 @@ Device config contains:
 - device key
 - Wi-Fi SSID/password for the physical environment
 - display pin constants
+- firmware timing constants
 
 Device behavior:
 
 - connects to Wi-Fi with sleep disabled
 - syncs time for TLS
-- connects to tenant API WebSocket
+- connects to tenant API WebSocket at `wss://<BACKEND_HOST>/ws/masa/<MASA_ID>`
 - authenticates with table id and device key
 - receives `new_token`
-- today receives URL + expiry plus reserved QR matrix fields
+- receives URL + expiry plus backend-rendered QR matrix fields
 - keeps the last valid QR until backend sends a replacement or expiry state
 
 Current wire payload baseline:
@@ -98,3 +110,8 @@ deployments should point `Provisioning:OutputRoot` at an external runtime
 location with restricted filesystem permissions. If `Provisioning:OutputRoot`
 is overridden, the same `tenants/<tenant-code>/firmware/...` layout still
 applies under that root.
+
+Device key rotation also returns a ready-to-flash `config.h` body. It includes
+safe Wi-Fi placeholders, tenant host, table id, device key, locked TFT pin map,
+and timing constants. Operators must set the physical site Wi-Fi values before
+flashing.

@@ -1627,10 +1627,34 @@ public static class TenantEndpoints
     private static string RenderFirmwareConfig(TenantRuntimeOptions options, int tableNumber, string rawDeviceKey) =>
         $$"""
         #pragma once
+
+        #define WIFI_SSID "CHANGE_ME"
+        #define WIFI_PASSWORD "CHANGE_ME"
+
         #define BACKEND_HOST "{{CatalogValidation.NormalizeHost(options.BaseUrl)}}"
         #define BACKEND_PORT 443
+
         #define MASA_ID {{tableNumber}}
         #define WS_DEVICE_KEY "{{rawDeviceKey}}"
+
+        #define TFT_SCLK_PIN 10
+        #define TFT_MOSI_PIN 7
+        #define TFT_MISO_PIN -1
+        #define TFT_CS_PIN 5
+        #define TFT_DC_PIN 4
+        #define TFT_RST_PIN 3
+        #define TFT_BL_PIN -1
+        #define TFT_BL_ON HIGH
+        #define TFT_INITR_OPTION INITR_BLACKTAB
+        #define TFT_ROTATION 0
+
+        #define TOKEN_DURATION_MS 60000UL
+        #define WIFI_TIMEOUT_MS 20000UL
+        #define WS_RECONNECT_MS 3000UL
+        #define WS_PING_MS 30000UL
+        #define HEARTBEAT_MS 5000UL
+
+        #define SERIAL_BAUD 115200
         """;
 
     private static string? NormalizeColor(string input)
