@@ -48,6 +48,17 @@ Route:
 
 - `/service`
 
+Layout model:
+
+- bir tenant içinde birden fazla fiziksel layout bulunmalıdır
+- örnek:
+  - `Ana Kat`
+  - `Balkon`
+  - `Ust Kat`
+  - `Paket`
+- her layout kendi masa planını taşır
+- `Masa + Kasa` operasyon modu seçili layout üstünden çalışır
+
 ### Core Tabs
 
 1. `Floor`
@@ -60,6 +71,7 @@ Route:
 Odak:
 
 - masa düzeni
+- layout seçimi
 - masa doluluğu
 - aktif sipariş
 - açık hesap
@@ -203,12 +215,25 @@ Bu bilgi muhasebe entegrasyonu değil, operasyon kaydı olarak tutulur.
 ## Interaction Rules
 
 - masa seçimi tek tık
+- layout sekmesi tek tık
 - ödeme aksiyonları görünür ve net
 - masa taşıma / birleştirme kontrollü modal ile yapılmalı
 - kapanış aksiyonu ikinci onay istemeli
 - hesap kapandığında kart durumu anında güncellenmeli
 - acil masalar floor grid'in üst sıralarına yükselmelidir
 - servis bekleyen ve offline cihazlı masalar ayrı bir aksiyon şeridinde görünmelidir
+- edit mode açık olmadıkça floor plan sürüklenebilir olmamalıdır
+
+## Edit Mode
+
+`Masa + Kasa` içinde ayrı bir `Duzeni Duzenle` modu olmalıdır.
+
+Bu mod:
+
+- operasyonu bozmadan açılır
+- mevcut layout üzerinde drag-drop çalıştırır
+- masaların yeni yerini geçici state içinde tutar
+- kaydet / vazgeç ile sonlanır
 
 ## What To Avoid
 

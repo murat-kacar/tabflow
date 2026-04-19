@@ -18,6 +18,7 @@ const initialState: TenantAdminActionState = {
 type FloorCashView = "floor" | "open-checks" | "payment-queue" | "closed-checks";
 type PaymentMethod = "nakit" | "kart" | "transfer" | "diger";
 type FloorZoneKey = "salon" | "balkon" | "paket";
+type FloorLayoutKey = "ana-kat" | "balkon" | "paket";
 
 function formatMoney(minor: number, currencyCode: string | null): string {
   if (!currencyCode) {
@@ -83,6 +84,28 @@ function inferZone(table: AdminTableSummary): FloorZoneKey {
   }
 
   return "salon";
+}
+
+function inferLayout(table: AdminTableSummary): FloorLayoutKey {
+  const zone = inferZone(table);
+  if (zone === "balkon") {
+    return "balkon";
+  }
+  if (zone === "paket") {
+    return "paket";
+  }
+  return "ana-kat";
+}
+
+function layoutMeta(layout: FloorLayoutKey) {
+  switch (layout) {
+    case "balkon":
+      return { label: "Balkon", description: "Teras ve balkon yerlesimi" };
+    case "paket":
+      return { label: "Paket", description: "Kurye ve takeaway akisi" };
+    default:
+      return { label: "Ana Kat", description: "Salon ve ana servis duzeni" };
+  }
 }
 
 function zoneMeta(zone: FloorZoneKey) {
@@ -236,15 +259,135 @@ function FloorZoneTabs({
   );
 }
 
+function FloorLayoutTabs({
+  current,
+  layoutCounts,
+  onChange
+}: {
+  current: FloorLayoutKey | "all";
+  layoutCounts: Record<FloorLayoutKey, number>;
+  onChange: (value: FloorLayoutKey | "all") => void;
+}) {
+  const tabs: Array<{ id: FloorLayoutKey | "all"; label: string }> = [
+    { id: "ana-kat", label: "Ana Kat" },
+    { id: "balkon", label: "Balkon" },
+    { id: "paket", label: "Paket" },
+    { id: "all", label: "Hepsi" }
+  ];
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {tabs.map((tab) => (
+        <button
+          className={`rounded-sm border px-4 py-2 text-sm font-bold transition ${
+            current === tab.id
+              ? "border-[#3d5f9c] bg-[#7ca4d8] text-white"
+              : "border-[#9eb8d6] bg-[#dce7f5] text-[#21406f]"
+          }`}
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          type="button"
+        >
+          {tab.label}
+          {tab.id !== "all" ? ` (${layoutCounts[tab.id]})` : ""}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function LayoutEditorPanel({
+  layout,
+  selectedLayout,
+  tables
+}: {
+  layout: FloorLayoutKey | "all";
+  selectedLayout: FloorLayoutKey | "all";
+  tables: AdminTableSummary[];
+}) {
+  const items = tables
+    .filter((table) => selectedLayout === "all" || inferLayout(table) === selectedLayout)
+    .map((table, index) => ({
+      id: table.id,
+      label: table.name || `Masa ${table.number}`,
+      left: 8 + (index % 4) * 22,
+      top: 12 + Math.floor(index / 4) * 24
+    }));
+
+  return (
+    <section className="rounded-[1.25rem] border border-[#9eb8d6] bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+            Duzenleme Modu
+          </p>
+          <h3 className="mt-1 text-xl font-bold tracking-tight text-stone-950">
+            {layout === "all" ? "Tum layoutlar" : layoutMeta(layout).label} icin editor iskeleti
+          </h3>
+        </div>
+        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+          MVP
+        </span>
+      </div>
+      <p className="mt-3 text-sm text-stone-600">
+        Bu ilk iterasyonda dogru zihinsel modeli kuruyoruz: bir tenant icinde birden fazla layout
+        var ve her birinde masa konumlari edit mode ile yonetilecek. Kalici kaydetme sonraki adim.
+      </p>
+
+      <div className="mt-5 rounded-[1rem] border border-dashed border-stone-300 bg-[linear-gradient(180deg,#f9fbfe,#edf3fb)] p-4">
+        <div className="relative min-h-[24rem] overflow-hidden rounded-[0.9rem] border border-[#c7d7eb] bg-[linear-gradient(90deg,rgba(124,164,216,0.12)_1px,transparent_1px),linear-gradient(rgba(124,164,216,0.12)_1px,transparent_1px)] bg-[size:2rem_2rem]">
+          {items.map((item) => (
+            <div
+              className="absolute flex h-20 w-20 items-center justify-center rounded-[1rem] border-2 border-[#534449] bg-[#fff6cf] text-center text-sm font-black text-stone-950 shadow-sm"
+              key={item.id}
+              style={{ left: `${item.left}%`, top: `${item.top}%` }}
+            >
+              {item.label}
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            type="button"
+          >
+            Masa ekle
+          </button>
+          <button
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+            type="button"
+          >
+            Zone ekle
+          </button>
+          <button
+            className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
+            type="button"
+          >
+            Duzeni kaydet
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FloorPlanBoard({
+  editMode,
+  selectedLayout,
   selectedTable,
   selectedZone,
+  setEditMode,
+  setSelectedLayout,
   setSelectedTableId,
   setSelectedZone,
   tables
 }: {
+  editMode: boolean;
+  selectedLayout: FloorLayoutKey | "all";
   selectedTable?: AdminTableSummary;
   selectedZone: FloorZoneKey | "all" | "open";
+  setEditMode: (value: boolean) => void;
+  setSelectedLayout: (value: FloorLayoutKey | "all") => void;
   setSelectedTableId: (value: string) => void;
   setSelectedZone: (value: FloorZoneKey | "all" | "open") => void;
   tables: AdminTableSummary[];
@@ -258,6 +401,9 @@ function FloorPlanBoard({
   );
 
   const filteredTables = tables.filter((table) => {
+    if (selectedLayout !== "all" && inferLayout(table) !== selectedLayout) {
+      return false;
+    }
     if (selectedZone === "all") {
       return true;
     }
@@ -277,13 +423,39 @@ function FloorPlanBoard({
     selectedZone === "all" || selectedZone === "open"
       ? ["balkon", "salon", "paket"]
       : [selectedZone];
+  const layoutCounts = tables.reduce<Record<FloorLayoutKey, number>>(
+    (acc, table) => {
+      acc[inferLayout(table)] += 1;
+      return acc;
+    },
+    { "ana-kat": 0, balkon: 0, paket: 0 }
+  );
 
   return (
     <section className="rounded-[1.25rem] border border-[#9eb8d6] bg-[#edf3fb] p-3 shadow-sm">
       <div className="border border-[#7ca4d8] bg-[#7ca4d8] px-3 py-2 text-sm font-bold text-white">
         Masalar
       </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <FloorLayoutTabs current={selectedLayout} layoutCounts={layoutCounts} onChange={setSelectedLayout} />
+        <button
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+            editMode
+              ? "bg-[#16392e] text-white"
+              : "border border-stone-300 bg-white text-stone-700"
+          }`}
+          onClick={() => setEditMode(!editMode)}
+          type="button"
+        >
+          {editMode ? "Operasyon Modu" : "Duzeni Duzenle"}
+        </button>
+      </div>
       <FloorZoneTabs current={selectedZone} onChange={setSelectedZone} zoneCounts={zoneCounts} />
+      {editMode ? (
+        <div className="mt-4">
+          <LayoutEditorPanel layout={selectedLayout} selectedLayout={selectedLayout} tables={tables} />
+        </div>
+      ) : null}
       <div className="mt-3 space-y-4">
         {sections.map((section) => {
           const meta = zoneMeta(section);
@@ -771,6 +943,8 @@ export function FloorCashWorkspace({
   const [selectedTableId, setSelectedTableId] = useState<string | null>(tables[0]?.id ?? null);
   const [view, setView] = useState<FloorCashView>("floor");
   const [selectedZone, setSelectedZone] = useState<FloorZoneKey | "all" | "open">("all");
+  const [selectedLayout, setSelectedLayout] = useState<FloorLayoutKey | "all">("all");
+  const [editMode, setEditMode] = useState(false);
 
   const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0];
   const selectedBill = bills.find((bill) => bill.tableId === selectedTable?.id && bill.status === "open");
@@ -812,8 +986,12 @@ export function FloorCashWorkspace({
         {view === "floor" ? (
           <section className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_0.78fr]">
             <FloorPlanBoard
+              editMode={editMode}
+              selectedLayout={selectedLayout}
               selectedTable={selectedTable}
               selectedZone={selectedZone}
+              setEditMode={setEditMode}
+              setSelectedLayout={setSelectedLayout}
               setSelectedTableId={setSelectedTableId}
               setSelectedZone={setSelectedZone}
               tables={floorTables}
