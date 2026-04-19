@@ -7,6 +7,7 @@ import type {
   ServiceStation,
   TenantCatalog
 } from "@tabflow/shared-ts";
+import Link from "next/link";
 
 function toneForTable(table: AdminTableSummary): {
   label: string;
@@ -72,18 +73,81 @@ function AttentionCard({
 
 function QuickActionCard({
   detail,
+  href,
   title,
   tone
 }: {
   detail: string;
+  href: string;
   title: string;
   tone: string;
 }) {
   return (
-    <article className={`rounded-[1.5rem] border p-4 ${tone}`}>
+    <Link className={`block rounded-[1.5rem] border p-4 transition hover:-translate-y-0.5 hover:shadow-sm ${tone}`} href={href}>
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-2 text-sm opacity-90">{detail}</p>
-    </article>
+    </Link>
+  );
+}
+
+function SetupWorkspace({
+  activeTableCount,
+  activeStations,
+  mappedCatalogItems
+}: {
+  activeTableCount: number;
+  activeStations: number;
+  mappedCatalogItems: number;
+}) {
+  const steps = [
+    {
+      href: "/service",
+      label: "Masa ve kat plani",
+      detail: `${activeTableCount} masa icin yerlesim, zone ve sabit obje duzenini ac.`,
+      cta: "Masa + Kasa'ya git"
+    },
+    {
+      href: "/console/stations",
+      label: "Istasyon kurulumu",
+      detail: `${activeStations} aktif istasyon var. Barista, bar, nargile ve mutfak hatlarini yonet.`,
+      cta: "Istasyonlari yonet"
+    },
+    {
+      href: "/console",
+      label: "Katalog kapsami",
+      detail: `${mappedCatalogItems} urun operasyon modelinde. Urun sihirbazi sonraki sertlestirme turunda ayrilacak.`,
+      cta: "Console'da kal"
+    }
+  ];
+
+  return (
+    <section className="mt-6 rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+            Kurulum Alani
+          </p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight">
+            Isletme yapisini buradan sertlestir
+          </h2>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        {steps.map((step) => (
+          <Link
+            className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-5 transition hover:-translate-y-0.5 hover:border-stone-300 hover:bg-white hover:shadow-sm"
+            href={step.href}
+            key={step.label}
+          >
+            <p className="text-lg font-bold tracking-tight text-stone-950">{step.label}</p>
+            <p className="mt-2 text-sm leading-6 text-stone-600">{step.detail}</p>
+            <span className="mt-4 inline-flex rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white">
+              {step.cta}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -256,6 +320,12 @@ export function AdminConsoleOverview({
           />
         </section>
 
+        <SetupWorkspace
+          activeStations={activeStations}
+          activeTableCount={activeTableCount}
+          mappedCatalogItems={mappedCatalogItems}
+        />
+
         <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -317,16 +387,19 @@ export function AdminConsoleOverview({
             <div className="mt-5 grid gap-3">
               <QuickActionCard
                 detail={`${offlineDeviceCount} cihaz saha kontrolu bekliyor. Device rail sonraki sprintte ayrisacak.`}
+                href="/service"
                 title="Device health takip et"
                 tone="border-rose-200 bg-rose-50 text-rose-900"
               />
               <QuickActionCard
                 detail={`${totalSubmitted} yeni ve ${totalPreparing} hazirlanan kalem station board ile birlikte kapanacak.`}
+                href="/stations"
                 title="Istasyon yogunlugunu incele"
                 tone="border-amber-200 bg-amber-50 text-amber-900"
               />
               <QuickActionCard
                 detail={`${(totalOpenRevenue / 100).toFixed(2)} ${currencyCode} acik ciro service yuzeyinde kasaya aktarilmayi bekliyor.`}
+                href="/service"
                 title="Masa + Kasa kuyruğunu ac"
                 tone="border-emerald-200 bg-emerald-50 text-emerald-900"
               />

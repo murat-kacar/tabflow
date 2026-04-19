@@ -111,6 +111,15 @@ Görsel karşılık:
 - urgent pulse chip
 - elapsed timer tone shift
 
+Board seviyesinde SLA şeridi bulunmalıdır:
+
+- canlı ticket sayısı
+- SLA riski
+- servise hazır kalemler
+
+Tek istasyon görünümü büyük ekran kullanımına uygun olmalı ve operatör için dikkat dağıtıcı
+admin detaylarını göstermemelidir.
+
 ## Action Model
 
 Kart üstünden erişilen temel aksiyonlar:

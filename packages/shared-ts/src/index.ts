@@ -471,6 +471,25 @@ export const updateTableLayoutEntrySchema = z.object({
 export type UpdateTableLayoutEntry = z.infer<typeof updateTableLayoutEntrySchema>;
 export const updateTableLayoutEntryListSchema = z.array(updateTableLayoutEntrySchema);
 
+export const moveBillInputSchema = z.object({
+  targetTableId: z.uuid()
+});
+
+export type MoveBillInput = z.infer<typeof moveBillInputSchema>;
+
+export const mergeBillInputSchema = z.object({
+  sourceBillId: z.uuid()
+});
+
+export type MergeBillInput = z.infer<typeof mergeBillInputSchema>;
+
+export const splitBillInputSchema = z.object({
+  targetTableId: z.uuid(),
+  orderIds: z.array(z.uuid()).min(1)
+});
+
+export type SplitBillInput = z.infer<typeof splitBillInputSchema>;
+
 export const upsertMenuItemInputSchema = z.object({
   categoryId: z.uuid(),
   sku: z.string().trim().min(1),

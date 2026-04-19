@@ -10,10 +10,13 @@ import {
   createStation,
   deleteAdminTable,
   deleteStation,
+  mergeTenantBill,
+  moveTenantBill,
   refreshDeviceToken,
   rotateDeviceKey,
   saveAdminTableLayouts,
   saveFloorLayoutDocument,
+  splitTenantBill,
   updateAdminTable,
   updateKitchenItemStatus,
   updateStation,
@@ -293,6 +296,100 @@ export async function closeBillAction(
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Hesap kapatilamadi."
+    };
+  }
+}
+
+export async function moveBillAction(
+  _previousState: TenantAdminActionState,
+  formData: FormData
+): Promise<TenantAdminActionState> {
+  const session = await getTenantSession();
+
+  if (!session) {
+    return {
+      ok: false,
+      message: "Oturum bulunamadi."
+    };
+  }
+
+  try {
+    await moveTenantBill(session, String(formData.get("billId") ?? ""), {
+      targetTableId: String(formData.get("targetTableId") ?? "")
+    });
+    revalidatePath("/service");
+    revalidatePath("/console");
+    return {
+      ok: true,
+      message: "Hesap hedef masaya tasindi."
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Hesap tasinamadi."
+    };
+  }
+}
+
+export async function mergeBillAction(
+  _previousState: TenantAdminActionState,
+  formData: FormData
+): Promise<TenantAdminActionState> {
+  const session = await getTenantSession();
+
+  if (!session) {
+    return {
+      ok: false,
+      message: "Oturum bulunamadi."
+    };
+  }
+
+  try {
+    await mergeTenantBill(session, String(formData.get("targetBillId") ?? ""), {
+      sourceBillId: String(formData.get("sourceBillId") ?? "")
+    });
+    revalidatePath("/service");
+    revalidatePath("/console");
+    return {
+      ok: true,
+      message: "Hesaplar birlestirildi."
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Hesaplar birlestirilemedi."
+    };
+  }
+}
+
+export async function splitBillAction(
+  _previousState: TenantAdminActionState,
+  formData: FormData
+): Promise<TenantAdminActionState> {
+  const session = await getTenantSession();
+
+  if (!session) {
+    return {
+      ok: false,
+      message: "Oturum bulunamadi."
+    };
+  }
+
+  try {
+    await splitTenantBill(session, String(formData.get("sourceBillId") ?? ""), {
+      targetTableId: String(formData.get("targetTableId") ?? ""),
+      orderIds: formData.getAll("orderIds").map(String)
+    });
+    revalidatePath("/service");
+    revalidatePath("/console");
+    return {
+      ok: true,
+      message: "Secili siparisler hedef masaya ayrildi."
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Hesap ayrilamadi."
     };
   }
 }

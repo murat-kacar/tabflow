@@ -9,7 +9,10 @@ import type {
 import { useActionState, useMemo, useState } from "react";
 import {
   closeBillAction,
+  mergeBillAction,
+  moveBillAction,
   saveFloorLayoutAction,
+  splitBillAction,
   type TenantAdminActionState,
   type TenantTableActionState
 } from "../auth-actions";
@@ -1730,30 +1733,147 @@ function ChecksPanel({
   );
 }
 
-function MoveMergePanel({ table }: { table: AdminTableSummary }) {
+function MoveMergePanel({
+  bill,
+  bills,
+  orders,
+  table,
+  tables
+}: {
+  bill?: CustomerBillSummary;
+  bills: CustomerBillSummary[];
+  orders: CustomerOrderSummary[];
+  table: AdminTableSummary;
+  tables: AdminTableSummary[];
+}) {
+  const [moveState, moveAction, movePending] = useActionState(moveBillAction, initialState);
+  const [mergeState, mergeAction, mergePending] = useActionState(mergeBillAction, initialState);
+  const [splitState, splitAction, splitPending] = useActionState(splitBillAction, initialState);
+  const openBills = bills.filter((current) => current.status === "open" && current.id !== bill?.id);
+  const emptyTargets = tables.filter((current) => current.id !== table.id && current.isActive && !current.openBillId);
+  const splitTargets = tables.filter((current) => current.id !== table.id && current.isActive);
+
   return (
     <section className="rounded-[1.5rem] border border-dashed border-stone-300 bg-stone-50 px-4 py-4">
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">
         Masa Hareketleri
       </p>
       <p className="mt-2 text-sm text-stone-700">
-        Masa {table.number.toString().padStart(3, "0")} icin tasima ve birlestirme akisi bu sprintte
-        gorunur hale getirildi. Bir sonraki backend adiminda secili hedef masa ile islenecek.
+        Masa {table.number.toString().padStart(3, "0")} icin tasima, birlestirme ve hesap ayirma
+        akislari artik canli operasyon endpointlerine bagli.
       </p>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
-          type="button"
-        >
-          Masayi tasi
-        </button>
-        <button
-          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
-          type="button"
-        >
-          Masalari birlestir
-        </button>
-      </div>
+      {!bill ? (
+        <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm text-stone-600">
+          Bu masada acik hesap olmadigi icin hareket aksiyonu yok.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-4">
+          <form action={moveAction} className="rounded-2xl bg-white p-4">
+            <input name="billId" type="hidden" value={bill.id} />
+            <p className="text-sm font-semibold text-stone-950">Hesabi bos masaya tasi</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <select
+                className="min-w-48 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm"
+                name="targetTableId"
+                required
+              >
+                <option value="">Hedef masa sec</option>
+                {emptyTargets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.name || `Masa ${target.number}`}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
+                disabled={movePending || emptyTargets.length === 0}
+                type="submit"
+              >
+                Tasi
+              </button>
+            </div>
+            {moveState.message ? (
+              <p className={`mt-3 text-sm ${moveState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                {moveState.message}
+              </p>
+            ) : null}
+          </form>
+
+          <form action={mergeAction} className="rounded-2xl bg-white p-4">
+            <input name="targetBillId" type="hidden" value={bill.id} />
+            <p className="text-sm font-semibold text-stone-950">Baska hesabi bu masaya birlestir</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <select
+                className="min-w-48 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm"
+                name="sourceBillId"
+                required
+              >
+                <option value="">Kaynak hesap sec</option>
+                {openBills.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    Masa {source.tableNumber.toString().padStart(3, "0")} • {source.tableName}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
+                disabled={mergePending || openBills.length === 0}
+                type="submit"
+              >
+                Birlestir
+              </button>
+            </div>
+            {mergeState.message ? (
+              <p className={`mt-3 text-sm ${mergeState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                {mergeState.message}
+              </p>
+            ) : null}
+          </form>
+
+          <form action={splitAction} className="rounded-2xl bg-white p-4">
+            <input name="sourceBillId" type="hidden" value={bill.id} />
+            <p className="text-sm font-semibold text-stone-950">Siparisleri ayir</p>
+            <div className="mt-3 grid gap-2">
+              {orders.length === 0 ? (
+                <p className="text-sm text-stone-600">Ayrilacak siparis yok.</p>
+              ) : (
+                orders.map((order) => (
+                  <label className="flex items-center gap-2 text-sm text-stone-700" key={order.id}>
+                    <input name="orderIds" type="checkbox" value={order.id} />
+                    #{order.id.slice(0, 8)} • {formatMoney(order.subtotalMinor, order.currencyCode)}
+                  </label>
+                ))
+              )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <select
+                className="min-w-48 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm"
+                name="targetTableId"
+                required
+              >
+                <option value="">Hedef masa sec</option>
+                {splitTargets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.name || `Masa ${target.number}`}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
+                disabled={splitPending || orders.length === 0}
+                type="submit"
+              >
+                Secili siparisleri ayir
+              </button>
+            </div>
+            {splitState.message ? (
+              <p className={`mt-3 text-sm ${splitState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                {splitState.message}
+              </p>
+            ) : null}
+          </form>
+        </div>
+      )}
     </section>
   );
 }
@@ -1831,14 +1951,18 @@ function ActionRail({
 
 function SelectedTablePanel({
   bill,
+  bills,
   device,
   orders,
-  table
+  table,
+  tables
 }: {
   bill?: CustomerBillSummary;
+  bills: CustomerBillSummary[];
   device?: AdminDevice;
   orders: CustomerOrderSummary[];
   table: AdminTableSummary;
+  tables: AdminTableSummary[];
 }) {
   const [state, action, pending] = useActionState(closeBillAction, initialState);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("nakit");
@@ -1947,7 +2071,7 @@ function SelectedTablePanel({
       </div>
 
       <div className="mt-5 grid gap-3">
-        <MoveMergePanel table={table} />
+        <MoveMergePanel bill={bill} bills={bills} orders={orders} table={table} tables={tables} />
 
         {bill ? (
           <form action={action}>
@@ -2076,9 +2200,11 @@ export function FloorCashWorkspace({
             {selectedTable ? (
               <SelectedTablePanel
                 bill={selectedBill}
+                bills={bills}
                 device={selectedDevice}
                 orders={selectedOrders}
                 table={selectedTable}
+                tables={tables}
               />
             ) : null}
           </section>

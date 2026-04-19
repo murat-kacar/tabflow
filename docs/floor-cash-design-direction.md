@@ -182,7 +182,15 @@ Bir masa seçildiğinde açılacak sağ panel / drawer şunları içermeli:
 - `Hesabi kapat`
 - `Masayi tasi`
 - `Masalari birlestir`
+- `Hesabi ayir`
 - `Siparis detayi gor`
+
+Bu aksiyonlar sadece görsel CTA olmamalıdır. MVP davranışı:
+
+- masa taşıma, açık hesabı boş hedef masaya taşır
+- masa birleştirme, kaynak açık hesabın siparişlerini hedef açık hesaba aktarır
+- hesap ayırma, seçili siparişleri hedef masanın açık hesabına taşır veya hedefte hesap yoksa oluşturur
+- hesap kapatma, manuel tahsilat sonrası hesabı kapatır
 
 ## Payment Model
 

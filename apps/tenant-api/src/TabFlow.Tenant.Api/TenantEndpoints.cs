@@ -48,6 +48,9 @@ public static class TenantEndpoints
         adminGroup.MapDelete("/tables/{tableId:guid}", DeleteTable);
         adminGroup.MapGet("/bills", ListBills);
         adminGroup.MapPost("/bills/{billId:guid}/close", CloseBill);
+        adminGroup.MapPost("/bills/{billId:guid}/move", MoveBill);
+        adminGroup.MapPost("/bills/{targetBillId:guid}/merge", MergeBill);
+        adminGroup.MapPost("/bills/{sourceBillId:guid}/split", SplitBill);
         adminGroup.MapPost("/catalog/categories", CreateCategory);
         adminGroup.MapPut("/catalog/categories/{categoryId:guid}", UpdateCategory);
         adminGroup.MapPost("/catalog/items", CreateItem);
@@ -1317,6 +1320,205 @@ public static class TenantEndpoints
     {
         var closed = await CustomerBillService.CloseBillAsync(db, billId, cancellationToken);
         return closed ? Results.NoContent() : Results.NotFound();
+    }
+
+    private static async Task<IResult> MoveBill(
+        Guid billId,
+        MoveBillRequest request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (billId == Guid.Empty || request.TargetTableId == Guid.Empty)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["targetTableId"] = ["Target table is required."]
+            });
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var bill = await db.CustomerBills
+            .Include(current => current.Orders)
+            .FirstOrDefaultAsync(current => current.Id == billId, cancellationToken);
+
+        if (bill is null || bill.ClosedAt is not null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!await db.ServiceTables.AnyAsync(table => table.Id == request.TargetTableId && table.IsActive, cancellationToken))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["targetTableId"] = ["Target table must be active."]
+            });
+        }
+
+        if (bill.TableId == request.TargetTableId)
+        {
+            return Results.NoContent();
+        }
+
+        if (await db.CustomerBills.AnyAsync(
+            current => current.TableId == request.TargetTableId && current.ClosedAt == null,
+            cancellationToken))
+        {
+            return Results.Conflict(new { message = "Target table already has an open bill. Use merge instead." });
+        }
+
+        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{bill.TableId}", cancellationToken);
+        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{request.TargetTableId}", cancellationToken);
+
+        var sourceTableId = bill.TableId;
+        bill.TableId = request.TargetTableId;
+        bill.UpdatedAt = DateTimeOffset.UtcNow;
+
+        foreach (var order in bill.Orders)
+        {
+            order.TableId = request.TargetTableId;
+            order.UpdatedAt = bill.UpdatedAt;
+        }
+
+        var sessions = await db.CustomerSessions
+            .Where(session => session.TableId == sourceTableId && session.ClosedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in sessions)
+        {
+            session.TableId = request.TargetTableId;
+            session.LastSeenAt = bill.UpdatedAt;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> MergeBill(
+        Guid targetBillId,
+        MergeBillRequest request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (targetBillId == Guid.Empty || request.SourceBillId == Guid.Empty || targetBillId == request.SourceBillId)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["sourceBillId"] = ["A different source bill is required."]
+            });
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var bills = await db.CustomerBills
+            .Include(bill => bill.Orders)
+            .Where(bill => bill.Id == targetBillId || bill.Id == request.SourceBillId)
+            .ToListAsync(cancellationToken);
+
+        var targetBill = bills.FirstOrDefault(bill => bill.Id == targetBillId);
+        var sourceBill = bills.FirstOrDefault(bill => bill.Id == request.SourceBillId);
+
+        if (targetBill is null || sourceBill is null || targetBill.ClosedAt is not null || sourceBill.ClosedAt is not null)
+        {
+            return Results.NotFound();
+        }
+
+        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{targetBill.TableId}", cancellationToken);
+        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{sourceBill.TableId}", cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var order in sourceBill.Orders)
+        {
+            order.BillId = targetBill.Id;
+            order.TableId = targetBill.TableId;
+            order.UpdatedAt = now;
+        }
+
+        var sourceSessions = await db.CustomerSessions
+            .Where(session => session.TableId == sourceBill.TableId && session.ClosedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in sourceSessions)
+        {
+            session.TableId = targetBill.TableId;
+            session.LastSeenAt = now;
+        }
+
+        sourceBill.Status = CustomerBillStatus.Closed;
+        sourceBill.ClosedAt = now;
+        sourceBill.UpdatedAt = now;
+
+        await db.SaveChangesAsync(cancellationToken);
+        await CustomerBillService.RecalculateSubtotalAsync(db, targetBill.Id, cancellationToken);
+        sourceBill.SubtotalMinor = 0;
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> SplitBill(
+        Guid sourceBillId,
+        SplitBillRequest request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (sourceBillId == Guid.Empty || request.TargetTableId == Guid.Empty || request.OrderIds.Count == 0)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["orderIds"] = ["At least one order must be selected."]
+            });
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var sourceBill = await db.CustomerBills.FirstOrDefaultAsync(
+            bill => bill.Id == sourceBillId && bill.ClosedAt == null,
+            cancellationToken);
+
+        if (sourceBill is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!await db.ServiceTables.AnyAsync(table => table.Id == request.TargetTableId && table.IsActive, cancellationToken))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["targetTableId"] = ["Target table must be active."]
+            });
+        }
+
+        var orders = await db.CustomerOrders
+            .Where(order => request.OrderIds.Contains(order.Id) && order.BillId == sourceBillId)
+            .ToListAsync(cancellationToken);
+
+        if (orders.Count != request.OrderIds.Distinct().Count())
+        {
+            return Results.NotFound(new { message = "One or more orders were not found on the source bill." });
+        }
+
+        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{sourceBill.TableId}", cancellationToken);
+        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{request.TargetTableId}", cancellationToken);
+
+        var targetBill = await CustomerBillService.GetOrCreateOpenBillAsync(
+            db,
+            request.TargetTableId,
+            sourceBill.CurrencyCode,
+            cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var order in orders)
+        {
+            order.BillId = targetBill.Id;
+            order.TableId = targetBill.TableId;
+            order.UpdatedAt = now;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        await CustomerBillService.RecalculateSubtotalAsync(db, sourceBill.Id, cancellationToken);
+        await CustomerBillService.RecalculateSubtotalAsync(db, targetBill.Id, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     private static TenantProfileResponse ToResponse(TenantProfile profile) =>

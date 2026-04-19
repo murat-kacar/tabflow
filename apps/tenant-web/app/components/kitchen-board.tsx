@@ -234,9 +234,10 @@ function EmptyColumn({ label, emptyLabel }: { label: string; emptyLabel: string 
 function StationPulse({ board }: { board: KitchenStationBoard }) {
   const urgentItems = board.items.filter((item) => urgencyForItem(item).label === "Urgent").length;
   const warningItems = board.items.filter((item) => urgencyForItem(item).label === "Warning").length;
+  const readyItems = board.items.filter((item) => item.itemStatus === "ready").length;
 
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
+    <div className="grid gap-3 lg:grid-cols-4">
       <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Hat kimligi</p>
         <p className="mt-2 text-lg font-bold text-white">{board.stationName}</p>
@@ -252,7 +253,41 @@ function StationPulse({ board }: { board: KitchenStationBoard }) {
         <p className="mt-2 text-lg font-bold text-rose-100">{urgentItems}</p>
         <p className="mt-1 text-sm text-stone-300">7 dakika ve uzeri ticket baskisi.</p>
       </article>
+      <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Servis cikisi</p>
+        <p className="mt-2 text-lg font-bold text-emerald-100">{readyItems}</p>
+        <p className="mt-1 text-sm text-stone-300">Masa + Kasa tarafina haber verilmesi gereken hazir kalemler.</p>
+      </article>
     </div>
+  );
+}
+
+function StationSlaStrip({ boards }: { boards: KitchenStationBoard[] }) {
+  const totalItems = boards.reduce((sum, board) => sum + board.items.length, 0);
+  const urgentItems = boards.reduce(
+    (sum, board) => sum + board.items.filter((item) => urgencyForItem(item).label === "Urgent").length,
+    0
+  );
+  const readyItems = boards.reduce(
+    (sum, board) => sum + board.items.filter((item) => item.itemStatus === "ready").length,
+    0
+  );
+
+  return (
+    <section className="mt-6 grid gap-3 md:grid-cols-3">
+      <article className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Canli ticket</p>
+        <p className="mt-2 text-2xl font-black text-white">{totalItems}</p>
+      </article>
+      <article className="rounded-[1.5rem] border border-rose-400/20 bg-rose-500/10 px-5 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-100">SLA riski</p>
+        <p className="mt-2 text-2xl font-black text-rose-50">{urgentItems}</p>
+      </article>
+      <article className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-500/10 px-5 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">Servise hazir</p>
+        <p className="mt-2 text-2xl font-black text-emerald-50">{readyItems}</p>
+      </article>
+    </section>
   );
 }
 
@@ -356,9 +391,14 @@ export function KitchenBoard({
               >
                 Masa + Kasa
               </Link>
+              <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+                Buyuk ekran modu: tek istasyon, dusuk dikkat daginikligi
+              </span>
             </div>
           ) : null}
         </div>
+
+        <StationSlaStrip boards={boards} />
 
         <section className="mt-6">
           <div
@@ -426,7 +466,7 @@ export function KitchenBoard({
                 <StationPulse board={board} />
               </div>
 
-              <div className="mt-6 grid gap-4 xl:grid-cols-3">
+              <div className={`mt-6 grid gap-4 ${singleStationMode ? "xl:grid-cols-3" : "xl:grid-cols-3"}`}>
                 {[
                   { id: "submitted", label: "Yeni" },
                   { id: "preparing", label: "Hazirlaniyor" },

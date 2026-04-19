@@ -13,10 +13,16 @@ import {
   customerSessionStatusSchema,
   deviceTokenSummarySchema,
   kitchenStationBoardListSchema,
+  type MergeBillInput,
+  mergeBillInputSchema,
+  type MoveBillInput,
+  moveBillInputSchema,
   platformProblemSchema,
   rotateDeviceKeyResponseSchema,
   type ServiceStation,
   serviceStationListSchema,
+  type SplitBillInput,
+  splitBillInputSchema,
   type TenantCatalog,
   tenantCatalogSchema,
   type UpsertMenuCategoryInput,
@@ -111,6 +117,66 @@ export async function closeTenantBill(session: TenantSession, billId: string): P
   const response = await fetch(`${tenantApiBaseUrl()}/api/admin/bills/${billId}/close`, {
     method: "POST",
     headers: tenantAdminHeaders(session)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+}
+
+export async function moveTenantBill(
+  session: TenantSession,
+  billId: string,
+  input: MoveBillInput
+): Promise<void> {
+  const payload = moveBillInputSchema.parse(input);
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/bills/${billId}/move`, {
+    method: "POST",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+}
+
+export async function mergeTenantBill(
+  session: TenantSession,
+  targetBillId: string,
+  input: MergeBillInput
+): Promise<void> {
+  const payload = mergeBillInputSchema.parse(input);
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/bills/${targetBillId}/merge`, {
+    method: "POST",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+}
+
+export async function splitTenantBill(
+  session: TenantSession,
+  sourceBillId: string,
+  input: SplitBillInput
+): Promise<void> {
+  const payload = splitBillInputSchema.parse(input);
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/bills/${sourceBillId}/split`, {
+    method: "POST",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
   });
 
   if (!response.ok) {

@@ -155,6 +155,12 @@ public sealed record CustomerBillSummaryResponse(
     DateTimeOffset? ClosedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record MoveBillRequest(Guid TargetTableId);
+
+public sealed record MergeBillRequest(Guid SourceBillId);
+
+public sealed record SplitBillRequest(Guid TargetTableId, IReadOnlyList<Guid> OrderIds);
+
 public sealed record CreateCustomerOrderItemRequest(Guid MenuItemId, int Quantity, string Note);
 
 public sealed record CreateCustomerOrderRequest(
