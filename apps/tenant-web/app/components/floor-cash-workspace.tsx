@@ -15,6 +15,8 @@ const initialState: TenantAdminActionState = {
   message: ""
 };
 
+type FloorCashView = "floor" | "open-checks" | "payment-queue" | "closed-checks";
+
 function formatMoney(minor: number, currencyCode: string | null): string {
   if (!currencyCode) {
     return "-";
@@ -147,6 +149,127 @@ function PaymentQueue({
   );
 }
 
+function FloorCashTabs({
+  current,
+  onChange
+}: {
+  current: FloorCashView;
+  onChange: (view: FloorCashView) => void;
+}) {
+  const tabs: Array<{ id: FloorCashView; label: string }> = [
+    { id: "floor", label: "Floor" },
+    { id: "open-checks", label: "Open Checks" },
+    { id: "payment-queue", label: "Payment Queue" },
+    { id: "closed-checks", label: "Closed Checks" }
+  ];
+
+  return (
+    <div className="mt-6 flex flex-wrap gap-3">
+      {tabs.map((tab) => (
+        <button
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+            current === tab.id
+              ? "bg-[#16392e] text-white"
+              : "border border-stone-300 bg-white text-stone-700 hover:border-stone-950 hover:text-stone-950"
+          }`}
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          type="button"
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ChecksPanel({
+  bills,
+  mode
+}: {
+  bills: CustomerBillSummary[];
+  mode: "open" | "closed";
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+        {mode === "open" ? "Open Checks" : "Closed Checks"}
+      </p>
+      <h2 className="mt-2 text-2xl font-bold tracking-tight">
+        {mode === "open" ? "Acilik ve kapanis bekleyen hesaplar" : "Kapanan hesap gecmisi"}
+      </h2>
+      <div className="mt-5 grid gap-3">
+        {bills.length === 0 ? (
+          <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
+            {mode === "open" ? "Acik hesap yok." : "Kapanmis hesap kaydi yok."}
+          </p>
+        ) : (
+          bills.map((bill) => (
+            <article
+              className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4"
+              key={bill.id}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-stone-950">
+                    Masa {bill.tableNumber.toString().padStart(3, "0")} • {bill.tableName}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {formatMoney(bill.subtotalMinor, bill.currencyCode)} • {bill.orderCount} siparis
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    mode === "open"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-stone-200 text-stone-700"
+                  }`}
+                >
+                  {bill.status}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-2 text-sm text-stone-600 sm:grid-cols-3">
+                <p>Acilis: {formatDateTime(bill.openedAt)}</p>
+                <p>Kapanis: {formatDateTime(bill.closedAt)}</p>
+                <p>Kayit: #{bill.id.slice(0, 8)}</p>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function MoveMergePanel({ table }: { table: AdminTableSummary }) {
+  return (
+    <section className="rounded-[1.5rem] border border-dashed border-stone-300 bg-stone-50 px-4 py-4">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">
+        Masa Hareketleri
+      </p>
+      <p className="mt-2 text-sm text-stone-700">
+        Masa {table.number.toString().padStart(3, "0")} icin tasima ve birlestirme akisi bu sprintte
+        gorunur hale getirildi. Bir sonraki backend adiminda secili hedef masa ile islenecek.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+          type="button"
+        >
+          Masayi tasi
+        </button>
+        <button
+          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
+          type="button"
+        >
+          Masalari birlestir
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function SelectedTablePanel({
   bill,
   device,
@@ -200,6 +323,28 @@ function SelectedTablePanel({
         </div>
 
         <div className="rounded-2xl bg-stone-50 px-4 py-4">
+          <p className="text-sm font-semibold text-stone-950">Odeme durumu</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Durum
+              </p>
+              <p className="mt-1 text-sm text-stone-700">
+                {bill ? "Tahsilat bekliyor" : "Kapanacak hesap yok"}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Yontem
+              </p>
+              <p className="mt-1 text-sm text-stone-700">
+                POS entegresi yok, manuel tahsilat kaydi mantigi kullanilacak.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-stone-50 px-4 py-4">
           <p className="text-sm font-semibold text-stone-950">Canli siparisler</p>
           <div className="mt-3 grid gap-2">
             {orders.length === 0 ? (
@@ -222,14 +367,7 @@ function SelectedTablePanel({
       </div>
 
       <div className="mt-5 grid gap-3">
-        <div className="flex flex-wrap gap-3">
-          <button className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700" type="button">
-            Masayi tasi
-          </button>
-          <button className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700" type="button">
-            Masalari birlestir
-          </button>
-        </div>
+        <MoveMergePanel table={table} />
 
         {bill ? (
           <form action={action}>
@@ -266,6 +404,7 @@ export function FloorCashWorkspace({
   tables: AdminTableSummary[];
 }) {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(tables[0]?.id ?? null);
+  const [view, setView] = useState<FloorCashView>("floor");
 
   const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0];
   const selectedBill = bills.find((bill) => bill.tableId === selectedTable?.id && bill.status === "open");
@@ -275,6 +414,8 @@ export function FloorCashWorkspace({
     [orders, selectedTable?.id]
   );
   const openBills = bills.filter((bill) => bill.status === "open");
+  const closedBills = bills.filter((bill) => bill.status !== "open");
+  const queueBills = [...openBills].sort((a, b) => a.openedAt.localeCompare(b.openedAt));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f0e0bd,transparent_28rem),radial-gradient(circle_at_bottom_right,#dce7f0,transparent_30rem),linear-gradient(135deg,#f6f1e7,#e6e1d6)] px-6 py-8 text-stone-950">
@@ -290,42 +431,60 @@ export function FloorCashWorkspace({
           </p>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
-          <section className="rounded-[1.75rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                  Floor
-                </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight">Masa durumu ve acik adisyonlar</h2>
+        <FloorCashTabs current={view} onChange={setView} />
+
+        {view === "floor" ? (
+          <section className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
+            <section className="rounded-[1.75rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
+                    Floor
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold tracking-tight">Masa durumu ve acik adisyonlar</h2>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {tables.map((table) => (
-                <FloorTableCard
-                  isSelected={selectedTable?.id === table.id}
-                  key={table.id}
-                  onSelect={() => setSelectedTableId(table.id)}
-                  table={table}
-                />
-              ))}
-            </div>
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {tables.map((table) => (
+                  <FloorTableCard
+                    isSelected={selectedTable?.id === table.id}
+                    key={table.id}
+                    onSelect={() => setSelectedTableId(table.id)}
+                    table={table}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {selectedTable ? (
+              <SelectedTablePanel
+                bill={selectedBill}
+                device={selectedDevice}
+                orders={selectedOrders}
+                table={selectedTable}
+              />
+            ) : null}
           </section>
+        ) : null}
 
-          {selectedTable ? (
-            <SelectedTablePanel
-              bill={selectedBill}
-              device={selectedDevice}
-              orders={selectedOrders}
-              table={selectedTable}
-            />
-          ) : null}
-        </section>
+        {view === "open-checks" ? (
+          <section className="mt-6">
+            <ChecksPanel bills={openBills} mode="open" />
+          </section>
+        ) : null}
 
-        <section className="mt-6">
-          <PaymentQueue bills={openBills} />
-        </section>
+        {view === "payment-queue" ? (
+          <section className="mt-6">
+            <PaymentQueue bills={queueBills} />
+          </section>
+        ) : null}
+
+        {view === "closed-checks" ? (
+          <section className="mt-6">
+            <ChecksPanel bills={closedBills} mode="closed" />
+          </section>
+        ) : null}
       </section>
     </main>
   );
