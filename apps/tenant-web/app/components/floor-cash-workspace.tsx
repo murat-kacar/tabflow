@@ -29,7 +29,9 @@ type FloorCashView = "floor" | "open-checks" | "payment-queue" | "closed-checks"
 type PaymentMethod = "nakit" | "kart" | "transfer" | "diger";
 type FloorZoneKey = "salon" | "balkon" | "paket";
 type FloorLayoutKey = "ana-kat" | "balkon" | "paket";
+type TableShape = "square" | "round" | "rect";
 type LayoutPlacement = { left: number; top: number };
+type TableVisual = { width: number; height: number; shape: TableShape };
 type ZonePlacement = {
   id: string;
   zone: FloorZoneKey;
@@ -38,6 +40,11 @@ type ZonePlacement = {
   top: number;
   width: number;
   height: number;
+};
+
+type FloorLayoutDocument = {
+  zones?: Partial<Record<FloorLayoutKey, ZonePlacement[]>>;
+  tables?: Record<string, Partial<TableVisual>>;
 };
 
 function formatMoney(minor: number, currencyCode: string | null): string {
@@ -166,6 +173,80 @@ function createInitialZonePlacements(): Record<FloorLayoutKey, ZonePlacement[]> 
   };
 }
 
+function defaultTableShape(zone: FloorZoneKey): TableShape {
+  if (zone === "balkon") {
+    return "round";
+  }
+
+  if (zone === "paket") {
+    return "rect";
+  }
+
+  return "square";
+}
+
+function createInitialTableVisuals(
+  tables: AdminTableSummary[],
+  document?: FloorLayoutDocument
+): Record<string, TableVisual> {
+  return Object.fromEntries(
+    tables.map((table) => {
+      const zone = inferZone(table);
+      const stored = document?.tables?.[table.id];
+      return [
+        table.id,
+        {
+          width: Math.max(10, Math.min(26, Math.round(stored?.width ?? (zone === "paket" ? 18 : 14)))),
+          height: Math.max(10, Math.min(26, Math.round(stored?.height ?? 14))),
+          shape: stored?.shape === "round" || stored?.shape === "rect" || stored?.shape === "square"
+            ? stored.shape
+            : defaultTableShape(zone)
+        }
+      ];
+    })
+  );
+}
+
+function parseFloorLayoutDocument(floorLayoutJson?: string | null): FloorLayoutDocument | null {
+  if (!floorLayoutJson?.trim()) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(floorLayoutJson) as FloorLayoutDocument;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function createZonePlacementsFromDocument(
+  document?: FloorLayoutDocument | null
+): Record<FloorLayoutKey, ZonePlacement[]> {
+  const fallback = createInitialZonePlacements();
+
+  if (!document?.zones) {
+    return fallback;
+  }
+
+  return {
+    "ana-kat": Array.isArray(document.zones["ana-kat"]) ? document.zones["ana-kat"] as ZonePlacement[] : fallback["ana-kat"],
+    balkon: Array.isArray(document.zones.balkon) ? document.zones.balkon as ZonePlacement[] : fallback.balkon,
+    paket: Array.isArray(document.zones.paket) ? document.zones.paket as ZonePlacement[] : fallback.paket
+  };
+}
+
+function shapeClassForTable(shape: TableShape): string {
+  switch (shape) {
+    case "round":
+      return "rounded-[999px]";
+    case "rect":
+      return "rounded-[1rem]";
+    default:
+      return "rounded-[1.8rem]";
+  }
+}
+
 function zoneMeta(zone: FloorZoneKey) {
   switch (zone) {
     case "balkon":
@@ -192,22 +273,19 @@ function zoneMeta(zone: FloorZoneKey) {
 function FloorTableCard({
   isSelected,
   onSelect,
+  shape,
   table,
   zone
 }: {
   isSelected: boolean;
   onSelect: () => void;
+  shape: TableShape;
   table: AdminTableSummary;
   zone: FloorZoneKey;
 }) {
   const badge = statusBadge(table);
   const zoneDetails = zoneMeta(zone);
-  const shapeClass =
-    zone === "salon"
-      ? "aspect-square rounded-[1.8rem]"
-      : zone === "balkon"
-        ? "aspect-square rounded-[999px]"
-        : "aspect-[1.25/1] rounded-[1rem]";
+  const shapeClass = `${shape === "rect" ? "aspect-[1.25/1]" : "aspect-square"} ${shapeClassForTable(shape)}`;
 
   return (
     <button
@@ -356,14 +434,17 @@ function FloorLayoutTabs({
 
 function LayoutEditorPanel({
   layoutPlacements,
+  tableVisuals,
   zonePlacements,
   layout,
   selectedLayout,
   setLayoutPlacements,
+  setTableVisuals,
   setZonePlacements,
   tables
 }: {
   layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
+  tableVisuals: Record<string, TableVisual>;
   zonePlacements: Record<FloorLayoutKey, ZonePlacement[]>;
   layout: FloorLayoutKey | "all";
   selectedLayout: FloorLayoutKey | "all";
@@ -371,6 +452,9 @@ function LayoutEditorPanel({
     value:
       | Record<FloorLayoutKey, Record<string, LayoutPlacement>>
       | ((current: Record<FloorLayoutKey, Record<string, LayoutPlacement>>) => Record<FloorLayoutKey, Record<string, LayoutPlacement>>)
+  ) => void;
+  setTableVisuals: (
+    value: Record<string, TableVisual> | ((current: Record<string, TableVisual>) => Record<string, TableVisual>)
   ) => void;
   setZonePlacements: (
     value:
@@ -382,6 +466,7 @@ function LayoutEditorPanel({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingZoneId, setDraggingZoneId] = useState<string | null>(null);
   const [resizingZoneId, setResizingZoneId] = useState<string | null>(null);
+  const [resizingTableId, setResizingTableId] = useState<string | null>(null);
   const [saveState, saveAction, savePending] = useActionState(
     saveFloorLayoutAction,
     tableActionInitialState
@@ -395,27 +480,74 @@ function LayoutEditorPanel({
         top: 12 + Math.floor(index / 4) * 24
       };
       const placement = layoutPlacements[layoutKey]?.[table.id] ?? fallbackPlacement;
+      const visual = tableVisuals[table.id] ?? {
+        width: inferZone(table) === "paket" ? 18 : 14,
+        height: 14,
+        shape: defaultTableShape(inferZone(table))
+      };
 
       return {
         id: table.id,
         label: table.name || `Masa ${table.number}`,
         layoutKey,
         left: placement.left,
-        top: placement.top
+        top: placement.top,
+        width: visual.width,
+        height: visual.height,
+        shape: visual.shape
       };
     });
 
   function updatePlacement(tableId: string, layoutKey: FloorLayoutKey, left: number, top: number) {
+    const visual = tableVisuals[tableId] ?? { width: 14, height: 14, shape: "square" as TableShape };
     setLayoutPlacements((current) => ({
       ...current,
       [layoutKey]: {
         ...current[layoutKey],
         [tableId]: {
-          left: Math.max(2, Math.min(82, left)),
-          top: Math.max(4, Math.min(78, top))
+          left: Math.max(2, Math.min(96 - visual.width, left)),
+          top: Math.max(4, Math.min(94 - visual.height, top))
         }
       }
     }));
+  }
+
+  function updateTableVisual(
+    tableId: string,
+    updates: Partial<TableVisual>,
+    placement?: { layoutKey: FloorLayoutKey; left: number; top: number }
+  ) {
+    setTableVisuals((current) => {
+      const next = {
+        ...(current[tableId] ?? { width: 14, height: 14, shape: "square" as TableShape }),
+        ...updates
+      };
+
+      if (placement) {
+        setLayoutPlacements((layouts) => ({
+          ...layouts,
+          [placement.layoutKey]: {
+            ...layouts[placement.layoutKey],
+            [tableId]: {
+              left: Math.max(2, Math.min(96 - next.width, placement.left)),
+              top: Math.max(4, Math.min(94 - next.height, placement.top))
+            }
+          }
+        }));
+      }
+
+      return {
+        ...current,
+        [tableId]: next
+      };
+    });
+  }
+
+  function cycleTableShape(tableId: string) {
+    const currentShape = tableVisuals[tableId]?.shape ?? "square";
+    const nextShape: TableShape =
+      currentShape === "square" ? "round" : currentShape === "round" ? "rect" : "square";
+    updateTableVisual(tableId, { shape: nextShape });
   }
 
   function updateZonePlacement(zoneId: string, layoutKey: FloorLayoutKey, left: number, top: number) {
@@ -586,7 +718,7 @@ function LayoutEditorPanel({
           ))}
           {items.map((item) => (
             <div
-              className={`absolute flex h-20 w-20 cursor-move select-none items-center justify-center rounded-[1rem] border-2 border-[#534449] bg-[#fff6cf] text-center text-sm font-black text-stone-950 shadow-sm transition ${
+              className={`absolute flex cursor-move select-none items-center justify-center border-2 border-[#534449] bg-[#fff6cf] text-center text-sm font-black text-stone-950 shadow-sm transition ${shapeClassForTable(item.shape)} ${
                 draggingId === item.id ? "scale-105 shadow-lg ring-2 ring-[#7ca4d8]" : ""
               }`}
               key={item.id}
@@ -600,8 +732,8 @@ function LayoutEditorPanel({
                 const rect = canvas.getBoundingClientRect();
 
                 const handleMove = (moveEvent: PointerEvent) => {
-                  const left = ((moveEvent.clientX - rect.left) / rect.width) * 100 - 10;
-                  const top = ((moveEvent.clientY - rect.top) / rect.height) * 100 - 10;
+                  const left = ((moveEvent.clientX - rect.left) / rect.width) * 100 - item.width / 2;
+                  const top = ((moveEvent.clientY - rect.top) / rect.height) * 100 - item.height / 2;
                   updatePlacement(item.id, item.layoutKey, left, top);
                 };
 
@@ -613,9 +745,71 @@ function LayoutEditorPanel({
                 window.addEventListener("pointermove", handleMove);
                 window.addEventListener("pointerup", handleUp, { once: true });
               }}
-              style={{ left: `${item.left}%`, top: `${item.top}%` }}
+              style={{
+                left: `${item.left}%`,
+                top: `${item.top}%`,
+                width: `${item.width}%`,
+                height: `${item.height}%`
+              }}
             >
-              {item.label}
+              <div className="pointer-events-none px-3">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {item.shape}
+                </div>
+                <div>{item.label}</div>
+              </div>
+              <div className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2">
+                <button
+                  className="z-10 h-7 rounded-sm border border-[#3d5f9c] bg-white/90 px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#21406f]"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    cycleTableShape(item.id);
+                  }}
+                  type="button"
+                >
+                  Sekil
+                </button>
+                <button
+                  aria-label={`${item.label} boyutunu degistir`}
+                  className={`z-10 h-7 w-7 rounded-sm border border-[#3d5f9c] bg-white/90 text-[#21406f] shadow-sm transition ${
+                    resizingTableId === item.id ? "scale-110" : ""
+                  }`}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    const canvas = event.currentTarget.parentElement?.parentElement;
+                    if (!canvas) {
+                      return;
+                    }
+
+                    setResizingTableId(item.id);
+                    const rect = canvas.getBoundingClientRect();
+
+                    const handleMove = (moveEvent: PointerEvent) => {
+                      const width = Math.max(10, ((moveEvent.clientX - rect.left) / rect.width) * 100 - item.left);
+                      const height = Math.max(10, ((moveEvent.clientY - rect.top) / rect.height) * 100 - item.top);
+                      updateTableVisual(
+                        item.id,
+                        {
+                          width: Math.min(26, width),
+                          height: Math.min(26, height)
+                        },
+                        { layoutKey: item.layoutKey, left: item.left, top: item.top }
+                      );
+                    };
+
+                    const handleUp = () => {
+                      setResizingTableId(null);
+                      window.removeEventListener("pointermove", handleMove);
+                    };
+
+                    window.addEventListener("pointermove", handleMove);
+                    window.addEventListener("pointerup", handleUp, { once: true });
+                  }}
+                  type="button"
+                >
+                  <span className="text-base font-black leading-none">+</span>
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -652,7 +846,8 @@ function LayoutEditorPanel({
               name="floorLayoutJson"
               type="hidden"
               value={JSON.stringify({
-                zones: zonePlacements
+                zones: zonePlacements,
+                tables: tableVisuals
               })}
             />
             <button
@@ -677,12 +872,14 @@ function LayoutEditorPanel({
 function FloorPlanBoard({
   editMode,
   layoutPlacements,
+  tableVisuals,
   zonePlacements,
   selectedLayout,
   selectedTable,
   selectedZone,
   setEditMode,
   setLayoutPlacements,
+  setTableVisuals,
   setZonePlacements,
   setSelectedLayout,
   setSelectedTableId,
@@ -691,6 +888,7 @@ function FloorPlanBoard({
 }: {
   editMode: boolean;
   layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
+  tableVisuals: Record<string, TableVisual>;
   zonePlacements: Record<FloorLayoutKey, ZonePlacement[]>;
   selectedLayout: FloorLayoutKey | "all";
   selectedTable?: AdminTableSummary;
@@ -700,6 +898,9 @@ function FloorPlanBoard({
     value:
       | Record<FloorLayoutKey, Record<string, LayoutPlacement>>
       | ((current: Record<FloorLayoutKey, Record<string, LayoutPlacement>>) => Record<FloorLayoutKey, Record<string, LayoutPlacement>>)
+  ) => void;
+  setTableVisuals: (
+    value: Record<string, TableVisual> | ((current: Record<string, TableVisual>) => Record<string, TableVisual>)
   ) => void;
   setZonePlacements: (
     value:
@@ -775,9 +976,11 @@ function FloorPlanBoard({
           <LayoutEditorPanel
             layout={selectedLayout}
             layoutPlacements={layoutPlacements}
+            tableVisuals={tableVisuals}
             zonePlacements={zonePlacements}
             selectedLayout={selectedLayout}
             setLayoutPlacements={setLayoutPlacements}
+            setTableVisuals={setTableVisuals}
             setZonePlacements={setZonePlacements}
             tables={tables}
           />
@@ -815,6 +1018,7 @@ function FloorPlanBoard({
                       isSelected={selectedTable?.id === table.id}
                       key={table.id}
                       onSelect={() => setSelectedTableId(table.id)}
+                      shape={tableVisuals[table.id]?.shape ?? defaultTableShape(inferZone(table))}
                       table={table}
                       zone={section}
                     />
@@ -1259,14 +1463,17 @@ function SelectedTablePanel({
 export function FloorCashWorkspace({
   bills,
   devices,
+  floorLayoutJson,
   orders,
   tables
 }: {
   bills: CustomerBillSummary[];
   devices: AdminDevice[];
+  floorLayoutJson?: string | null;
   orders: CustomerOrderSummary[];
   tables: AdminTableSummary[];
 }) {
+  const floorLayoutDocument = useMemo(() => parseFloorLayoutDocument(floorLayoutJson), [floorLayoutJson]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(tables[0]?.id ?? null);
   const [view, setView] = useState<FloorCashView>("floor");
   const [selectedZone, setSelectedZone] = useState<FloorZoneKey | "all" | "open">("all");
@@ -1275,8 +1482,11 @@ export function FloorCashWorkspace({
   const [layoutPlacements, setLayoutPlacements] = useState<
     Record<FloorLayoutKey, Record<string, LayoutPlacement>>
   >(() => createInitialLayoutPlacements(tables));
+  const [tableVisuals, setTableVisuals] = useState<Record<string, TableVisual>>(() =>
+    createInitialTableVisuals(tables, floorLayoutDocument ?? undefined)
+  );
   const [zonePlacements, setZonePlacements] = useState<Record<FloorLayoutKey, ZonePlacement[]>>(
-    () => createInitialZonePlacements()
+    () => createZonePlacementsFromDocument(floorLayoutDocument)
   );
 
   const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0];
@@ -1321,12 +1531,14 @@ export function FloorCashWorkspace({
             <FloorPlanBoard
               editMode={editMode}
               layoutPlacements={layoutPlacements}
+              tableVisuals={tableVisuals}
               zonePlacements={zonePlacements}
               selectedLayout={selectedLayout}
               selectedTable={selectedTable}
               selectedZone={selectedZone}
               setEditMode={setEditMode}
               setLayoutPlacements={setLayoutPlacements}
+              setTableVisuals={setTableVisuals}
               setZonePlacements={setZonePlacements}
               setSelectedLayout={setSelectedLayout}
               setSelectedTableId={setSelectedTableId}

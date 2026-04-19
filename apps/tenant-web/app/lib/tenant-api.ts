@@ -337,6 +337,20 @@ export async function saveFloorLayoutDocument(
   }
 }
 
+export async function getFloorLayoutDocument(session: TenantSession): Promise<string> {
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/floor-layout`, {
+    cache: "no-store",
+    headers: tenantAdminHeaders(session)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+
+  const payload = (await response.json()) as { floorLayoutJson?: unknown };
+  return typeof payload.floorLayoutJson === "string" ? payload.floorLayoutJson : "{}";
+}
+
 export async function deleteAdminTable(session: TenantSession, tableId: string): Promise<void> {
   const response = await fetch(`${tenantApiBaseUrl()}/api/admin/tables/${tableId}`, {
     method: "DELETE",

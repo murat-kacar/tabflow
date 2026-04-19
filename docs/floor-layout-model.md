@@ -91,6 +91,12 @@ Alanlar:
 - `rotation`
 - `zIndex`
 
+Masa görsel özellikleri:
+
+- `shape`
+- `width`
+- `height`
+
 ## Screen Behavior
 
 ### Service Screen
@@ -116,6 +122,8 @@ Kurallar:
 - edit mode açık olmadıkça masa sürüklenemez
 - edit mode açıkken:
   - masalar sürüklenebilir
+  - masalar yeniden boyutlandirilabilir
+  - masalar kare / yuvarlak / dikdortgen varyantlarina alinabilir
   - zone sınırları görünür
   - zone bloklari yeniden boyutlandirilabilir
   - snap-to-grid aktif olabilir
@@ -127,8 +135,9 @@ Kurallar:
 2. layout sekmeleri
 3. edit mode toggle
 4. masa yerleşimini sürükle-bırak ile değiştirme
-5. zone bloklarini surukleme ve yeniden boyutlandirma
-6. layout bazlı görünüm
+5. masa boyutu ve sekil varyantlarini kaydetme
+6. zone bloklarini surukleme ve yeniden boyutlandirma
+7. layout bazlı görünüm
 
 ## Later Scope
 
