@@ -16,6 +16,9 @@ public sealed record AdminTableSummaryResponse(
     int Number,
     string Name,
     string ServiceNote,
+    string LayoutCode,
+    int LayoutX,
+    int LayoutY,
     bool IsActive,
     bool DeviceOnline,
     int ActiveSessionCount,
@@ -57,7 +60,12 @@ public sealed record UpsertServiceTableRequest(
     int Number,
     string Name,
     string ServiceNote,
+    string LayoutCode,
+    int LayoutX,
+    int LayoutY,
     bool IsActive);
+
+public sealed record UpdateTableLayoutEntryRequest(Guid TableId, string LayoutCode, int LayoutX, int LayoutY);
 
 public sealed record ServiceStationResponse(
     Guid Id,

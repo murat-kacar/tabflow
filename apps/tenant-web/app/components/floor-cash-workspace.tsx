@@ -7,10 +7,20 @@ import type {
   CustomerOrderSummary
 } from "@tabflow/shared-ts";
 import { useActionState, useMemo, useState } from "react";
-import { closeBillAction, type TenantAdminActionState } from "../auth-actions";
+import {
+  closeBillAction,
+  saveFloorLayoutAction,
+  type TenantAdminActionState,
+  type TenantTableActionState
+} from "../auth-actions";
 import { formatDateTime } from "../lib/format";
 
 const initialState: TenantAdminActionState = {
+  ok: false,
+  message: ""
+};
+
+const tableActionInitialState: TenantTableActionState = {
   ok: false,
   message: ""
 };
@@ -123,8 +133,8 @@ function createInitialLayoutPlacements(
       .filter((table) => inferLayout(table) === layout)
       .forEach((table, index) => {
         placements[layout][table.id] = {
-          left: 8 + (index % 4) * 21,
-          top: 10 + Math.floor(index / 4) * 24
+          left: table.layoutX || 8 + (index % 4) * 21,
+          top: table.layoutY || 10 + Math.floor(index / 4) * 24
         };
       });
   });
@@ -338,6 +348,10 @@ function LayoutEditorPanel({
   tables: AdminTableSummary[];
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [saveState, saveAction, savePending] = useActionState(
+    saveFloorLayoutAction,
+    tableActionInitialState
+  );
   const items = tables
     .filter((table) => selectedLayout === "all" || inferLayout(table) === selectedLayout)
     .map((table, index) => {
@@ -440,13 +454,35 @@ function LayoutEditorPanel({
           >
             Zone ekle
           </button>
-          <button
-            className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
-            type="button"
-          >
-            Duzeni kaydet
-          </button>
+          <form action={saveAction}>
+            <input
+              name="layoutPayload"
+              type="hidden"
+              value={JSON.stringify(
+                (Object.keys(layoutPlacements) as FloorLayoutKey[]).flatMap((layoutKey) =>
+                  Object.entries(layoutPlacements[layoutKey]).map(([tableId, placement]) => ({
+                    tableId,
+                    layoutCode: layoutKey,
+                    layoutX: Math.round(placement.left),
+                    layoutY: Math.round(placement.top)
+                  }))
+                )
+              )}
+            />
+            <button
+              className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
+              disabled={savePending}
+              type="submit"
+            >
+              Duzeni kaydet
+            </button>
+          </form>
         </div>
+        {saveState.message ? (
+          <p className={`mt-4 text-sm ${saveState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+            {saveState.message}
+          </p>
+        ) : null}
       </div>
     </section>
   );

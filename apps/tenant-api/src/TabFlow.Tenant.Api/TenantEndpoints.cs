@@ -41,6 +41,7 @@ public static class TenantEndpoints
         adminGroup.MapPost("/kitchen/items/{orderItemId:guid}/status", UpdateKitchenItemStatus);
         adminGroup.MapGet("/tables", ListAdminTables);
         adminGroup.MapPost("/tables", CreateTable);
+        adminGroup.MapPost("/tables/layouts", SaveTableLayouts);
         adminGroup.MapPut("/tables/{tableId:guid}", UpdateTable);
         adminGroup.MapDelete("/tables/{tableId:guid}", DeleteTable);
         adminGroup.MapGet("/bills", ListBills);
@@ -535,6 +536,9 @@ public static class TenantEndpoints
                 table.Number,
                 table.Name,
                 table.ServiceNote,
+                table.LayoutCode,
+                table.LayoutX,
+                table.LayoutY,
                 table.IsActive,
                 registry.IsOnline(table.Id),
                 sessions.GetValueOrDefault(table.Id),
@@ -557,13 +561,15 @@ public static class TenantEndpoints
     {
         var name = request.Name.Trim();
         var serviceNote = request.ServiceNote.Trim();
+        var layoutCode = request.LayoutCode.Trim();
 
-        if (request.Number <= 0 || string.IsNullOrWhiteSpace(name) || serviceNote.Length > 1200)
+        if (request.Number <= 0 || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(layoutCode) || serviceNote.Length > 1200)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["number"] = ["Table number must be greater than zero."],
                 ["name"] = ["Table name is required."],
+                ["layoutCode"] = ["Layout code is required."],
                 ["serviceNote"] = ["Service note must be 1200 characters or fewer."]
             });
         }
@@ -578,6 +584,9 @@ public static class TenantEndpoints
             Number = request.Number,
             Name = name,
             ServiceNote = serviceNote,
+            LayoutCode = layoutCode,
+            LayoutX = request.LayoutX,
+            LayoutY = request.LayoutY,
             IsActive = request.IsActive
         };
 
@@ -601,13 +610,15 @@ public static class TenantEndpoints
 
         var name = request.Name.Trim();
         var serviceNote = request.ServiceNote.Trim();
+        var layoutCode = request.LayoutCode.Trim();
 
-        if (request.Number <= 0 || string.IsNullOrWhiteSpace(name) || serviceNote.Length > 1200)
+        if (request.Number <= 0 || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(layoutCode) || serviceNote.Length > 1200)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["number"] = ["Table number must be greater than zero."],
                 ["name"] = ["Table name is required."],
+                ["layoutCode"] = ["Layout code is required."],
                 ["serviceNote"] = ["Service note must be 1200 characters or fewer."]
             });
         }
@@ -620,6 +631,9 @@ public static class TenantEndpoints
         table.Number = request.Number;
         table.Name = name;
         table.ServiceNote = serviceNote;
+        table.LayoutCode = layoutCode;
+        table.LayoutX = request.LayoutX;
+        table.LayoutY = request.LayoutY;
         table.IsActive = request.IsActive;
         table.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
@@ -656,6 +670,46 @@ public static class TenantEndpoints
         db.ServiceTables.Remove(table);
         await db.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> SaveTableLayouts(
+        IReadOnlyList<UpdateTableLayoutEntryRequest> request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (request.Count == 0)
+        {
+            return Results.Ok();
+        }
+
+        var tableIds = request.Select(item => item.TableId).Distinct().ToArray();
+        var tables = await db.ServiceTables.Where(table => tableIds.Contains(table.Id)).ToListAsync(cancellationToken);
+
+        if (tables.Count != tableIds.Length)
+        {
+            return Results.NotFound(new { message = "One or more tables were not found." });
+        }
+
+        foreach (var entry in request)
+        {
+            var layoutCode = entry.LayoutCode.Trim();
+            if (string.IsNullOrWhiteSpace(layoutCode))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["layoutCode"] = ["Layout code is required."]
+                });
+            }
+
+            var table = tables.First(current => current.Id == entry.TableId);
+            table.LayoutCode = layoutCode;
+            table.LayoutX = entry.LayoutX;
+            table.LayoutY = entry.LayoutY;
+            table.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok();
     }
 
     private static async Task<IResult> CreateCategory(

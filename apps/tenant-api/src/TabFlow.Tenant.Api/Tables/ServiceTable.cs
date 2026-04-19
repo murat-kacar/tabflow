@@ -10,6 +10,12 @@ public sealed class ServiceTable
 
     public string ServiceNote { get; set; } = string.Empty;
 
+    public string LayoutCode { get; set; } = "ana-kat";
+
+    public int LayoutX { get; set; }
+
+    public int LayoutY { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

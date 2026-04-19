@@ -44,7 +44,7 @@ public static class TenantDatabaseInitializer
         try
         {
             await using var command = db.Database.GetDbConnection().CreateCommand();
-            command.CommandText = LoadSchemaSql();
+            command.CommandText = $"{LoadSchemaSql()}\n{LoadSchemaUpgradeSql()}";
             await command.ExecuteNonQueryAsync();
         }
         finally
@@ -62,6 +62,21 @@ public static class TenantDatabaseInitializer
         using var reader = new StreamReader(stream);
 
         return reader.ReadToEnd();
+    }
+
+    private static string LoadSchemaUpgradeSql()
+    {
+        return
+            """
+            ALTER TABLE service_tables
+            ADD COLUMN IF NOT EXISTS layout_code varchar(63) NOT NULL DEFAULT 'ana-kat';
+
+            ALTER TABLE service_tables
+            ADD COLUMN IF NOT EXISTS layout_x integer NOT NULL DEFAULT 0;
+
+            ALTER TABLE service_tables
+            ADD COLUMN IF NOT EXISTS layout_y integer NOT NULL DEFAULT 0;
+            """;
     }
 
     private static async Task EnsureSeedDataAsync(TenantDbContext db, TenantRuntimeOptions options)

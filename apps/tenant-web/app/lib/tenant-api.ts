@@ -21,10 +21,12 @@ import {
   tenantCatalogSchema,
   type UpsertMenuCategoryInput,
   type UpsertMenuItemInput,
+  type UpdateTableLayoutEntry,
   type UpsertServiceStationInput,
   type UpsertServiceTableInput,
   upsertMenuCategoryInputSchema,
   upsertMenuItemInputSchema,
+  updateTableLayoutEntryListSchema,
   upsertServiceStationInputSchema,
   upsertServiceTableInputSchema,
   type VerifiedCustomerSession,
@@ -286,6 +288,25 @@ export async function updateAdminTable(
   const payload = upsertServiceTableInputSchema.parse(input);
   const response = await fetch(`${tenantApiBaseUrl()}/api/admin/tables/${tableId}`, {
     method: "PUT",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+}
+
+export async function saveAdminTableLayouts(
+  session: TenantSession,
+  entries: UpdateTableLayoutEntry[]
+): Promise<void> {
+  const payload = updateTableLayoutEntryListSchema.parse(entries);
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/tables/layouts`, {
+    method: "POST",
     headers: {
       ...tenantAdminHeaders(session),
       "Content-Type": "application/json"

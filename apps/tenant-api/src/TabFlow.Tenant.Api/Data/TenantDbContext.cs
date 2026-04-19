@@ -73,6 +73,9 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.Property(table => table.Number).HasColumnName("number");
             entity.Property(table => table.Name).HasColumnName("name").HasMaxLength(120);
             entity.Property(table => table.ServiceNote).HasColumnName("service_note").HasMaxLength(1200);
+            entity.Property(table => table.LayoutCode).HasColumnName("layout_code").HasMaxLength(63);
+            entity.Property(table => table.LayoutX).HasColumnName("layout_x");
+            entity.Property(table => table.LayoutY).HasColumnName("layout_y");
             entity.Property(table => table.IsActive).HasColumnName("is_active");
             entity.Property(table => table.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
             entity.Property(table => table.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");

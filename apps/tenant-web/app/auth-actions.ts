@@ -12,6 +12,7 @@ import {
   deleteStation,
   refreshDeviceToken,
   rotateDeviceKey,
+  saveAdminTableLayouts,
   updateAdminTable,
   updateKitchenItemStatus,
   updateStation,
@@ -343,6 +344,9 @@ export async function createTableAction(
       number: Number(formData.get("number") ?? 0),
       name: String(formData.get("name") ?? ""),
       serviceNote: String(formData.get("serviceNote") ?? ""),
+      layoutCode: "ana-kat",
+      layoutX: 0,
+      layoutY: 0,
       isActive: formData.get("isActive") === "on"
     });
     revalidatePath("/console");
@@ -370,6 +374,9 @@ export async function updateTableAction(
       number: Number(formData.get("number") ?? 0),
       name: String(formData.get("name") ?? ""),
       serviceNote: String(formData.get("serviceNote") ?? ""),
+      layoutCode: String(formData.get("layoutCode") ?? "ana-kat"),
+      layoutX: Number(formData.get("layoutX") ?? 0),
+      layoutY: Number(formData.get("layoutY") ?? 0),
       isActive: formData.get("isActive") === "on"
     });
     revalidatePath("/console");
@@ -378,6 +385,37 @@ export async function updateTableAction(
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Masa guncellenemedi."
+    };
+  }
+}
+
+export async function saveFloorLayoutAction(
+  _previousState: TenantTableActionState,
+  formData: FormData
+): Promise<TenantTableActionState> {
+  const session = await getTenantSession();
+
+  if (!session) {
+    return { ok: false, message: "Oturum bulunamadi." };
+  }
+
+  try {
+    const raw = String(formData.get("layoutPayload") ?? "[]");
+    const entries = JSON.parse(raw) as Array<{
+      tableId: string;
+      layoutCode: string;
+      layoutX: number;
+      layoutY: number;
+    }>;
+
+    await saveAdminTableLayouts(session, entries);
+    revalidatePath("/service");
+    revalidatePath("/console");
+    return { ok: true, message: "Masa duzeni kaydedildi." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Masa duzeni kaydedilemedi."
     };
   }
 }

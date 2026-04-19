@@ -166,6 +166,9 @@ export const adminTableSummarySchema = z.object({
   number: z.number().int().positive(),
   name: z.string(),
   serviceNote: z.string(),
+  layoutCode: z.string(),
+  layoutX: z.number().int(),
+  layoutY: z.number().int(),
   isActive: z.boolean(),
   deviceOnline: z.boolean(),
   activeSessionCount: z.number().int().nonnegative(),
@@ -450,10 +453,23 @@ export const upsertServiceTableInputSchema = z.object({
   number: z.number().int().positive(),
   name: z.string().trim().min(1),
   serviceNote: z.string().max(1200),
+  layoutCode: z.string().trim().min(1).max(63),
+  layoutX: z.number().int(),
+  layoutY: z.number().int(),
   isActive: z.boolean()
 });
 
 export type UpsertServiceTableInput = z.infer<typeof upsertServiceTableInputSchema>;
+
+export const updateTableLayoutEntrySchema = z.object({
+  tableId: z.uuid(),
+  layoutCode: z.string().trim().min(1).max(63),
+  layoutX: z.number().int(),
+  layoutY: z.number().int()
+});
+
+export type UpdateTableLayoutEntry = z.infer<typeof updateTableLayoutEntrySchema>;
+export const updateTableLayoutEntryListSchema = z.array(updateTableLayoutEntrySchema);
 
 export const upsertMenuItemInputSchema = z.object({
   categoryId: z.uuid(),

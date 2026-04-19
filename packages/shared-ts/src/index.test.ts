@@ -235,6 +235,9 @@ describe("tenant runtime schemas", () => {
       number: 4,
       name: "Bahce 4",
       serviceNote: "Alerji notu sorulsun",
+      layoutCode: "balkon",
+      layoutX: 24,
+      layoutY: 18,
       isActive: true,
       deviceOnline: true,
       activeSessionCount: 1,
@@ -401,6 +404,9 @@ describe("tenant runtime schemas", () => {
       number: 12,
       name: "Teras 12",
       serviceNote: "Mum servisi acilis sonrasi",
+      layoutCode: "balkon",
+      layoutX: 22,
+      layoutY: 14,
       isActive: false
     });
 
