@@ -17,6 +17,7 @@ const initialState: TenantAdminActionState = {
 
 type FloorCashView = "floor" | "open-checks" | "payment-queue" | "closed-checks";
 type PaymentMethod = "nakit" | "kart" | "transfer" | "diger";
+type FloorZoneKey = "salon" | "balkon" | "paket";
 
 function formatMoney(minor: number, currencyCode: string | null): string {
   if (!currencyCode) {
@@ -70,57 +71,110 @@ function tableUrgency(table: AdminTableSummary) {
   return { label: "Sakin", tone: "bg-stone-100 text-stone-600" };
 }
 
+function inferZone(table: AdminTableSummary): FloorZoneKey {
+  const source = `${table.name} ${table.serviceNote ?? ""}`.toLowerCase();
+
+  if (source.includes("balkon") || source.includes("teras")) {
+    return "balkon";
+  }
+
+  if (source.includes("paket") || source.includes("kurye") || source.includes("takeaway")) {
+    return "paket";
+  }
+
+  return "salon";
+}
+
+function zoneMeta(zone: FloorZoneKey) {
+  switch (zone) {
+    case "balkon":
+      return {
+        label: "Balkon",
+        tone: "bg-[#87a9d8] text-white",
+        panel: "border-[#87a9d8]/40 bg-[linear-gradient(180deg,#e8f0ff,#dbe8fb)]"
+      };
+    case "paket":
+      return {
+        label: "Paket",
+        tone: "bg-[#506c84] text-white",
+        panel: "border-[#506c84]/40 bg-[linear-gradient(180deg,#ebeff3,#d8e0e8)]"
+      };
+    default:
+      return {
+        label: "Salon",
+        tone: "bg-[#5f8ec9] text-white",
+        panel: "border-[#d8c85f]/40 bg-[linear-gradient(180deg,#fff7a8,#f6e980)]"
+      };
+  }
+}
+
 function FloorTableCard({
   isSelected,
   onSelect,
-  table
+  table,
+  zone
 }: {
   isSelected: boolean;
   onSelect: () => void;
   table: AdminTableSummary;
+  zone: FloorZoneKey;
 }) {
   const badge = statusBadge(table);
+  const zoneDetails = zoneMeta(zone);
+  const shapeClass =
+    zone === "salon"
+      ? "aspect-square rounded-[1.8rem]"
+      : zone === "balkon"
+        ? "aspect-square rounded-[999px]"
+        : "aspect-[1.25/1] rounded-[1rem]";
 
   return (
     <button
-      className={`rounded-[1.6rem] border p-5 text-left shadow-sm transition ${
+      className={`${shapeClass} relative border-[3px] p-4 text-left shadow-sm transition ${
         isSelected
-          ? "border-[#16392e] bg-[#16392e] text-white"
-          : "border-stone-200 bg-white text-stone-950 hover:border-stone-400"
+          ? "border-[#16392e] bg-[#ff6e70] text-stone-950"
+          : zone === "salon"
+            ? "border-[#534449] bg-[#fffdf4] text-stone-950 hover:border-[#263e73]"
+            : zone === "balkon"
+              ? "border-[#534449] bg-[#f8ae2f] text-stone-950 hover:border-[#263e73]"
+              : "border-[#534449] bg-[#f6f6f4] text-stone-950 hover:border-[#263e73]"
       }`}
       onClick={onSelect}
       type="button"
     >
+      <div className="flex h-full flex-col justify-between">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p
             className={`text-xs font-semibold uppercase tracking-[0.22em] ${
-              isSelected ? "text-stone-300" : "text-stone-500"
+              isSelected ? "text-stone-800/70" : "text-stone-500"
             }`}
           >
-            Masa {table.number.toString().padStart(3, "0")}
+            {zoneDetails.label}
           </p>
-          <h3 className="mt-2 text-2xl font-bold tracking-tight">{table.name}</h3>
+          <h3 className="mt-3 text-2xl font-black tracking-tight">
+            {table.name || `M.${table.number.toString().padStart(2, "0")}`}
+          </h3>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isSelected ? "bg-white/10 text-white" : badge.tone
+            isSelected ? "bg-stone-950/10 text-stone-950" : badge.tone
           }`}
         >
           {badge.label}
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-        <div className={`rounded-2xl px-4 py-3 ${isSelected ? "bg-white/10" : "bg-stone-50"}`}>
-          <p className={isSelected ? "text-stone-300" : "text-stone-500"}>Acik hesap</p>
-          <p className="mt-1 text-lg font-semibold">
-            {formatMoney(table.openBillSubtotalMinor, table.openBillCurrencyCode)}
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className={`rounded-2xl px-3 py-2 ${isSelected ? "bg-stone-950/10" : "bg-black/5"}`}>
+          <p className={isSelected ? "text-stone-800/70" : "text-stone-500"}>Hesap</p>
+          <p className="mt-1 text-base font-bold">
+            {table.openBillId ? formatMoney(table.openBillSubtotalMinor, table.openBillCurrencyCode) : "-"}
           </p>
         </div>
-        <div className={`rounded-2xl px-4 py-3 ${isSelected ? "bg-white/10" : "bg-stone-50"}`}>
-          <p className={isSelected ? "text-stone-300" : "text-stone-500"}>Hazir / Yeni</p>
-          <p className="mt-1 text-lg font-semibold">
+        <div className={`rounded-2xl px-3 py-2 ${isSelected ? "bg-stone-950/10" : "bg-black/5"}`}>
+          <p className={isSelected ? "text-stone-800/70" : "text-stone-500"}>Hazir / Yeni</p>
+          <p className="mt-1 text-base font-bold">
             {table.readyOrderCount} / {table.submittedOrderCount + table.preparingOrderCount}
           </p>
         </div>
@@ -129,7 +183,7 @@ function FloorTableCard({
       <div className="mt-4 flex flex-wrap gap-2">
         <span
           className={`rounded-full px-3 py-1 text-xs font-semibold ${tableUrgency(table).tone} ${
-            isSelected ? "bg-white/10 text-white" : ""
+            isSelected ? "bg-stone-950/10 text-stone-950" : ""
           }`}
         >
           {tableUrgency(table).label}
@@ -140,7 +194,139 @@ function FloorTableCard({
           </span>
         ) : null}
       </div>
+      </div>
     </button>
+  );
+}
+
+function FloorZoneTabs({
+  current,
+  onChange,
+  zoneCounts
+}: {
+  current: FloorZoneKey | "all" | "open";
+  onChange: (value: FloorZoneKey | "all" | "open") => void;
+  zoneCounts: Record<FloorZoneKey, number>;
+}) {
+  const tabs: Array<{ id: FloorZoneKey | "all" | "open"; label: string }> = [
+    { id: "balkon", label: "Balkon" },
+    { id: "salon", label: "Salon" },
+    { id: "open", label: "Acik Masalar" },
+    { id: "all", label: "Hepsi" }
+  ];
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {tabs.map((tab) => (
+        <button
+          className={`rounded-sm border px-4 py-2 text-sm font-bold transition ${
+            current === tab.id
+              ? "border-[#3d5f9c] bg-[#7ca4d8] text-white"
+              : "border-[#9eb8d6] bg-[#dce7f5] text-[#21406f]"
+          }`}
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          type="button"
+        >
+          {tab.label}
+          {tab.id === "salon" || tab.id === "balkon" ? ` (${zoneCounts[tab.id]})` : ""}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function FloorPlanBoard({
+  selectedTable,
+  selectedZone,
+  setSelectedTableId,
+  setSelectedZone,
+  tables
+}: {
+  selectedTable?: AdminTableSummary;
+  selectedZone: FloorZoneKey | "all" | "open";
+  setSelectedTableId: (value: string) => void;
+  setSelectedZone: (value: FloorZoneKey | "all" | "open") => void;
+  tables: AdminTableSummary[];
+}) {
+  const zoneCounts = tables.reduce<Record<FloorZoneKey, number>>(
+    (acc, table) => {
+      acc[inferZone(table)] += 1;
+      return acc;
+    },
+    { salon: 0, balkon: 0, paket: 0 }
+  );
+
+  const filteredTables = tables.filter((table) => {
+    if (selectedZone === "all") {
+      return true;
+    }
+    if (selectedZone === "open") {
+      return Boolean(table.openBillId);
+    }
+    return inferZone(table) === selectedZone;
+  });
+
+  const grouped = {
+    salon: filteredTables.filter((table) => inferZone(table) === "salon"),
+    balkon: filteredTables.filter((table) => inferZone(table) === "balkon"),
+    paket: filteredTables.filter((table) => inferZone(table) === "paket")
+  };
+
+  const sections: FloorZoneKey[] =
+    selectedZone === "all" || selectedZone === "open"
+      ? ["balkon", "salon", "paket"]
+      : [selectedZone];
+
+  return (
+    <section className="rounded-[1.25rem] border border-[#9eb8d6] bg-[#edf3fb] p-3 shadow-sm">
+      <div className="border border-[#7ca4d8] bg-[#7ca4d8] px-3 py-2 text-sm font-bold text-white">
+        Masalar
+      </div>
+      <FloorZoneTabs current={selectedZone} onChange={setSelectedZone} zoneCounts={zoneCounts} />
+      <div className="mt-3 space-y-4">
+        {sections.map((section) => {
+          const meta = zoneMeta(section);
+          const sectionTables = grouped[section];
+
+          return (
+            <section className={`rounded-md border p-4 ${meta.panel}`} key={section}>
+              <div className="flex items-center justify-between gap-3">
+                <div className={`rounded-sm px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${meta.tone}`}>
+                  {meta.label}
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-700">
+                  {sectionTables.length} masa
+                </p>
+              </div>
+              <div
+                className={`mt-4 grid gap-4 ${
+                  section === "salon"
+                    ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                    : "grid-cols-2 md:grid-cols-3"
+                }`}
+              >
+                {sectionTables.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-stone-400/40 bg-white/40 px-4 py-8 text-center text-sm text-stone-600">
+                    Bu alanda gorunecek masa yok.
+                  </div>
+                ) : (
+                  sectionTables.map((table) => (
+                    <FloorTableCard
+                      isSelected={selectedTable?.id === table.id}
+                      key={table.id}
+                      onSelect={() => setSelectedTableId(table.id)}
+                      table={table}
+                      zone={section}
+                    />
+                  ))
+                )}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -433,7 +619,11 @@ function SelectedTablePanel({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("nakit");
 
   return (
-    <aside className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <aside className="rounded-[0.75rem] border border-[#9eb8d6] bg-[#eef4fb] p-3 shadow-sm">
+      <div className="border border-[#7ca4d8] bg-[#7ca4d8] px-3 py-2 text-sm font-bold text-white">
+        Adisyon
+      </div>
+      <div className="mt-3 rounded-md border border-[#c7d7eb] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
@@ -562,6 +752,7 @@ function SelectedTablePanel({
           </p>
         ) : null}
       </div>
+      </div>
     </aside>
   );
 }
@@ -579,6 +770,7 @@ export function FloorCashWorkspace({
 }) {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(tables[0]?.id ?? null);
   const [view, setView] = useState<FloorCashView>("floor");
+  const [selectedZone, setSelectedZone] = useState<FloorZoneKey | "all" | "open">("all");
 
   const selectedTable = tables.find((table) => table.id === selectedTableId) ?? tables[0];
   const selectedBill = bills.find((bill) => bill.tableId === selectedTable?.id && bill.status === "open");
@@ -602,14 +794,14 @@ export function FloorCashWorkspace({
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f0e0bd,transparent_28rem),radial-gradient(circle_at_bottom_right,#dce7f0,transparent_30rem),linear-gradient(135deg,#f6f1e7,#e6e1d6)] px-6 py-8 text-stone-950">
       <section className="mx-auto max-w-7xl">
-        <section className="rounded-[2rem] border border-black/10 bg-[#1c2a24] p-8 text-white shadow-xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-200">
+        <section className="rounded-[0.75rem] border border-[#8fb0db] bg-[linear-gradient(180deg,#7ea8d9,#6492cb)] p-6 text-white shadow-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-blue-100">
             Masa + Kasa
           </p>
-          <h1 className="mt-4 text-5xl font-bold tracking-tight">Floor, adisyon ve kapanis akisi tek yuzeyde</h1>
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-stone-200">
-            Masalarin fiziksel durumunu, acik hesaplari ve kapanis kuyrugunu ayni baglamda tut.
-            Bu yuzey kasiyer ve floor supervisor icin operasyonun kalbi olacak.
+          <h1 className="mt-3 text-4xl font-black tracking-tight">Masa duzeni, adisyon ve kasa akisi</h1>
+          <p className="mt-4 max-w-4xl text-base leading-7 text-blue-50">
+            AKINSOFT benzeri masa plani mantigini modern operasyon paneline ceviriyoruz:
+            salon sekmeleri, masa yerlesimi, sag adisyon alani ve altta kapanis takibi.
           </p>
         </section>
 
@@ -618,28 +810,14 @@ export function FloorCashWorkspace({
         <FloorCashTabs current={view} onChange={setView} />
 
         {view === "floor" ? (
-          <section className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
-            <section className="rounded-[1.75rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                    Floor
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight">Masa durumu ve acik adisyonlar</h2>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {floorTables.map((table) => (
-                  <FloorTableCard
-                    isSelected={selectedTable?.id === table.id}
-                    key={table.id}
-                    onSelect={() => setSelectedTableId(table.id)}
-                    table={table}
-                  />
-                ))}
-              </div>
-            </section>
+          <section className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_0.78fr]">
+            <FloorPlanBoard
+              selectedTable={selectedTable}
+              selectedZone={selectedZone}
+              setSelectedTableId={setSelectedTableId}
+              setSelectedZone={setSelectedZone}
+              tables={floorTables}
+            />
 
             {selectedTable ? (
               <SelectedTablePanel
