@@ -1249,6 +1249,178 @@ function LayoutEditorPanel({
   );
 }
 
+function OperationalFloorCanvas({
+  fixedObjects,
+  layoutPlacements,
+  selectedLayout,
+  selectedTable,
+  selectedZone,
+  setSelectedTableId,
+  tableVisuals,
+  tables,
+  zonePlacements
+}: {
+  fixedObjects: Record<FloorLayoutKey, FixedObjectPlacement[]>;
+  layoutPlacements: Record<FloorLayoutKey, Record<string, LayoutPlacement>>;
+  selectedLayout: FloorLayoutKey | "all";
+  selectedTable?: AdminTableSummary;
+  selectedZone: FloorZoneKey | "all" | "open";
+  setSelectedTableId: (value: string) => void;
+  tableVisuals: Record<string, TableVisual>;
+  tables: AdminTableSummary[];
+  zonePlacements: Record<FloorLayoutKey, ZonePlacement[]>;
+}) {
+  const visibleLayouts: FloorLayoutKey[] =
+    selectedLayout === "all" ? ["ana-kat", "balkon", "paket"] : [selectedLayout];
+
+  const visibleTables = tables
+    .filter((table) => {
+      if (selectedLayout !== "all" && inferLayout(table) !== selectedLayout) {
+        return false;
+      }
+      if (selectedZone === "all") {
+        return true;
+      }
+      if (selectedZone === "open") {
+        return Boolean(table.openBillId);
+      }
+      return inferZone(table) === selectedZone;
+    })
+    .map((table, index) => {
+      const layoutKey = inferLayout(table);
+      const fallbackPlacement = {
+        left: 8 + (index % 4) * 22,
+        top: 12 + Math.floor(index / 4) * 24
+      };
+      const placement = layoutPlacements[layoutKey]?.[table.id] ?? fallbackPlacement;
+      const visual = tableVisuals[table.id] ?? {
+        width: inferZone(table) === "paket" ? 18 : 14,
+        height: 14,
+        rotation: 0,
+        shape: defaultTableShape(inferZone(table))
+      };
+
+      return {
+        layoutKey,
+        placement,
+        table,
+        visual
+      };
+    });
+
+  return (
+    <div className="mt-4 grid gap-4">
+      {visibleLayouts.map((layoutKey) => {
+        const layoutTables = visibleTables.filter((item) => item.layoutKey === layoutKey);
+        const layoutZones = zonePlacements[layoutKey] ?? [];
+        const layoutObjects = fixedObjects[layoutKey] ?? [];
+
+        return (
+          <section
+            className="rounded-[1rem] border border-[#c7d7eb] bg-[linear-gradient(180deg,#fffbea,#f6eca4)] p-4"
+            key={layoutKey}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#21406f]">
+                  {layoutMeta(layoutKey).label}
+                </p>
+                <p className="mt-1 text-sm text-stone-700">{layoutMeta(layoutKey).description}</p>
+              </div>
+              <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-stone-700">
+                {layoutTables.length} masa
+              </span>
+            </div>
+
+            <div className="relative mt-4 min-h-[28rem] overflow-hidden rounded-[0.75rem] border border-[#7d7d64] bg-[linear-gradient(90deg,rgba(83,68,73,0.08)_1px,transparent_1px),linear-gradient(rgba(83,68,73,0.08)_1px,transparent_1px)] bg-[size:2rem_2rem]">
+              {layoutZones.map((zoneBlock) => (
+                <div
+                  className="absolute rounded-[0.8rem] border-2 border-dashed border-[#7ca4d8]/60 bg-[#7ca4d8]/10"
+                  key={zoneBlock.id}
+                  style={{
+                    left: `${zoneBlock.left}%`,
+                    top: `${zoneBlock.top}%`,
+                    width: `${zoneBlock.width}%`,
+                    height: `${zoneBlock.height}%`
+                  }}
+                >
+                  <span className="m-2 inline-flex rounded-sm bg-white/80 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#21406f]">
+                    {zoneMeta(zoneBlock.zone).label}
+                  </span>
+                </div>
+              ))}
+
+              {layoutObjects.map((object) => {
+                const meta = fixedObjectMeta(object.kind);
+
+                return (
+                  <div
+                    className={`absolute flex items-center justify-center border-2 px-3 text-center text-[11px] font-black uppercase tracking-[0.16em] shadow-sm ${meta.className}`}
+                    key={object.id}
+                    style={{
+                      left: `${object.left}%`,
+                      top: `${object.top}%`,
+                      width: `${object.width}%`,
+                      height: `${object.height}%`,
+                      transform: `rotate(${object.rotation}deg)`,
+                      transformOrigin: "center center"
+                    }}
+                  >
+                    {object.label}
+                  </div>
+                );
+              })}
+
+              {layoutTables.map(({ placement, table, visual }) => {
+                const badge = statusBadge(table);
+                const isSelected = selectedTable?.id === table.id;
+                const zone = inferZone(table);
+
+                return (
+                  <button
+                    className={`absolute flex select-none flex-col items-center justify-center border-[3px] px-2 text-center shadow-sm transition ${shapeClassForTable(visual.shape)} ${
+                      isSelected
+                        ? "z-20 border-[#16392e] bg-[#ff6e70] text-stone-950 ring-4 ring-[#16392e]/20"
+                        : zone === "balkon"
+                          ? "border-[#534449] bg-[#f8ae2f] text-stone-950 hover:z-10 hover:scale-105"
+                          : zone === "paket"
+                            ? "border-[#534449] bg-[#f6f6f4] text-stone-950 hover:z-10 hover:scale-105"
+                            : "border-[#534449] bg-[#fffdf4] text-stone-950 hover:z-10 hover:scale-105"
+                    }`}
+                    key={table.id}
+                    onClick={() => setSelectedTableId(table.id)}
+                    style={{
+                      left: `${placement.left}%`,
+                      top: `${placement.top}%`,
+                      width: `${visual.width}%`,
+                      height: `${visual.height}%`,
+                      transform: `rotate(${visual.rotation}deg)`,
+                      transformOrigin: "center center"
+                    }}
+                    type="button"
+                  >
+                    <span className="text-lg font-black">
+                      {table.name || `M.${table.number.toString().padStart(2, "0")}`}
+                    </span>
+                    <span className={`mt-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.tone}`}>
+                      {badge.label}
+                    </span>
+                    {table.openBillId ? (
+                      <span className="mt-1 text-[11px] font-bold">
+                        {formatMoney(table.openBillSubtotalMinor, table.openBillCurrencyCode)}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function FloorPlanBoard({
   editMode,
   layoutPlacements,
@@ -1321,16 +1493,6 @@ function FloorPlanBoard({
     return inferZone(table) === selectedZone;
   });
 
-  const grouped = {
-    salon: filteredTables.filter((table) => inferZone(table) === "salon"),
-    balkon: filteredTables.filter((table) => inferZone(table) === "balkon"),
-    paket: filteredTables.filter((table) => inferZone(table) === "paket")
-  };
-
-  const sections: FloorZoneKey[] =
-    selectedZone === "all" || selectedZone === "open"
-      ? ["balkon", "salon", "paket"]
-      : [selectedZone];
   const layoutCounts = tables.reduce<Record<FloorLayoutKey, number>>(
     (acc, table) => {
       acc[inferLayout(table)] += 1;
@@ -1376,49 +1538,19 @@ function FloorPlanBoard({
           />
         </div>
       ) : null}
-      <div className="mt-3 space-y-4">
-        {sections.map((section) => {
-          const meta = zoneMeta(section);
-          const sectionTables = grouped[section];
-
-          return (
-            <section className={`rounded-md border p-4 ${meta.panel}`} key={section}>
-              <div className="flex items-center justify-between gap-3">
-                <div className={`rounded-sm px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${meta.tone}`}>
-                  {meta.label}
-                </div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-700">
-                  {sectionTables.length} masa
-                </p>
-              </div>
-              <div
-                className={`mt-4 grid gap-4 ${
-                  section === "salon"
-                    ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-                    : "grid-cols-2 md:grid-cols-3"
-                }`}
-              >
-                {sectionTables.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-stone-400/40 bg-white/40 px-4 py-8 text-center text-sm text-stone-600">
-                    Bu alanda gorunecek masa yok.
-                  </div>
-                ) : (
-                  sectionTables.map((table) => (
-                    <FloorTableCard
-                      isSelected={selectedTable?.id === table.id}
-                      key={table.id}
-                      onSelect={() => setSelectedTableId(table.id)}
-                      shape={tableVisuals[table.id]?.shape ?? defaultTableShape(inferZone(table))}
-                      table={table}
-                      zone={section}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      {!editMode ? (
+        <OperationalFloorCanvas
+          fixedObjects={fixedObjects}
+          layoutPlacements={layoutPlacements}
+          selectedLayout={selectedLayout}
+          selectedTable={selectedTable}
+          selectedZone={selectedZone}
+          setSelectedTableId={setSelectedTableId}
+          tableVisuals={tableVisuals}
+          tables={filteredTables}
+          zonePlacements={zonePlacements}
+        />
+      ) : null}
     </section>
   );
 }
