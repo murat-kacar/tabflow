@@ -12,6 +12,8 @@ public sealed class TenantProfile
 
     public string CurrencyCode { get; set; } = "GBP";
 
+    public string FloorLayoutJson { get; set; } = "{}";
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

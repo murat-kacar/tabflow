@@ -76,6 +76,9 @@ public static class TenantDatabaseInitializer
 
             ALTER TABLE service_tables
             ADD COLUMN IF NOT EXISTS layout_y integer NOT NULL DEFAULT 0;
+
+            ALTER TABLE tenant_profile
+            ADD COLUMN IF NOT EXISTS floor_layout_json text NOT NULL DEFAULT '{}';
             """;
     }
 

@@ -319,6 +319,24 @@ export async function saveAdminTableLayouts(
   }
 }
 
+export async function saveFloorLayoutDocument(
+  session: TenantSession,
+  floorLayoutJson: string
+): Promise<void> {
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/floor-layout`, {
+    method: "POST",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ floorLayoutJson })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+}
+
 export async function deleteAdminTable(session: TenantSession, tableId: string): Promise<void> {
   const response = await fetch(`${tenantApiBaseUrl()}/api/admin/tables/${tableId}`, {
     method: "DELETE",

@@ -592,6 +592,13 @@ function LayoutEditorPanel({
                 )
               )}
             />
+            <input
+              name="floorLayoutJson"
+              type="hidden"
+              value={JSON.stringify({
+                zones: zonePlacements
+              })}
+            />
             <button
               className="rounded-full bg-[#16392e] px-4 py-2 text-sm font-semibold text-white"
               disabled={savePending}

@@ -33,6 +33,8 @@ public static class TenantEndpoints
         routes.MapPost("/api/admin/auth/login", LoginAdmin).RequireRateLimiting("auth-login");
         adminGroup.MapPost("/auth/change-password", ChangePassword);
         adminGroup.MapGet("/catalog", GetAdminCatalog);
+        adminGroup.MapGet("/floor-layout", GetFloorLayoutDocument);
+        adminGroup.MapPost("/floor-layout", SaveFloorLayoutDocument);
         adminGroup.MapGet("/stations", ListStations);
         adminGroup.MapPost("/stations", CreateStation);
         adminGroup.MapPut("/stations/{stationId:guid}", UpdateStation);
@@ -100,6 +102,14 @@ public static class TenantEndpoints
                             item.SortOrder))
                         .ToArray()))
                 .ToArray()));
+    }
+
+    private static async Task<IResult> GetFloorLayoutDocument(
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var profile = await db.TenantProfiles.AsNoTracking().OrderBy(profile => profile.CreatedAt).FirstAsync(cancellationToken);
+        return Results.Ok(new { floorLayoutJson = profile.FloorLayoutJson });
     }
 
     private static async Task<IResult> ListActiveTables(TenantDbContext db, CancellationToken cancellationToken)
@@ -708,6 +718,18 @@ public static class TenantEndpoints
             table.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok();
+    }
+
+    private static async Task<IResult> SaveFloorLayoutDocument(
+        FloorLayoutDocumentRequest request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var profile = await db.TenantProfiles.OrderBy(profile => profile.CreatedAt).FirstAsync(cancellationToken);
+        profile.FloorLayoutJson = string.IsNullOrWhiteSpace(request.FloorLayoutJson) ? "{}" : request.FloorLayoutJson;
+        profile.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok();
     }

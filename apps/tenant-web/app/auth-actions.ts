@@ -13,6 +13,7 @@ import {
   refreshDeviceToken,
   rotateDeviceKey,
   saveAdminTableLayouts,
+  saveFloorLayoutDocument,
   updateAdminTable,
   updateKitchenItemStatus,
   updateStation,
@@ -407,8 +408,10 @@ export async function saveFloorLayoutAction(
       layoutX: number;
       layoutY: number;
     }>;
+    const floorLayoutJson = String(formData.get("floorLayoutJson") ?? "{}");
 
     await saveAdminTableLayouts(session, entries);
+    await saveFloorLayoutDocument(session, floorLayoutJson);
     revalidatePath("/service");
     revalidatePath("/console");
     return { ok: true, message: "Masa duzeni kaydedildi." };

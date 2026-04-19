@@ -67,6 +67,8 @@ public sealed record UpsertServiceTableRequest(
 
 public sealed record UpdateTableLayoutEntryRequest(Guid TableId, string LayoutCode, int LayoutX, int LayoutY);
 
+public sealed record FloorLayoutDocumentRequest(string FloorLayoutJson);
+
 public sealed record ServiceStationResponse(
     Guid Id,
     string Code,
