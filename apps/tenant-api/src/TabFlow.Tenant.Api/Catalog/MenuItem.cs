@@ -1,3 +1,5 @@
+using TabFlow.Tenant.Api.Kitchen;
+
 namespace TabFlow.Tenant.Api.Catalog;
 
 public sealed class MenuItem
@@ -7,6 +9,10 @@ public sealed class MenuItem
     public Guid CategoryId { get; set; }
 
     public MenuCategory? Category { get; set; }
+
+    public Guid? StationId { get; set; }
+
+    public ServiceStation? Station { get; set; }
 
     public string Sku { get; set; } = string.Empty;
 

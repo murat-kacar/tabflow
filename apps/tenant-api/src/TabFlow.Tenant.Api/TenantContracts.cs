@@ -98,6 +98,8 @@ public sealed record MenuItemResponse(
     string Sku,
     string Name,
     string Description,
+    Guid? StationId,
+    string? StationName,
     int PriceMinor,
     string CurrencyCode,
     int SortOrder);
@@ -200,6 +202,7 @@ public sealed record UpsertMenuCategoryRequest(
 
 public sealed record UpsertMenuItemRequest(
     Guid CategoryId,
+    Guid? StationId,
     string Sku,
     string Name,
     string Description,

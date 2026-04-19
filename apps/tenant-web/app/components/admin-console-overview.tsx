@@ -113,10 +113,10 @@ function SetupWorkspace({
       cta: "Istasyonlari yonet"
     },
     {
-      href: "/console",
+      href: "/console/catalog",
       label: "Katalog kapsami",
       detail: `${mappedCatalogItems} urun operasyon modelinde. Urun sihirbazi sonraki sertlestirme turunda ayrilacak.`,
-      cta: "Console'da kal"
+      cta: "Catalog'u yonet"
     }
   ];
 

@@ -79,6 +79,25 @@ public static class TenantDatabaseInitializer
 
             ALTER TABLE tenant_profile
             ADD COLUMN IF NOT EXISTS floor_layout_json text NOT NULL DEFAULT '{}';
+
+            ALTER TABLE menu_items
+            ADD COLUMN IF NOT EXISTS station_id uuid NULL;
+
+            CREATE INDEX IF NOT EXISTS ix_menu_items_station_id ON menu_items (station_id);
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'fk_menu_items_station_id'
+                      AND conrelid = 'menu_items'::regclass
+                ) THEN
+                    ALTER TABLE menu_items
+                        ADD CONSTRAINT fk_menu_items_station_id
+                        FOREIGN KEY (station_id) REFERENCES service_stations (id) ON DELETE SET NULL;
+                END IF;
+            END $$;
             """;
     }
 
@@ -135,6 +154,7 @@ public static class TenantDatabaseInitializer
                 Sku = "espresso",
                 Name = "Espresso",
                 Description = "Tek shot espresso",
+                StationId = barStation.Id,
                 PriceMinor = 900,
                 CurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode),
                 SortOrder = 10
@@ -144,6 +164,7 @@ public static class TenantDatabaseInitializer
                 Sku = "latte",
                 Name = "Latte",
                 Description = "Kadifemsi sut ile latte",
+                StationId = barStation.Id,
                 PriceMinor = 1200,
                 CurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode),
                 SortOrder = 20
@@ -161,6 +182,7 @@ public static class TenantDatabaseInitializer
                 Sku = "san-sebastian",
                 Name = "San Sebastian",
                 Description = "Gunun cheesecake secimi",
+                StationId = dessertStation.Id,
                 PriceMinor = 1500,
                 CurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode),
                 SortOrder = 10

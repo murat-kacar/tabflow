@@ -162,6 +162,7 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.Property(item => item.Id).HasColumnName("id");
             entity.HasIndex(item => item.Sku).IsUnique();
             entity.Property(item => item.CategoryId).HasColumnName("category_id");
+            entity.Property(item => item.StationId).HasColumnName("station_id");
             entity.Property(item => item.Sku).HasColumnName("sku").HasMaxLength(80);
             entity.Property(item => item.Name).HasColumnName("name").HasMaxLength(160);
             entity.Property(item => item.Description).HasColumnName("description").HasMaxLength(1200);
@@ -175,6 +176,10 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
                 .WithMany(category => category.Items)
                 .HasForeignKey(item => item.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(item => item.Station)
+                .WithMany()
+                .HasForeignKey(item => item.StationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<CustomerOrder>(entity =>

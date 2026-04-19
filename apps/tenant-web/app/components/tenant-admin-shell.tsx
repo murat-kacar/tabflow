@@ -28,6 +28,12 @@ export function TenantAdminShell({ children, email }: { children: ReactNode; ema
             </Link>
             <Link
               className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950"
+              href="/console/catalog"
+            >
+              Catalog
+            </Link>
+            <Link
+              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950"
               href="/service"
             >
               Masa + Kasa

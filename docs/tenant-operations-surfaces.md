@@ -40,6 +40,7 @@ Bu fazda legacy rota taşımıyoruz. Resmi ve tek geçerli tenant surface URL mo
 - `/change-password`
 - `/console`
 - `/console/stations`
+- `/console/catalog`
 - `/service`
 - `/stations`
 - `/stations/[stationCode]`
@@ -135,6 +136,20 @@ Admin Console açıldığında ilk fold içinde görünmesi gerekenler:
 - station health rail
 - setup shortcuts
 - exception list
+
+### Catalog
+
+Route:
+
+- `/console/catalog`
+
+Catalog artık station-first operasyonun parçasıdır:
+
+- kategori default istasyonu tanımlar
+- ürün ekleme sihirbazı ürünün hedef istasyonunu görünür seçtirir
+- ürün istasyonu kategori default'unu override eder
+- station coverage paneli hangi istasyonun kaç ürünü kapsadığını gösterir
+- atanmamış/fallback ürünler uyarı olarak görünür
 
 ## Surface 2: Masa + Kasa
 

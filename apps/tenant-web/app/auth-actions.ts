@@ -199,6 +199,7 @@ export async function createItemAction(formData: FormData): Promise<void> {
 
   await createMenuItem(session, {
     categoryId: String(formData.get("categoryId") ?? ""),
+    stationId: String(formData.get("stationId") ?? "") || null,
     sku: String(formData.get("sku") ?? ""),
     name: String(formData.get("name") ?? ""),
     description: String(formData.get("description") ?? ""),

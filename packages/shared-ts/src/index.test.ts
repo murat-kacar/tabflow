@@ -207,6 +207,8 @@ describe("tenant runtime schemas", () => {
               sku: "espresso",
               name: "Espresso",
               description: "Single shot",
+              stationId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
+              stationName: "Bar",
               priceMinor: 900,
               currencyCode: "GBP",
               sortOrder: 10
@@ -386,6 +388,7 @@ describe("tenant runtime schemas", () => {
     });
     const item = upsertMenuItemInputSchema.parse({
       categoryId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
+      stationId: null,
       sku: "latte",
       name: "Latte",
       description: "Velvety milk",

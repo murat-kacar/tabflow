@@ -201,6 +201,8 @@ export const menuItemSummarySchema = z.object({
   sku: z.string(),
   name: z.string(),
   description: z.string(),
+  stationId: z.uuid().nullable(),
+  stationName: z.string().nullable(),
   priceMinor: z.number().int(),
   currencyCode: z.string().length(3),
   sortOrder: z.number().int()
@@ -492,6 +494,7 @@ export type SplitBillInput = z.infer<typeof splitBillInputSchema>;
 
 export const upsertMenuItemInputSchema = z.object({
   categoryId: z.uuid(),
+  stationId: z.uuid().nullable(),
   sku: z.string().trim().min(1),
   name: z.string().trim().min(1),
   description: z.string(),

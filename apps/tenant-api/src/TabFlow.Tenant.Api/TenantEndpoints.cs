@@ -79,6 +79,7 @@ public static class TenantEndpoints
             .Include(category => category.Station)
             .Where(category => category.IsActive)
             .Include(category => category.Items.Where(item => item.IsAvailable))
+                .ThenInclude(item => item.Station)
             .OrderBy(category => category.SortOrder)
             .ThenBy(category => category.Name)
             .ToListAsync(cancellationToken);
@@ -100,6 +101,8 @@ public static class TenantEndpoints
                             item.Sku,
                             item.Name,
                             item.Description,
+                            item.StationId ?? category.StationId,
+                            item.Station != null ? item.Station.Name : category.Station != null ? category.Station.Name : null,
                             item.PriceMinor,
                             item.CurrencyCode,
                             item.SortOrder))
@@ -374,6 +377,7 @@ public static class TenantEndpoints
             .AsNoTracking()
             .Include(category => category.Station)
             .Include(category => category.Items)
+                .ThenInclude(item => item.Station)
             .OrderBy(category => category.SortOrder)
             .ThenBy(category => category.Name)
             .ToListAsync(cancellationToken);
@@ -839,14 +843,18 @@ public static class TenantEndpoints
         var sku = request.Sku.Trim().ToLowerInvariant();
         var name = request.Name.Trim();
         var currencyCode = CatalogValidation.NormalizeCurrency(request.CurrencyCode);
+        var station = request.StationId is null
+            ? null
+            : await db.ServiceStations.FirstOrDefaultAsync(current => current.Id == request.StationId.Value, cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(sku) || string.IsNullOrWhiteSpace(name) || request.PriceMinor <= 0)
+        if (string.IsNullOrWhiteSpace(sku) || string.IsNullOrWhiteSpace(name) || request.PriceMinor <= 0 || (request.StationId is not null && station is null))
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["sku"] = ["SKU is required."],
                 ["name"] = ["Name is required."],
-                ["priceMinor"] = ["Price must be greater than zero."]
+                ["priceMinor"] = ["Price must be greater than zero."],
+                ["stationId"] = ["Station must exist when selected."]
             });
         }
 
@@ -858,6 +866,7 @@ public static class TenantEndpoints
         var item = new MenuItem
         {
             CategoryId = category.Id,
+            StationId = station?.Id,
             Sku = sku,
             Name = name,
             Description = request.Description.Trim(),
@@ -897,14 +906,18 @@ public static class TenantEndpoints
         var sku = request.Sku.Trim().ToLowerInvariant();
         var name = request.Name.Trim();
         var currencyCode = CatalogValidation.NormalizeCurrency(request.CurrencyCode);
+        var station = request.StationId is null
+            ? null
+            : await db.ServiceStations.FirstOrDefaultAsync(current => current.Id == request.StationId.Value, cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(sku) || string.IsNullOrWhiteSpace(name) || request.PriceMinor <= 0)
+        if (string.IsNullOrWhiteSpace(sku) || string.IsNullOrWhiteSpace(name) || request.PriceMinor <= 0 || (request.StationId is not null && station is null))
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["sku"] = ["SKU is required."],
                 ["name"] = ["Name is required."],
-                ["priceMinor"] = ["Price must be greater than zero."]
+                ["priceMinor"] = ["Price must be greater than zero."],
+                ["stationId"] = ["Station must exist when selected."]
             });
         }
 
@@ -914,6 +927,7 @@ public static class TenantEndpoints
         }
 
         item.CategoryId = category.Id;
+        item.StationId = station?.Id;
         item.Sku = sku;
         item.Name = name;
         item.Description = request.Description.Trim();
@@ -948,12 +962,13 @@ public static class TenantEndpoints
         var items = await db.CustomerOrderItems
             .AsNoTracking()
             .Include(item => item.Order)!.ThenInclude(order => order!.Table)
+            .Include(item => item.MenuItem)!.ThenInclude(menuItem => menuItem!.Station)
             .Include(item => item.MenuItem)!.ThenInclude(menuItem => menuItem!.Category)!.ThenInclude(category => category!.Station)
             .Where(item => activeItemStatuses.Contains(item.Status))
             .OrderBy(item => item.Order!.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var grouped = items.ToLookup(item => item.MenuItem?.Category?.StationId);
+        var grouped = items.ToLookup(item => item.MenuItem?.StationId ?? item.MenuItem?.Category?.StationId);
 
         var boards = stations
             .Select(station => new KitchenStationBoardResponse(
@@ -1603,6 +1618,8 @@ public static class TenantEndpoints
             item.Sku,
             item.Name,
             item.Description,
+            item.StationId ?? item.Category?.StationId,
+            item.Station != null ? item.Station.Name : item.Category?.Station?.Name,
             item.PriceMinor,
             item.CurrencyCode,
             item.SortOrder);

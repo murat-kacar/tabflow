@@ -128,8 +128,18 @@ Kural:
 MVP:
 
 - her `menu item` tek bir birincil istasyona bağlıdır
+- kategori istasyonu default kapsam sağlar
+- ürün istasyonu kategori default'unu override eder
 
 Bu bağ ürün oluştururken veya düzenlerken seçilir.
+
+Admin yüzünde bu karar `/console/catalog` altında görünürdür:
+
+- ürün sihirbazı kategori seçtirir
+- ürün sihirbazı hedef istasyon seçtirir
+- boş bırakılırsa kategori default istasyonu kullanılır
+- station coverage paneli istasyon başına ürün kapsamını gösterir
+- fallback/atanmamış ürünler takip uyarısı üretir
 
 İleri faz:
 
@@ -178,6 +188,8 @@ Admin Console tüm istasyonları görebilir:
 - geciken ticket sayısı
 - istasyon bazlı performans özeti
 - kurulum ve yetki yönetimi
+- katalog station coverage
+- ürün -> istasyon routing denetimi
 
 ### Masa + Kasa
 

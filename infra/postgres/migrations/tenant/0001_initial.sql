@@ -167,6 +167,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS menu_items (
     id uuid PRIMARY KEY,
     category_id uuid NOT NULL REFERENCES menu_categories (id) ON DELETE CASCADE,
+    station_id uuid NULL REFERENCES service_stations (id) ON DELETE SET NULL,
     sku varchar(80) NOT NULL,
     name varchar(160) NOT NULL,
     description varchar(1200) NOT NULL DEFAULT '',
@@ -180,6 +181,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_menu_items_sku ON menu_items (sku);
 CREATE INDEX IF NOT EXISTS ix_menu_items_category_id ON menu_items (category_id);
+CREATE INDEX IF NOT EXISTS ix_menu_items_station_id ON menu_items (station_id);
 
 CREATE TABLE IF NOT EXISTS customer_orders (
     id uuid PRIMARY KEY,

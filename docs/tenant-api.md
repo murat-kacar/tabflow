@@ -319,7 +319,9 @@ Current behavior:
 - category create/update validates normalized slug uniqueness
 - item create/update validates category existence, positive price, and unique SKU
 - category create/update can optionally assign one service station
-- tenant web admin dashboard currently uses these endpoints for category and item creation
+- item create/update can optionally assign one service station
+- item station overrides category station for Station Board routing
+- tenant web `/console/catalog` uses these endpoints for category and item creation
 
 ### Tenant Admin Stations
 
@@ -344,7 +346,7 @@ POST /api/admin/kitchen/items/{orderItemId}/status
 
 Current behavior:
 
-- kitchen board groups active order items by assigned station
+- kitchen board groups active order items by item station first, then category station
 - item status is tracked independently from the whole order
 - item cancellation updates order subtotal and bill subtotal
 - order status is projected from item status progression
