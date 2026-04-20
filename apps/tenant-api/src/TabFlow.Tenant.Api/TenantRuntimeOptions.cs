@@ -20,6 +20,10 @@ public sealed class TenantRuntimeOptions
 
     public string TimeZone { get; set; } = "Europe/London";
 
+    public string DefaultFirmwareWifiSsid { get; set; } = "CHANGE_ME";
+
+    public string DefaultFirmwareWifiPassword { get; set; } = "CHANGE_ME";
+
     public int InitialTableCount { get; set; } = 5;
 
     public int DeviceTokenTtlSeconds { get; set; } = 60;

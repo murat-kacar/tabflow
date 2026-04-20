@@ -9,7 +9,9 @@ public sealed record TenantProfileResponse(
     string PrimaryDomain,
     string LanguageCode,
     string TimeZone,
-    string CurrencyCode);
+    string CurrencyCode,
+    string DefaultFirmwareWifiSsid,
+    string DefaultFirmwareWifiPassword);
 
 public sealed record ServiceTableResponse(Guid Id, int Number, string Name);
 
@@ -56,7 +58,16 @@ public sealed record DeviceTokenSummaryResponse(
 public sealed record RotateDeviceKeyResponse(
     AdminDeviceResponse Device,
     string RawDeviceKey,
-    string FirmwareConfig);
+    string FirmwareSketch,
+    string FirmwareFileName);
+
+public sealed record CreatedServiceTableResponse(
+    Guid Id,
+    int Number,
+    string Name,
+    string RawDeviceKey,
+    string FirmwareSketch,
+    string FirmwareFileName);
 
 public sealed record UpsertServiceTableRequest(
     int Number,
@@ -70,6 +81,10 @@ public sealed record UpsertServiceTableRequest(
 public sealed record UpdateTableLayoutEntryRequest(Guid TableId, string LayoutCode, int LayoutX, int LayoutY);
 
 public sealed record FloorLayoutDocumentRequest(string FloorLayoutJson);
+
+public sealed record UpdateFirmwareDefaultsRequest(
+    string WifiSsid,
+    string WifiPassword);
 
 public sealed record ServiceStationResponse(
     Guid Id,

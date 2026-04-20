@@ -407,8 +407,9 @@ These endpoints are protected by tenant admin actor validation.
 Current behavior:
 
 - device listing returns table identity, online state, active key hint, and active token expiry
-- key rotation deactivates previous keys and returns the new raw device key once plus a ready-to-flash ESP32 `config.h`
-- generated firmware config includes safe Wi-Fi placeholders, tenant host, table id, device key, locked TFT pin map, and timing constants
+- table creation generates an active device key immediately and returns a ready-to-flash single-file ESP32 `.ino`
+- key rotation deactivates previous keys and returns the new raw device key once plus a refreshed ready-to-flash `.ino`
+- generated firmware sketch includes tenant host, tenant Wi-Fi defaults, table id, device key, locked TFT pin map, and timing constants
 - manual token refresh pushes a new token to any connected device for that table
 
 ### Device WebSocket

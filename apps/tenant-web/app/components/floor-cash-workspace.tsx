@@ -4,17 +4,24 @@ import type {
   AdminDevice,
   AdminTableSummary,
   CustomerBillSummary,
-  CustomerOrderSummary
+  CustomerOrderSummary,
+  TenantProfile
 } from "@tabflow/shared-ts";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   closeBillAction,
+  createTableAction,
   mergeBillAction,
   moveBillAction,
+  rotateDeviceKeyAction,
   saveFloorLayoutAction,
   splitBillAction,
   type TenantAdminActionState,
+  type TenantDeviceActionState,
+  type TenantFirmwareDefaultsActionState,
   type TenantTableActionState
+  ,
+  updateFirmwareDefaultsAction
 } from "../auth-actions";
 import type { Dictionary } from "../i18n/server";
 import { formatDateTime, formatMoney } from "../lib/format";
@@ -24,7 +31,17 @@ const initialState: TenantAdminActionState = {
   message: ""
 };
 
+const deviceActionInitialState: TenantDeviceActionState = {
+  ok: false,
+  message: ""
+};
+
 const tableActionInitialState: TenantTableActionState = {
+  ok: false,
+  message: ""
+};
+
+const firmwareDefaultsInitialState: TenantFirmwareDefaultsActionState = {
   ok: false,
   message: ""
 };
@@ -2103,7 +2120,25 @@ function SelectedTablePanel({
   tables: AdminTableSummary[];
 }) {
   const [state, action, pending] = useActionState(closeBillAction, initialState);
+  const [deviceState, deviceAction, devicePending] = useActionState(
+    rotateDeviceKeyAction,
+    deviceActionInitialState
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("nakit");
+
+  useEffect(() => {
+    if (!deviceState.ok || !deviceState.firmwareSketch || !deviceState.firmwareFileName) {
+      return;
+    }
+
+    const blob = new Blob([deviceState.firmwareSketch], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = deviceState.firmwareFileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [deviceState]);
 
   return (
     <aside className="rounded-[0.75rem] border border-[#9eb8d6] bg-[#eef4fb] p-3 shadow-sm">
@@ -2146,6 +2181,22 @@ function SelectedTablePanel({
             <p className="mt-1 text-sm text-stone-600">
               {device ? (device.deviceOnline ? t.deviceOnline : t.deviceOffline) : t.noDevice}
             </p>
+            <form action={deviceAction} className="mt-3 flex flex-wrap items-center gap-3">
+              <input name="tableId" type="hidden" value={table.id} />
+              <button
+                className="rounded-full bg-[#16392e] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0f251f] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={devicePending}
+                type="submit"
+              >
+                {devicePending ? t.deviceFirmwarePreparing : t.deviceFirmwareDownload}
+              </button>
+              <p className="text-xs text-stone-500">
+                {t.deviceFirmwareHint} <span className="font-semibold text-stone-700">{table.name}</span>
+              </p>
+            </form>
+            {deviceState.message ? (
+              <p className="mt-2 text-xs text-stone-600">{deviceState.message}</p>
+            ) : null}
           </div>
 
           <div className="rounded-2xl bg-stone-50 px-4 py-4">
@@ -2252,11 +2303,167 @@ function SelectedTablePanel({
   );
 }
 
+function ProvisioningPanel({
+  profile,
+  t
+}: {
+  profile: TenantProfile;
+  t: FloorCashCopy;
+}) {
+  const [firmwareState, firmwareAction, firmwarePending] = useActionState(
+    updateFirmwareDefaultsAction,
+    firmwareDefaultsInitialState
+  );
+  const [tableState, tableAction, tablePending] = useActionState(
+    createTableAction,
+    tableActionInitialState
+  );
+
+  useEffect(() => {
+    if (!tableState.ok || !tableState.firmwareSketch || !tableState.firmwareFileName) {
+      return;
+    }
+
+    const blob = new Blob([tableState.firmwareSketch], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = tableState.firmwareFileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [tableState]);
+
+  return (
+    <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <article className="rounded-[1rem] border border-[#c7d7eb] bg-white/90 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
+          {t.firmwareDefaultsEyebrow}
+        </p>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-stone-950">
+          {t.firmwareDefaultsTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-stone-600">{t.firmwareDefaultsBody}</p>
+        <form action={firmwareAction} className="mt-5 grid gap-4">
+          <label className="grid gap-2 text-sm font-semibold text-stone-700">
+            <span>{t.firmwareWifiSsidLabel}</span>
+            <input
+              className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+              defaultValue={profile.defaultFirmwareWifiSsid}
+              name="wifiSsid"
+              placeholder={t.firmwareWifiSsidPlaceholder}
+              type="text"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-stone-700">
+            <span>{t.firmwareWifiPasswordLabel}</span>
+            <input
+              className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+              defaultValue={profile.defaultFirmwareWifiPassword}
+              name="wifiPassword"
+              placeholder={t.firmwareWifiPasswordPlaceholder}
+              type="text"
+            />
+          </label>
+          <div className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
+            <p>
+              <span className="font-semibold text-stone-900">{t.firmwareDomainLabel}</span>{" "}
+              {profile.primaryDomain}
+            </p>
+            <p className="mt-2">{t.firmwareDefaultsHint}</p>
+          </div>
+          <button
+            className="rounded-full bg-[#16392e] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0f251f] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={firmwarePending}
+            type="submit"
+          >
+            {firmwarePending ? t.firmwareDefaultsSaving : t.firmwareDefaultsSave}
+          </button>
+          {firmwareState.message ? (
+            <p className={`text-sm ${firmwareState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+              {firmwareState.message}
+            </p>
+          ) : null}
+        </form>
+      </article>
+
+      <article className="rounded-[1rem] border border-[#c7d7eb] bg-white/90 p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
+          {t.quickProvisionEyebrow}
+        </p>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-stone-950">
+          {t.quickProvisionTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-stone-600">{t.quickProvisionBody}</p>
+        <form action={tableAction} className="mt-5 grid gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-stone-700">
+              <span>{t.quickProvisionTableNumber}</span>
+              <input
+                className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+                min={1}
+                name="number"
+                placeholder="12"
+                type="number"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-stone-700">
+              <span>{t.quickProvisionTableName}</span>
+              <input
+                className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+                name="name"
+                placeholder={t.quickProvisionTableNamePlaceholder}
+                type="text"
+              />
+            </label>
+          </div>
+          <label className="grid gap-2 text-sm font-semibold text-stone-700">
+            <span>{t.quickProvisionServiceNote}</span>
+            <input
+              className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+              name="serviceNote"
+              placeholder={t.quickProvisionServiceNotePlaceholder}
+              type="text"
+            />
+          </label>
+          <label className="inline-flex items-center gap-3 text-sm text-stone-700">
+            <input defaultChecked name="isActive" type="checkbox" />
+            <span>{t.quickProvisionActive}</span>
+          </label>
+          <div className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
+            <p>{t.quickProvisionHint}</p>
+            <p className="mt-2">
+              <span className="font-semibold text-stone-900">{t.firmwareWifiSsidLabel}</span>{" "}
+              {profile.defaultFirmwareWifiSsid}
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold text-stone-900">{t.firmwareDomainLabel}</span>{" "}
+              {profile.primaryDomain}
+            </p>
+          </div>
+          <button
+            className="rounded-full bg-[#6492cb] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4e7db8] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={tablePending}
+            type="submit"
+          >
+            {tablePending ? t.quickProvisionPreparing : t.quickProvisionCreate}
+          </button>
+          {tableState.message ? (
+            <p className={`text-sm ${tableState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+              {tableState.message}
+            </p>
+          ) : null}
+        </form>
+      </article>
+    </section>
+  );
+}
+
 export function FloorCashWorkspace({
   bills,
   devices,
   floorLayoutJson,
   orders,
+  profile,
   t,
   tables
 }: {
@@ -2264,6 +2471,7 @@ export function FloorCashWorkspace({
   devices: AdminDevice[];
   floorLayoutJson?: string | null;
   orders: CustomerOrderSummary[];
+  profile: TenantProfile;
   t: FloorCashCopy;
   tables: AdminTableSummary[];
 }) {
@@ -2367,6 +2575,8 @@ export function FloorCashWorkspace({
             <ActionRail queueBills={queueBills} t={t} tables={tables} />
           </section>
         ) : null}
+
+        {view === "floor" ? <ProvisioningPanel profile={profile} t={t} /> : null}
 
         {view === "open-checks" ? (
           <section className="mt-6">

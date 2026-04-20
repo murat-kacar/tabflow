@@ -41,7 +41,7 @@ Examples:
 5. Create a `tenant.create` provision job.
 6. Allocate runtime identifiers such as database name, database user, and ports.
 7. Prepare tenant runtime configuration.
-8. Generate per-table firmware config artifacts.
+8. Generate per-table firmware sketch artifacts.
 9. Create tenant database and database user.
 10. Apply tenant migrations.
 11. Seed initial tenant data, including the default table count and default tenant admin.
@@ -140,7 +140,7 @@ Deletion must not be the default path for unhappy tenants. Prefer archive first.
 
 ## Firmware Artifacts
 
-Tenant provisioning should prepare per-table `config.h` artifacts containing:
+Tenant provisioning should prepare per-table `.ino` artifacts containing:
 
 - backend host
 - table id
@@ -149,8 +149,8 @@ Tenant provisioning should prepare per-table `config.h` artifacts containing:
 - locked ESP32-C3 + ST7735 hardware pin map
 - firmware timing constants
 
-Generated firmware config files contain secrets and must not be committed.
+Generated firmware `.ino` files contain secrets and must not be committed.
 The committed Arduino source lives under
 `packages/firmware/arduino/tabflow-table-display/`, while generated
-`config.h` files stay in ignored runtime artifact paths or local flashing
+`.ino` files stay in ignored runtime artifact paths or local flashing
 workspaces.

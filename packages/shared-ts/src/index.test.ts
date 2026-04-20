@@ -188,7 +188,9 @@ describe("tenant runtime schemas", () => {
       primaryDomain: "moda.example.com",
       languageCode: "en",
       timeZone: "Europe/London",
-      currencyCode: "GBP"
+      currencyCode: "GBP",
+      defaultFirmwareWifiSsid: "ModaWifi",
+      defaultFirmwareWifiPassword: "super-secret"
     });
 
     expect(profile.code).toBe("moda");
@@ -203,7 +205,9 @@ describe("tenant runtime schemas", () => {
         primaryDomain: "moda.example.com",
         languageCode: "en",
         timeZone: "Europe/London",
-        currencyCode: "GBP"
+        currencyCode: "GBP",
+        defaultFirmwareWifiSsid: "ModaWifi",
+        defaultFirmwareWifiPassword: "super-secret"
       },
       categories: [
         {
@@ -517,7 +521,8 @@ describe("tenant runtime schemas", () => {
     const rotated = rotateDeviceKeyResponseSchema.parse({
       device,
       rawDeviceKey: "a1b2c3d4e5f6-masa001",
-      firmwareConfig: "#pragma once"
+      firmwareSketch: "#define MASA_ID 1",
+      firmwareFileName: "masa-balkon-001.ino"
     });
 
     expect(rotated.device.deviceOnline).toBe(true);

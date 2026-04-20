@@ -49,6 +49,8 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.Property(profile => profile.CurrencyCode).HasColumnName("currency_code").HasMaxLength(3);
             entity.Property(profile => profile.LanguageCode).HasColumnName("language_code").HasMaxLength(8);
             entity.Property(profile => profile.TimeZone).HasColumnName("time_zone").HasMaxLength(80);
+            entity.Property(profile => profile.DefaultFirmwareWifiSsid).HasColumnName("default_firmware_wifi_ssid").HasMaxLength(160);
+            entity.Property(profile => profile.DefaultFirmwareWifiPassword).HasColumnName("default_firmware_wifi_password").HasMaxLength(160);
             entity.Property(profile => profile.FloorLayoutJson).HasColumnName("floor_layout_json");
             entity.Property(profile => profile.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
             entity.Property(profile => profile.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");

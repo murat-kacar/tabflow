@@ -47,7 +47,7 @@ docs/             Architecture and operations documentation
 - No secrets in source code.
 - Tenant data is isolated by database and database user.
 - Schema changes are migrations, not runtime ad-hoc table creation.
-- Generated firmware config files are secrets.
+- Generated firmware artifacts are secrets.
 - Runtime packaging and host automation are separate layers, not source
   requirements.
 

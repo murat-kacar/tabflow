@@ -95,6 +95,12 @@ public static class TenantDatabaseInitializer
             ALTER TABLE tenant_profile
             ADD COLUMN IF NOT EXISTS time_zone varchar(80) NOT NULL DEFAULT 'Europe/London';
 
+            ALTER TABLE tenant_profile
+            ADD COLUMN IF NOT EXISTS default_firmware_wifi_ssid varchar(160) NOT NULL DEFAULT 'CHANGE_ME';
+
+            ALTER TABLE tenant_profile
+            ADD COLUMN IF NOT EXISTS default_firmware_wifi_password varchar(160) NOT NULL DEFAULT 'CHANGE_ME';
+
             ALTER TABLE menu_items
             ADD COLUMN IF NOT EXISTS station_id uuid NULL;
 
@@ -121,6 +127,12 @@ public static class TenantDatabaseInitializer
         var normalizedLanguageCode = NormalizeLanguageCode(options.LanguageCode);
         var normalizedCurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode);
         var normalizedTimeZone = NormalizeTimeZone(options.TimeZone);
+        var normalizedFirmwareWifiSsid = string.IsNullOrWhiteSpace(options.DefaultFirmwareWifiSsid)
+            ? "CHANGE_ME"
+            : options.DefaultFirmwareWifiSsid.Trim();
+        var normalizedFirmwareWifiPassword = string.IsNullOrWhiteSpace(options.DefaultFirmwareWifiPassword)
+            ? "CHANGE_ME"
+            : options.DefaultFirmwareWifiPassword.Trim();
 
         var profile = await db.TenantProfiles.OrderBy(profile => profile.CreatedAt).FirstOrDefaultAsync();
         if (profile is null)
@@ -132,7 +144,9 @@ public static class TenantDatabaseInitializer
                 PrimaryDomain = CatalogValidation.NormalizeHost(options.BaseUrl),
                 CurrencyCode = normalizedCurrencyCode,
                 LanguageCode = normalizedLanguageCode,
-                TimeZone = normalizedTimeZone
+                TimeZone = normalizedTimeZone,
+                DefaultFirmwareWifiSsid = normalizedFirmwareWifiSsid,
+                DefaultFirmwareWifiPassword = normalizedFirmwareWifiPassword
             });
         }
         else
@@ -142,6 +156,8 @@ public static class TenantDatabaseInitializer
             profile.CurrencyCode = normalizedCurrencyCode;
             profile.LanguageCode = normalizedLanguageCode;
             profile.TimeZone = normalizedTimeZone;
+            profile.DefaultFirmwareWifiSsid = normalizedFirmwareWifiSsid;
+            profile.DefaultFirmwareWifiPassword = normalizedFirmwareWifiPassword;
             profile.UpdatedAt = DateTimeOffset.UtcNow;
         }
 

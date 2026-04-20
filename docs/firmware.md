@@ -57,11 +57,11 @@ Generated tenant artifacts:
 
 ```text
 runtime/generated/tenants/<tenant-code>/firmware/
-  masa001/config.h
-  masa002/config.h
+  masa-001.ino
+  masa-002.ino
 ```
 
-`config.h` contains device secrets and must not be committed.
+Generated `.ino` files contain device secrets and must not be committed.
 
 ## Runtime Contract
 
@@ -101,14 +101,14 @@ must not grow its own QR generation logic.
 
 ## Artifact Ownership
 
-Tenant creation should generate table-level `config.h` artifacts under the
+Tenant creation should generate table-level `.ino` artifacts under the
 tenant firmware directory.
 
 Example:
 
 ```text
-runtime/generated/tenants/<tenant-code>/firmware/masa001/config.h
-runtime/generated/tenants/<tenant-code>/firmware/masa002/config.h
+runtime/generated/tenants/<tenant-code>/firmware/masa-001.ino
+runtime/generated/tenants/<tenant-code>/firmware/masa-002.ino
 ```
 
 Generated artifacts include operational secrets. They are runtime outputs, not
@@ -118,7 +118,14 @@ location with restricted filesystem permissions. If `Provisioning:OutputRoot`
 is overridden, the same `tenants/<tenant-code>/firmware/...` layout still
 applies under that root.
 
-Device key rotation also returns a ready-to-flash `config.h` body. It includes
-safe Wi-Fi placeholders, tenant host, table id, device key, locked TFT pin map,
-and timing constants. Operators must set the physical site Wi-Fi values before
-flashing.
+Table creation and device key rotation return a ready-to-flash single-file
+Arduino sketch named from the current table label, for example:
+
+```text
+masa-balkon-003.ino
+2-kat-bahce-banko-002.ino
+```
+
+The generated sketch contains the shared firmware source plus device-specific
+defines for tenant domain, Wi-Fi defaults, table id, device key, pin map, and
+timing constants.

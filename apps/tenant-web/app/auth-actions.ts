@@ -19,6 +19,7 @@ import {
   saveAdminTableLayouts,
   saveFloorLayoutDocument,
   splitTenantBill,
+  updateFirmwareDefaults,
   updateAdminTable,
   updateKitchenItemStatus,
   updateStation,
@@ -40,7 +41,8 @@ export type TenantLoginActionState = {
 export type TenantDeviceActionState = {
   ok: boolean;
   message: string;
-  firmwareConfig?: string;
+  firmwareSketch?: string;
+  firmwareFileName?: string;
   rawDeviceKey?: string;
 };
 
@@ -56,6 +58,14 @@ export type TenantPdaOrderActionState = {
 };
 
 export type TenantTableActionState = {
+  ok: boolean;
+  message: string;
+  firmwareSketch?: string;
+  firmwareFileName?: string;
+  rawDeviceKey?: string;
+};
+
+export type TenantFirmwareDefaultsActionState = {
   ok: boolean;
   message: string;
 };
@@ -244,7 +254,8 @@ export async function rotateDeviceKeyAction(
     return {
       ok: true,
       message: t.messages.deviceKeyRotated,
-      firmwareConfig: result.firmwareConfig,
+      firmwareSketch: result.firmwareSketch,
+      firmwareFileName: result.firmwareFileName,
       rawDeviceKey: result.rawDeviceKey
     };
   } catch (error) {
@@ -508,7 +519,7 @@ export async function createTableAction(
   }
 
   try {
-    await createAdminTable(session, {
+    const result = await createAdminTable(session, {
       number: Number(formData.get("number") ?? 0),
       name: String(formData.get("name") ?? ""),
       serviceNote: String(formData.get("serviceNote") ?? ""),
@@ -518,7 +529,13 @@ export async function createTableAction(
       isActive: formData.get("isActive") === "on"
     });
     revalidatePath("/console");
-    return { ok: true, message: t.messages.tableCreated };
+    return {
+      ok: true,
+      message: t.messages.tableCreated,
+      firmwareSketch: result.firmwareSketch,
+      firmwareFileName: result.firmwareFileName,
+      rawDeviceKey: result.rawDeviceKey
+    };
   } catch (error) {
     return {
       ok: false,
@@ -586,6 +603,32 @@ export async function saveFloorLayoutAction(
     return {
       ok: false,
       message: error instanceof Error ? error.message : t.messages.floorLayoutSaveFailed
+    };
+  }
+}
+
+export async function updateFirmwareDefaultsAction(
+  _previousState: TenantFirmwareDefaultsActionState,
+  formData: FormData
+): Promise<TenantFirmwareDefaultsActionState> {
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
+
+  if (!session) {
+    return { ok: false, message: t.messages.sessionMissing };
+  }
+
+  try {
+    await updateFirmwareDefaults(session, {
+      wifiSsid: String(formData.get("wifiSsid") ?? ""),
+      wifiPassword: String(formData.get("wifiPassword") ?? "")
+    });
+    revalidatePath("/service");
+    revalidatePath("/console");
+    return { ok: true, message: t.messages.firmwareDefaultsSaved };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : t.messages.firmwareDefaultsSaveFailed
     };
   }
 }

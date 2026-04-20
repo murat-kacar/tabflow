@@ -175,7 +175,9 @@ export const tenantProfileSchema = z.object({
   primaryDomain: z.string(),
   languageCode: tenantLanguageCodeSchema,
   currencyCode: tenantCurrencyCodeSchema,
-  timeZone: tenantTimeZoneSchema
+  timeZone: tenantTimeZoneSchema,
+  defaultFirmwareWifiSsid: z.string(),
+  defaultFirmwareWifiPassword: z.string()
 });
 
 export type TenantProfile = z.infer<typeof tenantProfileSchema>;
@@ -291,10 +293,22 @@ export const adminDeviceListSchema = z.array(adminDeviceSchema);
 export const rotateDeviceKeyResponseSchema = z.object({
   device: adminDeviceSchema,
   rawDeviceKey: z.string(),
-  firmwareConfig: z.string()
+  firmwareSketch: z.string(),
+  firmwareFileName: z.string()
 });
 
 export type RotateDeviceKeyResponse = z.infer<typeof rotateDeviceKeyResponseSchema>;
+
+export const createdServiceTableResponseSchema = z.object({
+  id: z.uuid(),
+  number: z.number().int().positive(),
+  name: z.string(),
+  rawDeviceKey: z.string(),
+  firmwareSketch: z.string(),
+  firmwareFileName: z.string()
+});
+
+export type CreatedServiceTableResponse = z.infer<typeof createdServiceTableResponseSchema>;
 
 export const tenantAdminProfileSchema = z.object({
   id: z.uuid(),
@@ -514,6 +528,13 @@ export const updateTableLayoutEntrySchema = z.object({
 
 export type UpdateTableLayoutEntry = z.infer<typeof updateTableLayoutEntrySchema>;
 export const updateTableLayoutEntryListSchema = z.array(updateTableLayoutEntrySchema);
+
+export const updateFirmwareDefaultsInputSchema = z.object({
+  wifiSsid: z.string().trim().min(1).max(160),
+  wifiPassword: z.string().trim().min(1).max(160)
+});
+
+export type UpdateFirmwareDefaultsInput = z.infer<typeof updateFirmwareDefaultsInputSchema>;
 
 export const moveBillInputSchema = z.object({
   targetTableId: z.uuid()

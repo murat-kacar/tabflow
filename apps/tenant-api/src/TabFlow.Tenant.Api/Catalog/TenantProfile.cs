@@ -16,6 +16,10 @@ public sealed class TenantProfile
 
     public string TimeZone { get; set; } = "Europe/London";
 
+    public string DefaultFirmwareWifiSsid { get; set; } = "CHANGE_ME";
+
+    public string DefaultFirmwareWifiPassword { get; set; } = "CHANGE_ME";
+
     public string FloorLayoutJson { get; set; } = "{}";
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

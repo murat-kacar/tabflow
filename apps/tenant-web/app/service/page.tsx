@@ -4,6 +4,7 @@ import { TenantAdminShell } from "../components/tenant-admin-shell";
 import { getDictionary } from "../i18n/server";
 import {
   getFloorLayoutDocument,
+  getTenantProfile,
   listAdminDevices,
   listAdminTables,
   listTenantBills,
@@ -24,12 +25,13 @@ export default async function TenantServicePage() {
     redirect("/change-password");
   }
 
-  const [orders, bills, tables, devices, floorLayoutJson, t] = await Promise.all([
+  const [orders, bills, tables, devices, floorLayoutJson, profile, t] = await Promise.all([
     listTenantOrders(session),
     listTenantBills(session),
     listAdminTables(session),
     listAdminDevices(session),
     getFloorLayoutDocument(session),
+    getTenantProfile(),
     getDictionary()
   ]);
 
@@ -40,6 +42,7 @@ export default async function TenantServicePage() {
         devices={devices}
         floorLayoutJson={floorLayoutJson}
         orders={orders}
+        profile={profile}
         t={t.floorCash}
         tables={tables}
       />

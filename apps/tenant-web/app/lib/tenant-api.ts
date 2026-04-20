@@ -3,7 +3,9 @@ import {
   type AdminTableSummary,
   adminDeviceListSchema,
   adminTableSummaryListSchema,
+  createdServiceTableResponseSchema,
   type CreateAdminOrderInput,
+  type CreatedServiceTableResponse,
   type CustomerBillSummary,
   type CustomerOrderDetail,
   type CustomerOrderSummary,
@@ -30,10 +32,12 @@ import {
   tenantCatalogSchema,
   tenantProfileSchema,
   type UpdateTableLayoutEntry,
+  type UpdateFirmwareDefaultsInput,
   type UpsertMenuCategoryInput,
   type UpsertMenuItemInput,
   type UpsertServiceStationInput,
   type UpsertServiceTableInput,
+  updateFirmwareDefaultsInputSchema,
   updateTableLayoutEntryListSchema,
   upsertMenuCategoryInputSchema,
   upsertMenuItemInputSchema,
@@ -355,7 +359,7 @@ export async function listAdminTables(session: TenantSession): Promise<AdminTabl
 export async function createAdminTable(
   session: TenantSession,
   input: UpsertServiceTableInput
-): Promise<void> {
+): Promise<CreatedServiceTableResponse> {
   const payload = upsertServiceTableInputSchema.parse(input);
   const response = await fetch(`${tenantApiBaseUrl()}/api/admin/tables`, {
     method: "POST",
@@ -369,6 +373,8 @@ export async function createAdminTable(
   if (!response.ok) {
     throw new Error(await readProblem(response));
   }
+
+  return createdServiceTableResponseSchema.parse(await response.json());
 }
 
 export async function updateAdminTable(
@@ -426,6 +432,27 @@ export async function saveFloorLayoutDocument(
   if (!response.ok) {
     throw new Error(await readProblem(response));
   }
+}
+
+export async function updateFirmwareDefaults(
+  session: TenantSession,
+  input: UpdateFirmwareDefaultsInput
+): Promise<TenantProfile> {
+  const payload = updateFirmwareDefaultsInputSchema.parse(input);
+  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/tenant/firmware-defaults`, {
+    method: "PUT",
+    headers: {
+      ...tenantAdminHeaders(session),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+
+  return tenantProfileSchema.parse(await response.json());
 }
 
 export async function getFloorLayoutDocument(session: TenantSession): Promise<string> {
@@ -507,7 +534,7 @@ export async function listAdminDevices(session: TenantSession): Promise<AdminDev
 export async function rotateDeviceKey(
   session: TenantSession,
   tableId: string
-): Promise<{ firmwareConfig: string; rawDeviceKey: string }> {
+): Promise<{ firmwareSketch: string; firmwareFileName: string; rawDeviceKey: string }> {
   const response = await fetch(`${tenantApiBaseUrl()}/api/admin/devices/${tableId}/rotate-key`, {
     method: "POST",
     headers: tenantAdminHeaders(session)
@@ -519,7 +546,8 @@ export async function rotateDeviceKey(
 
   const payload = rotateDeviceKeyResponseSchema.parse(await response.json());
   return {
-    firmwareConfig: payload.firmwareConfig,
+    firmwareSketch: payload.firmwareSketch,
+    firmwareFileName: payload.firmwareFileName,
     rawDeviceKey: payload.rawDeviceKey
   };
 }

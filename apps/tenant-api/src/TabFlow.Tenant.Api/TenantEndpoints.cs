@@ -1,6 +1,7 @@
 using TabFlow.Tenant.Api.Auth;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using System.Net.WebSockets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -9,6 +10,7 @@ using TabFlow.Tenant.Api.Data;
 using TabFlow.Tenant.Api.Kitchen;
 using TabFlow.Tenant.Api.Orders;
 using TabFlow.Tenant.Api.Tables;
+using System.Text.RegularExpressions;
 
 namespace TabFlow.Tenant.Api;
 
@@ -33,6 +35,7 @@ public static class TenantEndpoints
         routes.MapPost("/api/admin/auth/login", LoginAdmin).RequireRateLimiting("auth-login");
         adminGroup.MapPost("/auth/change-password", ChangePassword);
         adminGroup.MapGet("/catalog", GetAdminCatalog);
+        adminGroup.MapPut("/tenant/firmware-defaults", UpdateFirmwareDefaults);
         adminGroup.MapGet("/floor-layout", GetFloorLayoutDocument);
         adminGroup.MapPost("/floor-layout", SaveFloorLayoutDocument);
         adminGroup.MapGet("/stations", ListStations);
@@ -117,6 +120,32 @@ public static class TenantEndpoints
     {
         var profile = await db.TenantProfiles.AsNoTracking().OrderBy(profile => profile.CreatedAt).FirstAsync(cancellationToken);
         return Results.Ok(new { floorLayoutJson = profile.FloorLayoutJson });
+    }
+
+    private static async Task<IResult> UpdateFirmwareDefaults(
+        UpdateFirmwareDefaultsRequest request,
+        TenantDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var wifiSsid = request.WifiSsid.Trim();
+        var wifiPassword = request.WifiPassword.Trim();
+
+        if (string.IsNullOrWhiteSpace(wifiSsid) || string.IsNullOrWhiteSpace(wifiPassword))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["wifiSsid"] = ["Wi-Fi SSID is required."],
+                ["wifiPassword"] = ["Wi-Fi password is required."]
+            });
+        }
+
+        var profile = await db.TenantProfiles.OrderBy(current => current.CreatedAt).FirstAsync(cancellationToken);
+        profile.DefaultFirmwareWifiSsid = wifiSsid;
+        profile.DefaultFirmwareWifiPassword = wifiPassword;
+        profile.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(ToResponse(profile));
     }
 
     private static async Task<IResult> ListActiveTables(TenantDbContext db, CancellationToken cancellationToken)
@@ -597,6 +626,7 @@ public static class TenantEndpoints
     private static async Task<IResult> CreateTable(
         UpsertServiceTableRequest request,
         TenantDbContext db,
+        IOptions<TenantRuntimeOptions> runtimeOptions,
         CancellationToken cancellationToken)
     {
         var name = request.Name.Trim();
@@ -631,9 +661,26 @@ public static class TenantEndpoints
         };
 
         db.ServiceTables.Add(table);
+        var rawKey = DeviceKeyService.GenerateRawKey(table.Number);
+        db.DeviceKeys.Add(new DeviceKey
+        {
+            TableId = table.Id,
+            KeyHash = DeviceKeyService.Hash(rawKey),
+            KeyHint = DeviceKeyService.CreateHint(rawKey)
+        });
         await db.SaveChangesAsync(cancellationToken);
 
-        return Results.Created($"/api/admin/tables/{table.Id}", new ServiceTableResponse(table.Id, table.Number, table.Name));
+        var profile = await db.TenantProfiles.AsNoTracking().OrderBy(current => current.CreatedAt).FirstAsync(cancellationToken);
+
+        return Results.Created(
+            $"/api/admin/tables/{table.Id}",
+            new CreatedServiceTableResponse(
+                table.Id,
+                table.Number,
+                table.Name,
+                rawKey,
+                RenderFirmwareSketch(runtimeOptions.Value, profile, table.Number, table.Name, rawKey),
+                BuildFirmwareFileName(table.Name, table.Number)));
     }
 
     private static async Task<IResult> UpdateTable(
@@ -1330,7 +1377,13 @@ public static class TenantEndpoints
                 new DeviceKeySummaryResponse(newKey.Id, newKey.KeyHint, newKey.IsActive, newKey.LastSeenAt, newKey.CreatedAt),
                 null),
             rawKey,
-            RenderFirmwareConfig(runtimeOptions.Value, table.Number, rawKey));
+            RenderFirmwareSketch(
+                runtimeOptions.Value,
+                await db.TenantProfiles.AsNoTracking().OrderBy(current => current.CreatedAt).FirstAsync(cancellationToken),
+                table.Number,
+                table.Name,
+                rawKey),
+            BuildFirmwareFileName(table.Name, table.Number));
 
         return Results.Ok(response);
     }
@@ -1592,7 +1645,9 @@ public static class TenantEndpoints
             profile.PrimaryDomain,
             profile.LanguageCode,
             profile.TimeZone,
-            profile.CurrencyCode);
+            profile.CurrencyCode,
+            profile.DefaultFirmwareWifiSsid,
+            profile.DefaultFirmwareWifiPassword);
 
     private static CustomerOrderDetailResponse ToDetailResponse(CustomerOrder order) =>
         new(
@@ -1674,18 +1729,30 @@ public static class TenantEndpoints
             item.CurrencyCode,
             item.SortOrder);
 
-    private static string RenderFirmwareConfig(TenantRuntimeOptions options, int tableNumber, string rawDeviceKey) =>
-        $$"""
-        #pragma once
+    private static string RenderFirmwareSketch(
+        TenantRuntimeOptions options,
+        TenantProfile profile,
+        int tableNumber,
+        string tableName,
+        string rawDeviceKey)
+    {
+        const string marker = "#include \"config.h\"";
+        var template = LoadFirmwareTemplate();
+        var configBlock = $$"""
+        // Auto-generated by TabFlow.
+        // Tenant: {{profile.DisplayName}}
+        // Domain: {{profile.PrimaryDomain}}
+        // Table: {{tableName}}
+        // File: {{BuildFirmwareFileName(tableName, tableNumber)}}
 
-        #define WIFI_SSID "CHANGE_ME"
-        #define WIFI_PASSWORD "CHANGE_ME"
+        #define WIFI_SSID "{{EscapeCppString(profile.DefaultFirmwareWifiSsid)}}"
+        #define WIFI_PASSWORD "{{EscapeCppString(profile.DefaultFirmwareWifiPassword)}}"
 
         #define BACKEND_HOST "{{CatalogValidation.NormalizeHost(options.BaseUrl)}}"
         #define BACKEND_PORT 443
 
         #define MASA_ID {{tableNumber}}
-        #define WS_DEVICE_KEY "{{rawDeviceKey}}"
+        #define WS_DEVICE_KEY "{{EscapeCppString(rawDeviceKey)}}"
 
         #define TFT_SCLK_PIN 0
         #define TFT_MOSI_PIN 1
@@ -1706,6 +1773,62 @@ public static class TenantEndpoints
 
         #define SERIAL_BAUD 115200
         """;
+
+        return template.Contains(marker, StringComparison.Ordinal)
+            ? template.Replace(marker, configBlock, StringComparison.Ordinal)
+            : $"{configBlock}\n\n{template}";
+    }
+
+    private static string LoadFirmwareTemplate()
+    {
+        using var stream = typeof(TenantEndpoints).Assembly
+            .GetManifestResourceStream("TableDisplayFirmwareTemplate.ino")
+            ?? throw new InvalidOperationException("Embedded firmware template not found.");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
+    private static string BuildFirmwareFileName(string tableName, int tableNumber)
+    {
+        var slug = SlugifyFileStem(tableName);
+        if (string.IsNullOrWhiteSpace(slug))
+        {
+            slug = $"masa-{tableNumber:000}";
+        }
+
+        return $"{slug}.ino";
+    }
+
+    private static string SlugifyFileStem(string value)
+    {
+        var normalized = value.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+        foreach (var character in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(character);
+            if (category == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            if ((character >= 'a' && character <= 'z') || (character >= '0' && character <= '9'))
+            {
+                builder.Append(character);
+            }
+            else
+            {
+                builder.Append('-');
+            }
+        }
+
+        var slug = Regex.Replace(builder.ToString(), "-{2,}", "-").Trim('-');
+        return slug.Length > 63 ? slug[..63].Trim('-') : slug;
+    }
+
+    private static string EscapeCppString(string value) =>
+        value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal);
 
     private static string? NormalizeColor(string input)
     {
