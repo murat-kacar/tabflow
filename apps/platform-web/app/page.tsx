@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PlatformShell } from "./components/platform-shell";
 import { TenantDashboard } from "./components/tenant-dashboard";
+import { getDictionary } from "./i18n/server";
 import {
   listAuditLogs,
   listProvisionJobs,
@@ -19,11 +20,12 @@ export default async function PlatformHome() {
   }
 
   try {
-    const [tenants, jobs, auditLogs, runtimes] = await Promise.all([
+    const [tenants, jobs, auditLogs, runtimes, t] = await Promise.all([
       listTenants(session),
       listProvisionJobs(session),
       listAuditLogs(session),
-      listTenantRuntimes(session)
+      listTenantRuntimes(session),
+      getDictionary()
     ]);
 
     return (
@@ -33,19 +35,23 @@ export default async function PlatformHome() {
           jobs={jobs}
           runtimes={runtimes}
           session={session}
+          t={t}
           tenants={tenants}
         />
       </PlatformShell>
     );
   } catch (error) {
+    const t = await getDictionary();
+
     return (
       <PlatformShell email={session.email}>
         <TenantDashboard
           auditLogs={[]}
-          error={error instanceof Error ? error.message : "Platform API baglantisi kurulamadi."}
+          error={error instanceof Error ? error.message : t.dashboard.apiConnectionFailed}
           jobs={[]}
           runtimes={[]}
           session={session}
+          t={t}
           tenants={[]}
         />
       </PlatformShell>

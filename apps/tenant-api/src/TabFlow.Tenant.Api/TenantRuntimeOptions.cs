@@ -16,6 +16,10 @@ public sealed class TenantRuntimeOptions
 
     public string CurrencyCode { get; set; } = "GBP";
 
+    public string LanguageCode { get; set; } = "en";
+
+    public string TimeZone { get; set; } = "Europe/London";
+
     public int InitialTableCount { get; set; } = 5;
 
     public int DeviceTokenTtlSeconds { get; set; } = 60;

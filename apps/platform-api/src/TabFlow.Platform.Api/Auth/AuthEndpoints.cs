@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TabFlow.Platform.Api.Security;
 using TabFlow.Platform.Data;
 using TabFlow.Platform.Security;
+using TabFlow.Platform.Tenants;
 
 namespace TabFlow.Platform.Api.Auth;
 
@@ -14,6 +15,8 @@ public static class AuthEndpoints
 
         group.MapGet("/bootstrap-status", GetBootstrapStatus);
         group.MapPost("/login", Login).RequireRateLimiting("auth-login");
+        group.MapPatch("/profile/preferences", UpdatePreferences)
+            .WithMetadata(new RequirePlatformRoleAttribute(PlatformAdminRole.Viewer, PlatformAdminRole.Admin, PlatformAdminRole.Owner));
 
         return group;
     }
@@ -67,6 +70,64 @@ public static class AuthEndpoints
             JsonSerializer.Serialize(new { email = admin.Email, role = admin.Role.ToString().ToLowerInvariant() }),
             cancellationToken);
 
-        return Results.Ok(new PlatformAdminProfileResponse(admin.Id, admin.Email, admin.Role, admin.CreatedAt));
+        return Results.Ok(new PlatformAdminProfileResponse(
+            admin.Id,
+            admin.Email,
+            admin.Role,
+            NormalizeLanguageCode(admin.LanguageCode),
+            admin.CreatedAt));
     }
+
+    private static async Task<IResult> UpdatePreferences(
+        UpdatePlatformAdminPreferenceRequest request,
+        PlatformDbContext db,
+        PlatformAuditWriter auditWriter,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var actor = PlatformActorAccessor.Read(httpContext);
+        if (actor?.AdminId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var languageCode = NormalizeLanguageCode(request.LanguageCode);
+        if (languageCode is not ("en" or "tr"))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["languageCode"] = ["Language must be one of: en, tr."]
+            });
+        }
+
+        var admin = await db.PlatformAdmins.FirstOrDefaultAsync(
+            current => current.Id == actor.AdminId && current.IsActive,
+            cancellationToken);
+
+        if (admin is null)
+        {
+            return Results.NotFound();
+        }
+
+        admin.LanguageCode = languageCode;
+
+        await auditWriter.WriteAsync(
+            actor,
+            "platform_admin.preferences_changed",
+            "platform_admin",
+            admin.Id.ToString(),
+            JsonSerializer.Serialize(new { languageCode }),
+            cancellationToken);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(new PlatformAdminProfileResponse(
+            admin.Id,
+            admin.Email,
+            admin.Role,
+            admin.LanguageCode,
+            admin.CreatedAt));
+    }
+
+    private static string NormalizeLanguageCode(string languageCode) =>
+        languageCode.Trim().ToLowerInvariant();
 }

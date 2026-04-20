@@ -36,13 +36,21 @@ public sealed class ProvisioningService(
 
         foreach (var job in pendingJobs)
         {
-            if (job.Type != "tenant.create" || job.Tenant is null)
+            if (job.Tenant is null)
             {
                 continue;
             }
 
-            await ProcessTenantCreateJobAsync(job, options, cancellationToken);
-            processed++;
+            if (job.Type == "tenant.create")
+            {
+                await ProcessTenantCreateJobAsync(job, options, cancellationToken);
+                processed++;
+            }
+            else if (job.Type == "tenant.settings.update")
+            {
+                await ProcessTenantSettingsUpdateJobAsync(job, options, cancellationToken);
+                processed++;
+            }
         }
 
         return processed;
@@ -71,8 +79,10 @@ public sealed class ProvisioningService(
                 SELECT platform_provision_jobs.id
                 FROM platform_provision_jobs
                 INNER JOIN platform_tenants ON platform_tenants.id = platform_provision_jobs.tenant_id
-                WHERE type = 'tenant.create'
-                  AND platform_tenants.status <> 'active'::tenant_status
+                WHERE (
+                    (type = 'tenant.create' AND platform_tenants.status <> 'active'::tenant_status)
+                    OR type = 'tenant.settings.update'
+                  )
                   AND platform_provision_jobs.attempt_count < @max_attempts
                   AND (
                       platform_provision_jobs.status = 'pending'::provision_job_status
@@ -208,6 +218,70 @@ public sealed class ProvisioningService(
         }
     }
 
+    private async Task ProcessTenantSettingsUpdateJobAsync(
+        ProvisionJob job,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        var tenant = job.Tenant ?? throw new InvalidOperationException("Provisioning job tenant is missing.");
+
+        try
+        {
+            UpdateStep(job, "loading_runtime_config");
+            await db.SaveChangesAsync(cancellationToken);
+
+            var runtime = await ReadExistingRuntimeAsync(tenant, options, cancellationToken);
+
+            UpdateStep(job, "writing_runtime_environment");
+            await db.SaveChangesAsync(cancellationToken);
+            await WriteRuntimeEnvironmentFilesAsync(tenant, runtime, options, cancellationToken);
+
+            UpdateStep(job, "restarting_runtime");
+            await db.SaveChangesAsync(cancellationToken);
+            await RunCommandAsync(options.SystemctlBinary, $"restart tabflow-tenant-api@{tenant.Code}.service", cancellationToken);
+            await RunCommandAsync(options.SystemctlBinary, $"restart tabflow-tenant-web@{tenant.Code}.service", cancellationToken);
+
+            UpdateStep(job, "health_verification");
+            await db.SaveChangesAsync(cancellationToken);
+            var runtimeHealth = await VerifyRuntimeHealthAsync(runtime, options, cancellationToken);
+
+            job.Status = ProvisionJobStatus.Succeeded;
+            job.CurrentStep = "completed";
+            job.ResultJson = JsonSerializer.Serialize(new
+            {
+                tenant.LanguageCode,
+                tenant.CurrencyCode,
+                tenant.TimeZone,
+                RuntimeHealth = runtimeHealth
+            });
+            job.CompletedAt = DateTimeOffset.UtcNow;
+            job.ErrorMessage = null;
+            job.WorkerId = null;
+            job.LeaseUntil = null;
+            job.NextAttemptAt = null;
+            job.UpdatedAt = DateTimeOffset.UtcNow;
+            tenant.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var terminalFailure = job.AttemptCount >= options.MaxAttempts;
+            job.Status = ProvisionJobStatus.Failed;
+            job.ErrorMessage = exception.Message;
+            job.CompletedAt = now;
+            job.CurrentStep = terminalFailure ? "failed" : "retry_scheduled";
+            job.WorkerId = null;
+            job.LeaseUntil = null;
+            job.NextAttemptAt = terminalFailure
+                ? null
+                : now.AddSeconds(options.RetryDelaySeconds * Math.Max(1, job.AttemptCount));
+            job.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     private static void UpdateStep(ProvisionJob job, string step)
     {
         job.CurrentStep = step;
@@ -266,6 +340,28 @@ public sealed class ProvisioningService(
             PrimaryDomain: primaryDomain,
             BackendPort: backendPort,
             WebPort: webPort);
+    }
+
+    private static async Task<ProvisionedRuntime> ReadExistingRuntimeAsync(
+        Tenant tenant,
+        ProvisioningOptions options,
+        CancellationToken cancellationToken)
+    {
+        var runtimeConfigPath = Path.Combine(options.OutputRoot, "tenants", tenant.Code, "runtime-config.json");
+        await using var stream = File.OpenRead(runtimeConfigPath);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+        var root = document.RootElement;
+
+        return new ProvisionedRuntime(
+            DatabaseName: root.GetProperty("DatabaseName").GetString() ?? throw new InvalidOperationException("Runtime database name is missing."),
+            DatabaseUser: root.GetProperty("DatabaseUser").GetString() ?? throw new InvalidOperationException("Runtime database user is missing."),
+            DatabasePassword: root.GetProperty("DatabasePassword").GetString() ?? throw new InvalidOperationException("Runtime database password is missing."),
+            AdminApiKey: root.GetProperty("AdminApiKey").GetString() ?? throw new InvalidOperationException("Runtime admin API key is missing."),
+            SessionSecret: root.GetProperty("SessionSecret").GetString() ?? throw new InvalidOperationException("Runtime session secret is missing."),
+            TenantBaseUrl: root.GetProperty("TenantBaseUrl").GetString() ?? throw new InvalidOperationException("Runtime base URL is missing."),
+            PrimaryDomain: root.GetProperty("TenantDomain").GetString() ?? tenant.Domains.First(domain => domain.IsPrimary).Host,
+            BackendPort: root.GetProperty("BackendPort").GetInt32(),
+            WebPort: root.GetProperty("WebPort").GetInt32());
     }
 
     private static async Task<object> WriteArtifactsAsync(
@@ -509,7 +605,9 @@ public sealed class ProvisioningService(
         Tenant__DisplayName={{tenant.DisplayName}}
         Tenant__BaseUrl={{runtime.TenantBaseUrl}}
         Tenant__InitialAdminEmail={{initialAdminEmail}}
-        Tenant__CurrencyCode=GBP
+        Tenant__LanguageCode={{tenant.LanguageCode}}
+        Tenant__CurrencyCode={{tenant.CurrencyCode}}
+        Tenant__TimeZone={{tenant.TimeZone}}
         Tenant__InitialTableCount={{options.InitialTableCount}}
         Tenant__DeviceTokenTtlSeconds=60
         Tenant__CustomerSessionTtlMinutes=120
@@ -524,6 +622,9 @@ public sealed class ProvisioningService(
         NEXT_PUBLIC_TENANT_API_BASE_URL={{runtime.TenantBaseUrl}}
         TENANT_ADMIN_API_KEY={{runtime.AdminApiKey}}
         TENANT_SESSION_SECRET={{runtime.SessionSecret}}
+        NEXT_PUBLIC_TENANT_LANGUAGE_CODE={{tenant.LanguageCode}}
+        NEXT_PUBLIC_TENANT_CURRENCY_CODE={{tenant.CurrencyCode}}
+        NEXT_PUBLIC_TENANT_TIME_ZONE={{tenant.TimeZone}}
         """;
 
         await File.WriteAllTextAsync(apiEnvPath, apiEnv + Environment.NewLine, cancellationToken);

@@ -16,8 +16,8 @@ describe("TenantHome", () => {
     render(await TenantHome());
 
     expect(
-      screen.getByRole("heading", { name: /masa tabanli siparis girisi hazir/i })
+      screen.getByRole("heading", { name: /table-based ordering is ready/i })
     ).toBeInTheDocument();
-    expect(screen.getByText(/qr ile baslar/i)).toBeInTheDocument();
+    expect(screen.getByText(/customer flow starts with a qr scan/i)).toBeInTheDocument();
   });
 });

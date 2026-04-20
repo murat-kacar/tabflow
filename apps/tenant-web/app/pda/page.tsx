@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { PdaOrderWorkspace } from "../components/pda-order-workspace";
+import { getDictionary } from "../i18n/server";
 import {
   getAdminCatalog,
   listAdminTables,
@@ -21,12 +22,15 @@ export default async function TenantPdaPage() {
     redirect("/change-password");
   }
 
-  const [catalog, tables, bills, orders] = await Promise.all([
+  const [t, catalog, tables, bills, orders] = await Promise.all([
+    getDictionary(),
     getAdminCatalog(session),
     listAdminTables(session),
     listTenantBills(session),
     listTenantOrders(session)
   ]);
 
-  return <PdaOrderWorkspace bills={bills} catalog={catalog} orders={orders} tables={tables} />;
+  return (
+    <PdaOrderWorkspace bills={bills} catalog={catalog} orders={orders} tables={tables} t={t} />
+  );
 }

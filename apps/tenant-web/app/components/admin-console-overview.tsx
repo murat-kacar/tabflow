@@ -8,32 +8,43 @@ import type {
   TenantCatalog
 } from "@tabflow/shared-ts";
 import Link from "next/link";
+import type { Dictionary } from "../i18n/server";
+import { formatMoney } from "../lib/format";
 
-function toneForTable(table: AdminTableSummary): {
+type ConsoleCopy = Dictionary["console"];
+type CommonCopy = Dictionary["common"];
+
+function toneForTable(
+  table: AdminTableSummary,
+  t: ConsoleCopy
+): {
   label: string;
   tone: string;
 } {
   if (!table.isActive) {
-    return { label: "Pasif masa", tone: "border-stone-300 bg-stone-100 text-stone-700" };
+    return { label: t.tableToneInactive, tone: "border-stone-300 bg-stone-100 text-stone-700" };
   }
 
   if (!table.deviceOnline) {
-    return { label: "Cihaz offline", tone: "border-rose-200 bg-rose-100 text-rose-700" };
+    return { label: t.tableToneDeviceOffline, tone: "border-rose-200 bg-rose-100 text-rose-700" };
   }
 
   if (table.readyOrderCount > 0) {
-    return { label: "Servis bekliyor", tone: "border-emerald-200 bg-emerald-100 text-emerald-800" };
+    return {
+      label: t.tableToneServiceWaiting,
+      tone: "border-emerald-200 bg-emerald-100 text-emerald-800"
+    };
   }
 
   if (table.preparingOrderCount > 0 || table.submittedOrderCount > 0) {
-    return { label: "Aktif siparis", tone: "border-amber-200 bg-amber-100 text-amber-800" };
+    return { label: t.tableToneActiveOrder, tone: "border-amber-200 bg-amber-100 text-amber-800" };
   }
 
   if (table.openBillId) {
-    return { label: "Acik hesap", tone: "border-stone-300 bg-stone-200 text-stone-800" };
+    return { label: t.tableToneOpenBill, tone: "border-stone-300 bg-stone-200 text-stone-800" };
   }
 
-  return { label: "Sakin", tone: "border-stone-200 bg-stone-50 text-stone-600" };
+  return { label: t.tableToneQuiet, tone: "border-stone-200 bg-stone-50 text-stone-600" };
 }
 
 function MetricCard({
@@ -54,15 +65,7 @@ function MetricCard({
   );
 }
 
-function AttentionCard({
-  detail,
-  label,
-  tone
-}: {
-  detail: string;
-  label: string;
-  tone: string;
-}) {
+function AttentionCard({ detail, label, tone }: { detail: string; label: string; tone: string }) {
   return (
     <article className={`rounded-[1.5rem] border p-4 ${tone}`}>
       <p className="text-sm font-semibold">{label}</p>
@@ -83,7 +86,10 @@ function QuickActionCard({
   tone: string;
 }) {
   return (
-    <Link className={`block rounded-[1.5rem] border p-4 transition hover:-translate-y-0.5 hover:shadow-sm ${tone}`} href={href}>
+    <Link
+      className={`block rounded-[1.5rem] border p-4 transition hover:-translate-y-0.5 hover:shadow-sm ${tone}`}
+      href={href}
+    >
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-2 text-sm opacity-90">{detail}</p>
     </Link>
@@ -93,30 +99,32 @@ function QuickActionCard({
 function SetupWorkspace({
   activeTableCount,
   activeStations,
-  mappedCatalogItems
+  mappedCatalogItems,
+  t
 }: {
   activeTableCount: number;
   activeStations: number;
   mappedCatalogItems: number;
+  t: ConsoleCopy;
 }) {
   const steps = [
     {
       href: "/service",
-      label: "Masa ve kat plani",
-      detail: `${activeTableCount} masa icin yerlesim, zone ve sabit obje duzenini ac.`,
-      cta: "Masa + Kasa'ya git"
+      label: t.setupFloorPlan,
+      detail: `${activeTableCount} ${t.setupFloorPlanDetail}`,
+      cta: t.setupFloorPlanCta
     },
     {
       href: "/console/stations",
-      label: "Istasyon kurulumu",
-      detail: `${activeStations} aktif istasyon var. Barista, bar, nargile ve mutfak hatlarini yonet.`,
-      cta: "Istasyonlari yonet"
+      label: t.setupStations,
+      detail: `${activeStations} ${t.setupStationsDetail}`,
+      cta: t.setupStationsCta
     },
     {
       href: "/console/catalog",
-      label: "Katalog kapsami",
-      detail: `${mappedCatalogItems} urun operasyon modelinde. Urun sihirbazi sonraki sertlestirme turunda ayrilacak.`,
-      cta: "Catalog'u yonet"
+      label: t.setupCatalog,
+      detail: `${mappedCatalogItems} ${t.setupCatalogDetail}`,
+      cta: t.setupCatalogCta
     }
   ];
 
@@ -125,11 +133,9 @@ function SetupWorkspace({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-            Kurulum Alani
+            {t.setupWorkspaceEyebrow}
           </p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">
-            Isletme yapisini buradan sertlestir
-          </h2>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight">{t.setupWorkspaceTitle}</h2>
         </div>
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
@@ -155,51 +161,53 @@ function SetupPulse({
   activeStations,
   fallbackLikeStations,
   mappedCatalogItems,
-  offlineDeviceCount
+  offlineDeviceCount,
+  common,
+  t
 }: {
   activeStations: number;
   fallbackLikeStations: number;
   mappedCatalogItems: number;
   offlineDeviceCount: number;
+  common: CommonCopy;
+  t: ConsoleCopy;
 }) {
   const checks = [
     {
-      label: "Istasyon yapisi",
+      label: t.checkStationStructure,
       ok: activeStations > 0,
-      detail: activeStations > 0 ? `${activeStations} aktif istasyon tanimli.` : "En az bir aktif istasyon gerekli."
-    },
-    {
-      label: "Fallback guvencesi",
-      ok: fallbackLikeStations > 0,
       detail:
-        fallbackLikeStations > 0
-          ? "Genel fallback istasyonu hazir."
-          : "Urunlerin bosluga dusmemesi icin fallback station tanimlanmali."
+        activeStations > 0 ? `${activeStations} ${t.checkStationReady}` : t.checkStationMissing
     },
     {
-      label: "Katalog kapsami",
+      label: t.checkFallback,
+      ok: fallbackLikeStations > 0,
+      detail: fallbackLikeStations > 0 ? t.checkFallbackReady : t.checkFallbackMissing
+    },
+    {
+      label: t.catalogCoverageTitle,
       ok: mappedCatalogItems > 0,
       detail:
         mappedCatalogItems > 0
-          ? `${mappedCatalogItems} urun operasyon modeline bagli.`
-          : "Henuz urun baglantisi yok."
+          ? `${mappedCatalogItems} ${t.checkCatalogReady}`
+          : t.checkCatalogMissing
     },
     {
-      label: "Cihaz guveni",
+      label: t.checkDeviceTrust,
       ok: offlineDeviceCount === 0,
       detail:
         offlineDeviceCount === 0
-          ? "Tum masa cihazlari online."
-          : `${offlineDeviceCount} cihaz icin saha takibi gerekli.`
+          ? t.checkDeviceReady
+          : `${offlineDeviceCount} ${t.checkDeviceMissing}`
     }
   ];
 
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-        Setup Pulse
+        {t.setupPulseEyebrow}
       </p>
-      <h2 className="mt-2 text-2xl font-bold tracking-tight">Kurulumun zayif halkalari</h2>
+      <h2 className="mt-2 text-2xl font-bold tracking-tight">{t.setupPulseTitle}</h2>
       <div className="mt-5 grid gap-3">
         {checks.map((check) => (
           <article
@@ -216,7 +224,7 @@ function SetupPulse({
                 <p className="mt-1 text-sm opacity-90">{check.detail}</p>
               </div>
               <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold">
-                {check.ok ? "Tamam" : "Takip"}
+                {check.ok ? common.setupComplete : common.setupRequired}
               </span>
             </div>
           </article>
@@ -231,13 +239,15 @@ export function AdminConsoleOverview({
   bills,
   devices,
   stations,
-  tables
+  tables,
+  t
 }: {
   bills: CustomerBillSummary[];
   catalog: TenantCatalog;
   devices: AdminDevice[];
   stations: ServiceStation[];
   tables: AdminTableSummary[];
+  t: Dictionary;
 }) {
   const activeTableCount = tables.filter((table) => table.isActive).length;
   const openBillCount = bills.filter((bill) => bill.status === "open").length;
@@ -247,11 +257,16 @@ export function AdminConsoleOverview({
   const hotTables = tables
     .filter(
       (table) =>
-        table.readyOrderCount > 0 || !table.deviceOnline || table.submittedOrderCount + table.preparingOrderCount > 0
+        table.readyOrderCount > 0 ||
+        !table.deviceOnline ||
+        table.submittedOrderCount + table.preparingOrderCount > 0
     )
     .slice(0, 6);
   const activeStations = stations.filter((station) => station.isActive).length;
-  const mappedCatalogItems = catalog.categories.reduce((sum, category) => sum + category.items.length, 0);
+  const mappedCatalogItems = catalog.categories.reduce(
+    (sum, category) => sum + category.items.length,
+    0
+  );
   const totalSubmitted = tables.reduce((sum, table) => sum + table.submittedOrderCount, 0);
   const totalPreparing = tables.reduce((sum, table) => sum + table.preparingOrderCount, 0);
   const totalOpenRevenue = bills
@@ -265,36 +280,37 @@ export function AdminConsoleOverview({
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
           <section className="rounded-[2rem] border border-black/10 bg-[#19352d] p-8 text-white shadow-xl">
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">
-              Admin Console
+              {t.console.heroEyebrow}
             </p>
             <h1 className="mt-4 max-w-3xl text-5xl font-bold tracking-tight">
-              Isletmenin canli akisina yukaridan bakan yonetim merkezi
+              {t.console.heroTitle}
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50/85">
-              Masa ve kasa operasyonu ayri akarken, burada istasyon sagligi, cihaz guveni,
-              fallback durumu ve kurulum aksiyonlari tek yerde gorunur.
+              {t.console.heroBody}
             </p>
           </section>
 
           <section className="rounded-[2rem] border border-stone-200 bg-white/85 p-6 shadow-sm backdrop-blur">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Kurulum Nabzi
+              {t.console.setupSummaryEyebrow}
             </p>
             <div className="mt-4 grid gap-3 text-sm text-stone-700">
               <div className="rounded-2xl bg-stone-50 px-4 py-4">
-                <p className="font-semibold text-stone-950">Aktif istasyon</p>
-                <p className="mt-1">{activeStations} istasyon canli akisa dahil.</p>
-              </div>
-              <div className="rounded-2xl bg-stone-50 px-4 py-4">
-                <p className="font-semibold text-stone-950">Katalog kapsami</p>
-                <p className="mt-1">{mappedCatalogItems} urun istasyon mantigiyla yonetiliyor.</p>
-              </div>
-              <div className="rounded-2xl bg-stone-50 px-4 py-4">
-                <p className="font-semibold text-stone-950">Fallback durumu</p>
+                <p className="font-semibold text-stone-950">{t.console.activeStationsTitle}</p>
                 <p className="mt-1">
-                  {fallbackLikeStations > 0
-                    ? "Genel fallback istasyonu tanimli."
-                    : "Fallback istasyonu henuz tanimli degil."}
+                  {activeStations} {t.console.activeStationsDetail}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-stone-50 px-4 py-4">
+                <p className="font-semibold text-stone-950">{t.console.catalogCoverageTitle}</p>
+                <p className="mt-1">
+                  {mappedCatalogItems} {t.console.catalogCoverageDetail}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-stone-50 px-4 py-4">
+                <p className="font-semibold text-stone-950">{t.console.fallbackStatusTitle}</p>
+                <p className="mt-1">
+                  {fallbackLikeStations > 0 ? t.console.fallbackReady : t.console.fallbackMissing}
                 </p>
               </div>
             </div>
@@ -303,19 +319,23 @@ export function AdminConsoleOverview({
 
         <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            detail="Servise acik masalar"
-            label="Aktif masa"
+            detail={t.console.metricActiveTablesDetail}
+            label={t.console.metricActiveTables}
             value={activeTableCount}
           />
-          <MetricCard detail="Kapanmamis hesap kayitlari" label="Acik hesap" value={openBillCount} />
           <MetricCard
-            detail="Istasyonlardan servise hazir donen urunler"
-            label="Hazir siparis"
+            detail={t.console.metricOpenBillsDetail}
+            label={t.console.metricOpenBills}
+            value={openBillCount}
+          />
+          <MetricCard
+            detail={t.console.metricReadyOrdersDetail}
+            label={t.console.metricReadyOrders}
             value={readyOrderCount}
           />
           <MetricCard
-            detail="Takip gerektiren QR/PDA cihazlari"
-            label="Offline cihaz"
+            detail={t.console.metricOfflineDevicesDetail}
+            label={t.console.metricOfflineDevices}
             value={offlineDeviceCount}
           />
         </section>
@@ -324,6 +344,7 @@ export function AdminConsoleOverview({
           activeStations={activeStations}
           activeTableCount={activeTableCount}
           mappedCatalogItems={mappedCatalogItems}
+          t={t.console}
         />
 
         <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
@@ -331,10 +352,10 @@ export function AdminConsoleOverview({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                  Dikkat Kuyrugu
+                  {t.console.attentionEyebrow}
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                  Hemen bakilmasi gereken durumlar
+                  {t.console.attentionTitle}
                 </h2>
               </div>
             </div>
@@ -342,29 +363,29 @@ export function AdminConsoleOverview({
             <div className="mt-5 grid gap-3">
               {readyOrderCount > 0 ? (
                 <AttentionCard
-                  detail={`${readyOrderCount} kalem urun servise cikmayi bekliyor.`}
-                  label="Hazir urun bekliyor"
+                  detail={`${readyOrderCount} ${t.console.attentionReadyDetail}`}
+                  label={t.console.attentionReadyLabel}
                   tone="border-emerald-200 bg-emerald-50 text-emerald-900"
                 />
               ) : null}
               {offlineDeviceCount > 0 ? (
                 <AttentionCard
-                  detail={`${offlineDeviceCount} masa cihazinda baglanti problemi var.`}
-                  label="Offline cihaz var"
+                  detail={`${offlineDeviceCount} ${t.console.attentionOfflineDetail}`}
+                  label={t.console.attentionOfflineLabel}
                   tone="border-rose-200 bg-rose-50 text-rose-900"
                 />
               ) : null}
               {openBillCount > 0 ? (
                 <AttentionCard
-                  detail={`${openBillCount} hesap acik durumda ve kasa takibi gerektiriyor.`}
-                  label="Acik hesap takibi"
+                  detail={`${openBillCount} ${t.console.attentionOpenBillDetail}`}
+                  label={t.console.attentionOpenBillLabel}
                   tone="border-amber-200 bg-amber-50 text-amber-900"
                 />
               ) : null}
               {fallbackLikeStations === 0 ? (
                 <AttentionCard
-                  detail="Urunlerin boslukta kalmamasi icin bir fallback station tanimlanmali."
-                  label="Fallback eksik"
+                  detail={t.console.attentionFallbackDetail}
+                  label={t.console.attentionFallbackLabel}
                   tone="border-stone-300 bg-stone-100 text-stone-900"
                 />
               ) : null}
@@ -373,34 +394,36 @@ export function AdminConsoleOverview({
 
           <SetupPulse
             activeStations={activeStations}
+            common={t.common}
             fallbackLikeStations={fallbackLikeStations}
             mappedCatalogItems={mappedCatalogItems}
             offlineDeviceCount={offlineDeviceCount}
+            t={t.console}
           />
         </section>
 
         <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <section className="rounded-[2rem] border border-stone-200 bg-white/90 p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Quick Actions
+              {t.console.quickActionsEyebrow}
             </p>
             <div className="mt-5 grid gap-3">
               <QuickActionCard
-                detail={`${offlineDeviceCount} cihaz saha kontrolu bekliyor. Device rail sonraki sprintte ayrisacak.`}
+                detail={`${offlineDeviceCount} ${t.console.quickDeviceDetail}`}
                 href="/service"
-                title="Device health takip et"
+                title={t.console.quickDeviceTitle}
                 tone="border-rose-200 bg-rose-50 text-rose-900"
               />
               <QuickActionCard
-                detail={`${totalSubmitted} yeni ve ${totalPreparing} hazirlanan kalem station board ile birlikte kapanacak.`}
+                detail={`${totalSubmitted} / ${totalPreparing} ${t.console.quickStationDetail}`}
                 href="/stations"
-                title="Istasyon yogunlugunu incele"
+                title={t.console.quickStationTitle}
                 tone="border-amber-200 bg-amber-50 text-amber-900"
               />
               <QuickActionCard
-                detail={`${(totalOpenRevenue / 100).toFixed(2)} ${currencyCode} acik ciro service yuzeyinde kasaya aktarilmayi bekliyor.`}
+                detail={`${formatMoney(totalOpenRevenue, currencyCode)} ${t.console.quickCashDetail}`}
                 href="/service"
-                title="Masa + Kasa kuyruğunu ac"
+                title={t.console.quickCashTitle}
                 tone="border-emerald-200 bg-emerald-50 text-emerald-900"
               />
             </div>
@@ -410,10 +433,10 @@ export function AdminConsoleOverview({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                  Sicak Masalar
+                  {t.console.hotTablesEyebrow}
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                  En cok dikkat isteyen masa akislari
+                  {t.console.hotTablesTitle}
                 </h2>
               </div>
             </div>
@@ -421,11 +444,11 @@ export function AdminConsoleOverview({
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               {hotTables.length === 0 ? (
                 <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
-                  Su an dikkat gerektiren masa yok.
+                  {t.console.hotTablesEmpty}
                 </p>
               ) : (
                 hotTables.map((table) => {
-                  const tone = toneForTable(table);
+                  const tone = toneForTable(table, t.console);
 
                   return (
                     <article
@@ -435,28 +458,30 @@ export function AdminConsoleOverview({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                            Masa {table.number.toString().padStart(3, "0")}
+                            {t.console.tableLabel} {table.number.toString().padStart(3, "0")}
                           </p>
                           <p className="mt-2 text-xl font-bold tracking-tight text-stone-950">
                             {table.name}
                           </p>
                         </div>
-                        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone.tone}`}>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone.tone}`}
+                        >
                           {tone.label}
                         </span>
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div className="rounded-2xl bg-white px-4 py-3">
-                          <p className="text-stone-500">Hazir</p>
+                          <p className="text-stone-500">{t.console.readyShort}</p>
                           <p className="mt-1 text-lg font-semibold text-stone-950">
                             {table.readyOrderCount}
                           </p>
                         </div>
                         <div className="rounded-2xl bg-white px-4 py-3">
-                          <p className="text-stone-500">Acik hesap</p>
+                          <p className="text-stone-500">{t.console.openBillShort}</p>
                           <p className="mt-1 text-lg font-semibold text-stone-950">
-                            {table.openBillId ? "Var" : "Yok"}
+                            {table.openBillId ? t.common.yes : t.common.no}
                           </p>
                         </div>
                       </div>
@@ -472,17 +497,17 @@ export function AdminConsoleOverview({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                Istasyon Sagligi
+                {t.console.stationHealthEyebrow}
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                Uretim hatlarinin canli durumu
+                {t.console.stationHealthTitle}
               </h2>
             </div>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {stations.length === 0 ? (
               <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
-                Henuz istasyon tanimi yok.
+                {t.console.stationHealthEmpty}
               </p>
             ) : (
               stations.map((station) => (
@@ -510,18 +535,18 @@ export function AdminConsoleOverview({
                           : "bg-stone-200 text-stone-700"
                       }`}
                     >
-                      {station.isActive ? "Aktif" : "Pasif"}
+                      {station.isActive ? t.common.active : t.common.passive}
                     </span>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-2xl bg-white px-4 py-3">
-                      <p className="text-stone-500">Sira</p>
+                      <p className="text-stone-500">{t.console.sortOrder}</p>
                       <p className="mt-1 font-semibold text-stone-950">{station.sortOrder}</p>
                     </div>
                     <div className="rounded-2xl bg-white px-4 py-3">
-                      <p className="text-stone-500">Rol</p>
+                      <p className="text-stone-500">{t.console.role}</p>
                       <p className="mt-1 font-semibold text-stone-950">
-                        {station.code === "general" ? "Fallback" : "Uretim"}
+                        {station.code === "general" ? t.common.fallback : t.common.production}
                       </p>
                     </div>
                   </div>

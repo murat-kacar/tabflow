@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { type TenantLoginActionState, tenantLoginAction } from "../auth-actions";
+import type { Dictionary } from "../i18n/server";
 
 const initialState: TenantLoginActionState = {
   ok: false,
@@ -25,10 +26,12 @@ function SubmitButton({ idleLabel, pendingLabel }: { idleLabel: string; pendingL
 
 export function TenantLoginForm({
   bootstrapRequired,
-  suggestedAdminEmail
+  suggestedAdminEmail,
+  t
 }: {
   bootstrapRequired: boolean;
   suggestedAdminEmail: string | null;
+  t: Dictionary;
 }) {
   const [loginState, loginAction] = useActionState(tenantLoginAction, initialState);
 
@@ -39,16 +42,16 @@ export function TenantLoginForm({
         className="rounded-[2rem] border border-black/10 bg-white/85 p-8 shadow-xl backdrop-blur"
       >
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-500">
-          Tenant Admin
+          {t.login.formEyebrow}
         </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-stone-950">Isletme girisi</h1>
-        <p className="mt-3 text-sm text-stone-600">
-          Siparisleri, katalogu ve tenant ayarlarini yonetmek icin admin girisi yap.
-        </p>
+        <h1 className="mt-3 text-4xl font-bold tracking-tight text-stone-950">
+          {t.login.formTitle}
+        </h1>
+        <p className="mt-3 text-sm text-stone-600">{t.login.formBody}</p>
 
         <div className="mt-6 grid gap-4">
           <label className="grid gap-2 text-sm font-medium text-stone-700">
-            Email
+            {t.common.email}
             <input
               autoComplete="email"
               className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-950 outline-none transition focus:border-stone-500 focus:bg-white"
@@ -58,7 +61,7 @@ export function TenantLoginForm({
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-stone-700">
-            Sifre
+            {t.common.password}
             <input
               autoComplete="current-password"
               className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-950 outline-none transition focus:border-stone-500 focus:bg-white"
@@ -70,7 +73,7 @@ export function TenantLoginForm({
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <SubmitButton idleLabel="Giris yap" pendingLabel="Kontrol ediliyor..." />
+          <SubmitButton idleLabel={t.login.submit} pendingLabel={t.login.pending} />
           {loginState.message ? (
             <p className="text-sm font-medium text-red-700">{loginState.message}</p>
           ) : null}
@@ -79,24 +82,20 @@ export function TenantLoginForm({
 
       <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">
-          Varsayilan Admin
+          {t.login.defaultAdminEyebrow}
         </p>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-amber-950">
-          Tenant olusurken ilk admin otomatik hazirlanir
+          {t.login.defaultAdminTitle}
         </h2>
-        <p className="mt-3 text-sm text-amber-900">
-          Varsayilan sifre <span className="font-semibold">TabFlow123.</span> olarak atanir ve
-          ilk giriste degistirilmesi zorunludur.
-        </p>
+        <p className="mt-3 text-sm text-amber-900">{t.login.defaultAdminBody}</p>
         {suggestedAdminEmail ? (
           <p className="mt-2 text-sm text-amber-950">
-            Varsayilan admin email: <span className="font-semibold">{suggestedAdminEmail}</span>
+            {t.login.suggestedAdminEmail}{" "}
+            <span className="font-semibold">{suggestedAdminEmail}</span>
           </p>
         ) : null}
         {bootstrapRequired ? (
-          <p className="mt-2 text-sm text-amber-950">
-            Ilk admin olusumu bir sonraki tenant runtime baslangicinda otomatik tamamlanir.
-          </p>
+          <p className="mt-2 text-sm text-amber-950">{t.login.bootstrapPending}</p>
         ) : null}
       </div>
     </div>

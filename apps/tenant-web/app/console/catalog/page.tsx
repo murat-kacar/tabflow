@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { CatalogManager } from "../../components/catalog-manager";
 import { TenantAdminShell } from "../../components/tenant-admin-shell";
+import { getDictionary } from "../../i18n/server";
 import { getAdminCatalog, listStations } from "../../lib/tenant-api";
 import { getTenantSession } from "../../lib/tenant-session";
 
@@ -17,14 +18,15 @@ export default async function TenantCatalogPage() {
     redirect("/change-password");
   }
 
-  const [catalog, stations] = await Promise.all([
+  const [catalog, stations, t] = await Promise.all([
     getAdminCatalog(session),
-    listStations(session)
+    listStations(session),
+    getDictionary()
   ]);
 
   return (
     <TenantAdminShell email={session.email}>
-      <CatalogManager catalog={catalog} stations={stations} />
+      <CatalogManager catalog={catalog} stations={stations} t={t} />
     </TenantAdminShell>
   );
 }

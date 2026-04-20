@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CustomerMenu } from "../components/customer-menu";
+import { getDictionary } from "../i18n/server";
 import { getCustomerSession } from "../lib/customer-session";
 import { getCustomerSessionStatus, getPublicCatalog } from "../lib/tenant-api";
 
@@ -18,7 +19,7 @@ export default async function CustomerMenuPage() {
     redirect("/");
   }
 
-  const catalog = await getPublicCatalog();
+  const [catalog, t] = await Promise.all([getPublicCatalog(), getDictionary()]);
 
-  return <CustomerMenu catalog={catalog} session={session} />;
+  return <CustomerMenu catalog={catalog} session={session} t={t.customerMenu} />;
 }

@@ -249,6 +249,27 @@ Route:
 
 - `/pda`
 
+Tenant regional settings model:
+
+- tenant language, currency, and time zone are tenant-scoped configuration, not
+  per-user preferences.
+- superadmin must choose language, currency, and time zone while creating a
+  tenant.
+- supported tenant languages are `en` and `tr`.
+- supported currencies are `GBP`, `TRY`, `EUR`, and `USD`.
+- supported time zones are `Europe/London`, `Europe/Istanbul`, and `UTC`.
+- tenant runtime surfaces read language from tenant profile/config, so customer,
+  PDA, station, console, server action messages, prices, and date/time labels
+  stay consistent for everyone in the tenant.
+- routes remain stable; locale is not encoded in URLs.
+- tenant language switchers are intentionally not shown in tenant runtime.
+- changing regional settings from superadmin creates a `tenant.settings.update`
+  provisioning job that rewrites runtime env files and restarts tenant API/Web.
+- dictionaries are organized by product surface and workflow, not by isolated
+  words.
+- run `pnpm i18n:audit` before commit to catch Turkish hardcoded visible text
+  outside dictionaries.
+
 ### Main Jobs
 
 - şifreli tenant admin/garson girişi

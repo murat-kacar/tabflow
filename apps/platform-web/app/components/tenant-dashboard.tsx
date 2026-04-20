@@ -7,7 +7,8 @@ import type {
   TenantRuntimeSummary
 } from "@tabflow/shared-ts";
 import { useMemo, useState } from "react";
-import { setTenantStatusAction } from "../actions";
+import { setTenantStatusAction, updateTenantRegionalSettingsAction } from "../actions";
+import type { Dictionary } from "../i18n/server";
 import { formatDateTime } from "../lib/format";
 import type { PlatformSession } from "../lib/platform-session";
 import { CreateTenantForm } from "./create-tenant-form";
@@ -17,15 +18,9 @@ type TenantDashboardProps = {
   jobs: ProvisionJob[];
   runtimes: TenantRuntimeSummary[];
   session: PlatformSession;
+  t: Dictionary;
   tenants: Tenant[];
   error?: string;
-};
-
-const statusLabels: Record<Tenant["status"], string> = {
-  provisioning: "Provisioning",
-  active: "Aktif",
-  suspended: "Pasif",
-  archived: "Arsiv"
 };
 
 const statusClasses: Record<Tenant["status"], string> = {
@@ -66,7 +61,8 @@ export function TenantDashboard({
   auditLogs,
   runtimes,
   error,
-  session
+  session,
+  t
 }: TenantDashboardProps) {
   const [selectedTenantId, setSelectedTenantId] = useState<string>(tenants[0]?.id ?? "");
 
@@ -110,32 +106,35 @@ export function TenantDashboard({
       <section className="mx-auto max-w-7xl">
         <div className="rounded-[2rem] border border-black/10 bg-white/70 p-8 shadow-sm backdrop-blur">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-500">
-            Platform
+            {t.dashboard.eyebrow}
           </p>
           <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">TabFlow Super Admin</h1>
-              <p className="mt-4 max-w-3xl text-lg text-stone-700">
-                Tenant registry, domain sahipligi, ilk admin niyeti ve provisioning akislari tek
-                operasyon panelinde yonetilir.
-              </p>
+              <h1 className="text-4xl font-bold tracking-tight">{t.dashboard.title}</h1>
+              <p className="mt-4 max-w-3xl text-lg text-stone-700">{t.dashboard.body}</p>
             </div>
             <div className="rounded-2xl bg-stone-950 px-5 py-4 text-white">
-              <p className="text-xs uppercase tracking-[0.2em] text-stone-400">Toplam tenant</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-stone-400">
+                {t.dashboard.totalTenants}
+              </p>
               <p className="mt-1 text-3xl font-bold">{tenants.length}</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3 text-sm text-stone-700">
             <span className="rounded-full bg-white/70 px-3 py-1">
-              Rol: {roleLabel(session.role)}
+              {t.dashboard.role}: {roleLabel(session.role)}
             </span>
-            <span className="rounded-full bg-white/70 px-3 py-1">Aktif: {counts.active}</span>
+            <span className="rounded-full bg-white/70 px-3 py-1">
+              {t.dashboard.active}: {counts.active}
+            </span>
             <span className="rounded-full bg-white/70 px-3 py-1">
               Provisioning: {counts.provisioning}
             </span>
-            <span className="rounded-full bg-white/70 px-3 py-1">Pasif: {counts.suspended}</span>
             <span className="rounded-full bg-white/70 px-3 py-1">
-              Audit kaydi: {auditLogs.length}
+              {t.dashboard.passive}: {counts.suspended}
+            </span>
+            <span className="rounded-full bg-white/70 px-3 py-1">
+              {t.dashboard.auditRecords}: {auditLogs.length}
             </span>
           </div>
         </div>
@@ -145,9 +144,11 @@ export function TenantDashboard({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-                  Tenantlar
+                  {t.dashboard.tenantsEyebrow}
                 </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight">Isletme kayitlari</h2>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight">
+                  {t.dashboard.tenantRecords}
+                </h2>
               </div>
               {error ? (
                 <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
@@ -157,7 +158,7 @@ export function TenantDashboard({
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               {tenants.length === 0 ? (
                 <div className="rounded-2xl bg-stone-50 px-5 py-10 text-center text-stone-600 md:col-span-2">
-                  Henuz tenant yok. Ilk isletmeyi sagdaki formdan olustur.
+                  {t.dashboard.emptyTenants}
                 </div>
               ) : (
                 tenants.map((tenant) => (
@@ -180,7 +181,7 @@ export function TenantDashboard({
                             : statusClasses[tenant.status]
                         }`}
                       >
-                        {statusLabels[tenant.status]}
+                        {t.dashboard.statuses[tenant.status]}
                       </span>
                     </div>
                     <dl
@@ -194,7 +195,7 @@ export function TenantDashboard({
                             selectedTenant?.id === tenant.id ? "text-stone-400" : "text-stone-500"
                           }
                         >
-                          Kod
+                          {t.dashboard.code}
                         </dt>
                         <dd className="font-mono">{tenant.code}</dd>
                       </div>
@@ -204,7 +205,7 @@ export function TenantDashboard({
                             selectedTenant?.id === tenant.id ? "text-stone-400" : "text-stone-500"
                           }
                         >
-                          Domain
+                          {t.dashboard.domain}
                         </dt>
                         <dd className="font-mono break-all">{tenant.primaryDomain ?? "-"}</dd>
                       </div>
@@ -214,10 +215,10 @@ export function TenantDashboard({
                             selectedTenant?.id === tenant.id ? "text-stone-400" : "text-stone-500"
                           }
                         >
-                          Ilk admin
+                          {t.dashboard.firstAdmin}
                         </dt>
                         <dd className="break-all">
-                          {tenant.initialAdminEmail ?? "Henuz belirtilmedi"}
+                          {tenant.initialAdminEmail ?? t.dashboard.notSpecified}
                         </dd>
                       </div>
                     </dl>
@@ -228,27 +229,97 @@ export function TenantDashboard({
           </section>
 
           <div className="space-y-6">
-            <CreateTenantForm canManage={canManage(session.role)} />
+            <CreateTenantForm canManage={canManage(session.role)} t={t.createTenant} />
 
             {selectedTenant ? (
               <section className="rounded-3xl border border-stone-200 bg-[#17231e] p-6 text-white shadow-sm">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">
-                  Secili tenant
+                  {t.dashboard.selectedTenant}
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight">
                   {selectedTenant.displayName}
                 </h2>
                 <div className="mt-5 grid gap-3 text-sm text-stone-100">
-                  <p>Kod: {selectedTenant.code}</p>
-                  <p>Domain: {selectedTenant.primaryDomain ?? "-"}</p>
-                  <p>Ilk admin e-postasi: {selectedTenant.initialAdminEmail ?? "-"}</p>
-                  <p>Olusturma: {formatDateTime(selectedTenant.createdAt)}</p>
-                  <p>Son guncelleme: {formatDateTime(selectedTenant.updatedAt)}</p>
+                  <p>
+                    {t.dashboard.code}: {selectedTenant.code}
+                  </p>
+                  <p>
+                    {t.dashboard.domain}: {selectedTenant.primaryDomain ?? "-"}
+                  </p>
+                  <p>
+                    {t.dashboard.firstAdminEmail}: {selectedTenant.initialAdminEmail ?? "-"}
+                  </p>
+                  <p>
+                    {t.dashboard.language}: {selectedTenant.languageCode}
+                  </p>
+                  <p>
+                    {t.dashboard.currency}: {selectedTenant.currencyCode}
+                  </p>
+                  <p>
+                    {t.dashboard.timeZone}: {selectedTenant.timeZone}
+                  </p>
+                  <p>
+                    {t.dashboard.createdAt}: {formatDateTime(selectedTenant.createdAt)}
+                  </p>
+                  <p>
+                    {t.dashboard.updatedAt}: {formatDateTime(selectedTenant.updatedAt)}
+                  </p>
                 </div>
+                <form
+                  action={updateTenantRegionalSettingsAction}
+                  className="mt-5 grid gap-3 rounded-2xl bg-white/10 p-4 text-sm text-stone-100"
+                >
+                  <input name="id" type="hidden" value={selectedTenant.id} />
+                  <p className="font-semibold">{t.dashboard.regionalSettings}</p>
+                  <label className="grid gap-1">
+                    {t.dashboard.language}
+                    <select
+                      className="rounded-xl border border-white/20 bg-stone-950 px-3 py-2 text-white"
+                      defaultValue={selectedTenant.languageCode}
+                      name="languageCode"
+                    >
+                      <option value="en">{t.dashboard.languages.en}</option>
+                      <option value="tr">{t.dashboard.languages.tr}</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    {t.dashboard.currency}
+                    <select
+                      className="rounded-xl border border-white/20 bg-stone-950 px-3 py-2 text-white"
+                      defaultValue={selectedTenant.currencyCode}
+                      name="currencyCode"
+                    >
+                      <option value="GBP">GBP</option>
+                      <option value="TRY">TRY</option>
+                      <option value="EUR">EUR</option>
+                      <option value="USD">USD</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    {t.dashboard.timeZone}
+                    <select
+                      className="rounded-xl border border-white/20 bg-stone-950 px-3 py-2 text-white"
+                      defaultValue={selectedTenant.timeZone}
+                      name="timeZone"
+                    >
+                      <option value="Europe/London">Europe/London</option>
+                      <option value="Europe/Istanbul">Europe/Istanbul</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </label>
+                  {canManage(session.role) ? (
+                    <button
+                      className="rounded-full bg-white px-4 py-2 font-semibold text-stone-950"
+                      type="submit"
+                    >
+                      {t.dashboard.saveRegionalSettings}
+                    </button>
+                  ) : null}
+                </form>
                 {selectedRuntime ? (
                   <div className="mt-5 rounded-2xl bg-white/10 p-4 text-sm text-stone-100">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="font-semibold">Runtime gorunurlugu</p>
+                      <p className="font-semibold">{t.dashboard.runtimeVisibility}</p>
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           selectedRuntime.healthStatus === "healthy"
@@ -256,21 +327,21 @@ export function TenantDashboard({
                             : "bg-stone-200 text-stone-900"
                         }`}
                       >
-                        {selectedRuntime.healthStatus ?? "Bilinmiyor"}
+                        {selectedRuntime.healthStatus ?? t.dashboard.unknown}
                       </span>
                     </div>
                     <div className="mt-3 grid gap-2">
                       <p>Base URL: {selectedRuntime.baseUrl ?? "-"}</p>
                       <p>
-                        Ic health: {selectedRuntime.healthStatus ?? "-"} /{" "}
+                        {t.dashboard.internalHealth}: {selectedRuntime.healthStatus ?? "-"} /{" "}
                         {formatDateTime(selectedRuntime.healthCheckedAt)}
                       </p>
                       <p>
-                        Dis exposure: {selectedRuntime.exposureStatus ?? "-"} /{" "}
+                        {t.dashboard.externalExposure}: {selectedRuntime.exposureStatus ?? "-"} /{" "}
                         {formatDateTime(selectedRuntime.exposureCheckedAt)}
                       </p>
                       <p>
-                        Portlar: API {selectedRuntime.backendPort ?? "-"} / Web{" "}
+                        {t.dashboard.ports}: API {selectedRuntime.backendPort ?? "-"} / Web{" "}
                         {selectedRuntime.webPort ?? "-"}
                       </p>
                       <p>
@@ -279,16 +350,30 @@ export function TenantDashboard({
                       </p>
                       <p>Artifact root: {selectedRuntime.artifactRoot ?? "-"}</p>
                       {selectedRuntime.exposureError ? (
-                        <p>Exposure hata: {selectedRuntime.exposureError}</p>
+                        <p>
+                          {t.dashboard.exposureError}: {selectedRuntime.exposureError}
+                        </p>
                       ) : null}
                     </div>
                   </div>
                 ) : null}
                 {canManage(session.role) ? (
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <StatusButton id={selectedTenant.id} label="Aktif yap" status="active" />
-                    <StatusButton id={selectedTenant.id} label="Pasif yap" status="suspended" />
-                    <StatusButton id={selectedTenant.id} label="Arsivle" status="archived" />
+                    <StatusButton
+                      id={selectedTenant.id}
+                      label={t.dashboard.activate}
+                      status="active"
+                    />
+                    <StatusButton
+                      id={selectedTenant.id}
+                      label={t.dashboard.suspend}
+                      status="suspended"
+                    />
+                    <StatusButton
+                      id={selectedTenant.id}
+                      label={t.dashboard.archive}
+                      status="archived"
+                    />
                   </div>
                 ) : null}
               </section>
@@ -302,12 +387,14 @@ export function TenantDashboard({
               Provisioning
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              {selectedTenant ? `${selectedTenant.displayName} joblari` : "Son joblar"}
+              {selectedTenant
+                ? `${selectedTenant.displayName} ${t.dashboard.tenantJobsSuffix}`
+                : t.dashboard.latestJobs}
             </h2>
             <div className="mt-5 space-y-3">
               {selectedJobs.length === 0 ? (
                 <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
-                  Bu baglamda provisioning job yok.
+                  {t.dashboard.noProvisionJobs}
                 </p>
               ) : (
                 selectedJobs.slice(0, 10).map((job) => (
@@ -322,14 +409,18 @@ export function TenantDashboard({
                         {job.status}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-stone-600">Adim: {job.currentStep}</p>
-                    <p className="mt-1 text-sm text-stone-600">Deneme: {job.attemptCount}</p>
+                    <p className="mt-2 text-sm text-stone-600">
+                      {t.dashboard.step}: {job.currentStep}
+                    </p>
                     <p className="mt-1 text-sm text-stone-600">
-                      Olusturma: {formatDateTime(job.createdAt)}
+                      {t.dashboard.attempt}: {job.attemptCount}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      {t.dashboard.createdAt}: {formatDateTime(job.createdAt)}
                     </p>
                     {selectedRuntime?.latestJobId === job.id ? (
                       <p className="mt-1 text-sm text-stone-600">
-                        Runtime health: {selectedRuntime.healthStatus ?? "Bilinmiyor"}
+                        Runtime health: {selectedRuntime.healthStatus ?? t.dashboard.unknown}
                       </p>
                     ) : null}
                     {job.errorMessage ? (
@@ -348,12 +439,14 @@ export function TenantDashboard({
               Audit
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              {selectedTenant ? `${selectedTenant.displayName} hareketleri` : "Son hareketler"}
+              {selectedTenant
+                ? `${selectedTenant.displayName} ${t.dashboard.tenantActivitySuffix}`
+                : t.dashboard.latestActivity}
             </h2>
             <div className="mt-5 space-y-3">
               {selectedAuditLogs.length === 0 ? (
                 <p className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
-                  Bu baglamda audit kaydi yok.
+                  {t.dashboard.noAuditRecords}
                 </p>
               ) : (
                 selectedAuditLogs.slice(0, 10).map((log) => (

@@ -30,6 +30,9 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
             entity.Property(tenant => tenant.Code).HasColumnName("code").HasMaxLength(63);
             entity.Property(tenant => tenant.DisplayName).HasColumnName("display_name").HasMaxLength(160);
             entity.Property(tenant => tenant.InitialAdminEmail).HasColumnName("initial_admin_email").HasMaxLength(254);
+            entity.Property(tenant => tenant.LanguageCode).HasColumnName("language_code").HasMaxLength(8);
+            entity.Property(tenant => tenant.CurrencyCode).HasColumnName("currency_code").HasMaxLength(3);
+            entity.Property(tenant => tenant.TimeZone).HasColumnName("time_zone").HasMaxLength(80);
             entity.Property(tenant => tenant.Status).HasColumnName("status").HasColumnType("tenant_status");
             entity.Property(tenant => tenant.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
             entity.Property(tenant => tenant.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
@@ -60,6 +63,7 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
             entity.Property(admin => admin.Email).HasColumnName("email").HasMaxLength(254);
             entity.Property(admin => admin.PasswordHash).HasColumnName("password_hash").HasMaxLength(512);
             entity.Property(admin => admin.Role).HasColumnName("role").HasColumnType("platform_admin_role");
+            entity.Property(admin => admin.LanguageCode).HasColumnName("language_code").HasMaxLength(8);
             entity.Property(admin => admin.IsActive).HasColumnName("is_active");
             entity.Property(admin => admin.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
         });

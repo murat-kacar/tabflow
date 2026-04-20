@@ -7,6 +7,8 @@ public sealed record TenantProfileResponse(
     string Code,
     string DisplayName,
     string PrimaryDomain,
+    string LanguageCode,
+    string TimeZone,
     string CurrencyCode);
 
 public sealed record ServiceTableResponse(Guid Id, int Number, string Name);

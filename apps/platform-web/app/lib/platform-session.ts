@@ -6,6 +6,7 @@ export const platformSessionCookieName = "tabflow_platform_session";
 export type PlatformSession = {
   adminId: string;
   email: string;
+  languageCode: "en" | "tr";
   role: "viewer" | "admin" | "owner";
   expiresAt: string;
 };
@@ -35,6 +36,7 @@ function isPlatformSession(value: unknown): value is PlatformSession {
   return (
     typeof session.adminId === "string" &&
     typeof session.email === "string" &&
+    (session.languageCode === "en" || session.languageCode === "tr") &&
     (session.role === "viewer" || session.role === "admin" || session.role === "owner") &&
     typeof session.expiresAt === "string"
   );
@@ -43,6 +45,7 @@ function isPlatformSession(value: unknown): value is PlatformSession {
 export function createPlatformSessionToken(input: {
   adminId: string;
   email: string;
+  languageCode: "en" | "tr";
   role: "viewer" | "admin" | "owner";
 }): {
   token: string;
@@ -51,6 +54,7 @@ export function createPlatformSessionToken(input: {
   const session: PlatformSession = {
     adminId: input.adminId,
     email: input.email,
+    languageCode: input.languageCode,
     role: input.role,
     expiresAt: new Date(Date.now() + sessionDurationMs).toISOString()
   };

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminConsoleOverview } from "../components/admin-console-overview";
 import { TenantAdminShell } from "../components/tenant-admin-shell";
+import { getDictionary } from "../i18n/server";
 import {
   getAdminCatalog,
   listAdminDevices,
@@ -23,12 +24,13 @@ export default async function TenantConsolePage() {
     redirect("/change-password");
   }
 
-  const [catalog, devices, bills, tables, stations] = await Promise.all([
+  const [catalog, devices, bills, tables, stations, t] = await Promise.all([
     getAdminCatalog(session),
     listAdminDevices(session),
     listTenantBills(session),
     listAdminTables(session),
-    listStations(session)
+    listStations(session),
+    getDictionary()
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function TenantConsolePage() {
         devices={devices}
         stations={stations}
         tables={tables}
+        t={t}
       />
     </TenantAdminShell>
   );

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { StationManager } from "../../components/station-manager";
 import { TenantAdminShell } from "../../components/tenant-admin-shell";
+import { getDictionary } from "../../i18n/server";
 import { listStations } from "../../lib/tenant-api";
 import { getTenantSession } from "../../lib/tenant-session";
 
@@ -17,11 +18,11 @@ export default async function TenantConsoleStationsPage() {
     redirect("/change-password");
   }
 
-  const stations = await listStations(session);
+  const [stations, t] = await Promise.all([listStations(session), getDictionary()]);
 
   return (
     <TenantAdminShell email={session.email}>
-      <StationManager stations={stations} />
+      <StationManager stations={stations} t={t} />
     </TenantAdminShell>
   );
 }

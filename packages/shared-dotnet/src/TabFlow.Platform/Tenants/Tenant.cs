@@ -10,6 +10,12 @@ public sealed class Tenant
 
     public string? InitialAdminEmail { get; set; }
 
+    public string LanguageCode { get; set; } = "en";
+
+    public string CurrencyCode { get; set; } = "GBP";
+
+    public string TimeZone { get; set; } = "Europe/London";
+
     public TenantStatus Status { get; set; } = TenantStatus.Provisioning;
 
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

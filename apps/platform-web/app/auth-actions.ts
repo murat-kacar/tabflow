@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getDictionary } from "./i18n/server";
 import { loginPlatformAdmin } from "./lib/platform-auth-api";
 import {
   clearPlatformSessionCookie,
@@ -28,14 +29,16 @@ export async function loginAction(
     const { token, session } = createPlatformSessionToken({
       adminId: profile.id,
       email: profile.email,
+      languageCode: profile.languageCode,
       role: profile.role
     });
 
     await setPlatformSessionCookie(token, session.expiresAt);
   } catch (error) {
+    const t = await getDictionary();
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Giris yapilamadi."
+      message: error instanceof Error ? error.message : t.messages.loginFailed
     };
   }
 

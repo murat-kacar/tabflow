@@ -2,17 +2,21 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import {
-  changeTenantPasswordAction,
-  type TenantLoginActionState
-} from "../auth-actions";
+import { changeTenantPasswordAction, type TenantLoginActionState } from "../auth-actions";
+import type { Dictionary } from "../i18n/server";
 
 const initialState: TenantLoginActionState = {
   ok: false,
   message: ""
 };
 
-function SubmitButton() {
+function SubmitButton({
+  pendingLabel,
+  submitLabel
+}: {
+  pendingLabel: string;
+  submitLabel: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -21,18 +25,18 @@ function SubmitButton() {
       disabled={pending}
       type="submit"
     >
-      {pending ? "Guncelleniyor..." : "Sifreyi guncelle"}
+      {pending ? pendingLabel : submitLabel}
     </button>
   );
 }
 
-export function TenantChangePasswordForm() {
+export function TenantChangePasswordForm({ t }: { t: Dictionary["changePassword"] }) {
   const [state, formAction] = useActionState(changeTenantPasswordAction, initialState);
 
   return (
     <form action={formAction} className="mt-6 grid gap-4">
       <label className="grid gap-2 text-sm font-medium text-stone-700">
-        Mevcut sifre
+        {t.currentPassword}
         <input
           autoComplete="current-password"
           className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-950 outline-none transition focus:border-stone-500 focus:bg-white"
@@ -42,7 +46,7 @@ export function TenantChangePasswordForm() {
         />
       </label>
       <label className="grid gap-2 text-sm font-medium text-stone-700">
-        Yeni sifre
+        {t.newPassword}
         <input
           autoComplete="new-password"
           className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-950 outline-none transition focus:border-stone-500 focus:bg-white"
@@ -53,7 +57,7 @@ export function TenantChangePasswordForm() {
         />
       </label>
       <label className="grid gap-2 text-sm font-medium text-stone-700">
-        Yeni sifre tekrar
+        {t.confirmPassword}
         <input
           autoComplete="new-password"
           className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-950 outline-none transition focus:border-stone-500 focus:bg-white"
@@ -65,7 +69,7 @@ export function TenantChangePasswordForm() {
       </label>
 
       <div className="mt-2 flex flex-wrap items-center gap-4">
-        <SubmitButton />
+        <SubmitButton pendingLabel={t.pending} submitLabel={t.submit} />
         {state.message ? <p className="text-sm font-medium text-red-700">{state.message}</p> : null}
       </div>
     </form>

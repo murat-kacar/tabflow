@@ -9,6 +9,7 @@ describe("platform session token", () => {
     const { token } = createPlatformSessionToken({
       adminId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
       email: "admin@example.com",
+      languageCode: "en",
       role: "owner"
     });
 
@@ -24,6 +25,7 @@ describe("platform session token", () => {
     const { token } = createPlatformSessionToken({
       adminId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
       email: "admin@example.com",
+      languageCode: "en",
       role: "owner"
     });
 
@@ -50,6 +52,7 @@ describe("platform session token", () => {
       JSON.stringify({
         adminId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
         email: "admin@example.com",
+        languageCode: "de",
         expiresAt: new Date(Date.now() + 60_000).toISOString()
       })
     ).toString("base64url");

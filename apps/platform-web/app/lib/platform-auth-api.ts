@@ -67,3 +67,31 @@ export async function loginPlatformAdmin(input: {
 
   return platformAdminProfileSchema.parse(await response.json());
 }
+
+export async function updatePlatformAdminPreferences(
+  input: { languageCode: "en" | "tr" },
+  session: {
+    adminId: string;
+    email: string;
+    role: "viewer" | "admin" | "owner";
+  }
+): Promise<PlatformAdminProfile> {
+  const apiKey = process.env.PLATFORM_ADMIN_API_KEY;
+  const response = await fetch(`${platformApiBaseUrl()}/api/platform/auth/profile/preferences`, {
+    method: "PATCH",
+    headers: {
+      ...(apiKey ? { "X-Platform-Admin-Key": apiKey } : {}),
+      "Content-Type": "application/json",
+      "X-Platform-Actor-Email": session.email,
+      "X-Platform-Actor-Id": session.adminId,
+      "X-Platform-Actor-Role": session.role
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+
+  return platformAdminProfileSchema.parse(await response.json());
+}

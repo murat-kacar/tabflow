@@ -10,6 +10,8 @@ public sealed class PlatformAdmin
 
     public PlatformAdminRole Role { get; set; } = PlatformAdminRole.Admin;
 
+    public string LanguageCode { get; set; } = "en";
+
     public bool IsActive { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

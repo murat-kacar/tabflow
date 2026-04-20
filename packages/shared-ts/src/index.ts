@@ -13,11 +13,23 @@ export const tenantStatusSchema = z.enum(["provisioning", "active", "suspended",
 
 export type TenantStatus = z.infer<typeof tenantStatusSchema>;
 
+export const tenantLanguageCodeSchema = z.enum(["en", "tr"]);
+export type TenantLanguageCode = z.infer<typeof tenantLanguageCodeSchema>;
+
+export const tenantCurrencyCodeSchema = z.enum(["GBP", "TRY", "EUR", "USD"]);
+export type TenantCurrencyCode = z.infer<typeof tenantCurrencyCodeSchema>;
+
+export const tenantTimeZoneSchema = z.enum(["Europe/London", "Europe/Istanbul", "UTC"]);
+export type TenantTimeZone = z.infer<typeof tenantTimeZoneSchema>;
+
 export const tenantSchema = z.object({
   id: z.uuid(),
   code: z.string(),
   displayName: z.string(),
   initialAdminEmail: z.email().nullable(),
+  languageCode: tenantLanguageCodeSchema,
+  currencyCode: tenantCurrencyCodeSchema,
+  timeZone: tenantTimeZoneSchema,
   status: tenantStatusSchema,
   primaryDomain: z.string().nullable(),
   createdAt: z.string(),
@@ -45,10 +57,23 @@ export const createTenantInputSchema = z.object({
     .email()
     .nullable()
     .optional()
-    .transform((value) => value ?? null)
+    .transform((value) => value ?? null),
+  languageCode: tenantLanguageCodeSchema,
+  currencyCode: tenantCurrencyCodeSchema,
+  timeZone: tenantTimeZoneSchema
 });
 
 export type CreateTenantInput = z.infer<typeof createTenantInputSchema>;
+
+export const updateTenantRegionalSettingsInputSchema = z.object({
+  languageCode: tenantLanguageCodeSchema,
+  currencyCode: tenantCurrencyCodeSchema,
+  timeZone: tenantTimeZoneSchema
+});
+
+export type UpdateTenantRegionalSettingsInput = z.infer<
+  typeof updateTenantRegionalSettingsInputSchema
+>;
 
 export const platformProblemSchema = z
   .object({
@@ -63,6 +88,7 @@ export const platformAdminProfileSchema = z.object({
   id: z.uuid(),
   email: z.email(),
   role: z.enum(["viewer", "admin", "owner"]),
+  languageCode: tenantLanguageCodeSchema,
   createdAt: z.string()
 });
 
@@ -147,7 +173,9 @@ export const tenantProfileSchema = z.object({
   code: z.string(),
   displayName: z.string(),
   primaryDomain: z.string(),
-  currencyCode: z.string().length(3)
+  languageCode: tenantLanguageCodeSchema,
+  currencyCode: tenantCurrencyCodeSchema,
+  timeZone: tenantTimeZoneSchema
 });
 
 export type TenantProfile = z.infer<typeof tenantProfileSchema>;

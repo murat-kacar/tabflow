@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getDictionary } from "./i18n/server";
 import { clearCustomerSessionCookie, getCustomerSession } from "./lib/customer-session";
 import { createCustomerOrder, logoutCustomerSession } from "./lib/tenant-api";
 
@@ -14,12 +15,12 @@ export async function submitCustomerOrderAction(
   _previousState: CustomerOrderActionState,
   formData: FormData
 ): Promise<CustomerOrderActionState> {
-  const session = await getCustomerSession();
+  const [session, t] = await Promise.all([getCustomerSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "QR oturumu bulunamadi."
+      message: t.messages.qrSessionMissing
     };
   }
 
@@ -35,7 +36,7 @@ export async function submitCustomerOrderAction(
   if (items.length === 0) {
     return {
       ok: false,
-      message: "En az bir urun secmelisin."
+      message: t.messages.orderRequiresItem
     };
   }
 
@@ -49,12 +50,12 @@ export async function submitCustomerOrderAction(
 
     return {
       ok: true,
-      message: "Siparis mutfaga gonderildi."
+      message: t.messages.customerOrderSent
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Siparis gonderilemedi."
+      message: error instanceof Error ? error.message : t.messages.customerOrderFailed
     };
   }
 }

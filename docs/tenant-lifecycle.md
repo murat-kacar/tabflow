@@ -35,17 +35,18 @@ Examples:
 ## Create
 
 1. Validate tenant code and domain.
-2. Optionally capture the intended first tenant admin email.
-3. Reserve tenant code and primary domain in the platform database.
-4. Create a `tenant.create` provision job.
-5. Allocate runtime identifiers such as database name, database user, and ports.
-6. Prepare tenant runtime configuration.
-7. Generate per-table firmware config artifacts.
-8. Create tenant database and database user.
-9. Apply tenant migrations.
-10. Seed initial tenant data, including the default table count and default tenant admin.
-11. Verify tenant API health.
-12. Mark tenant active.
+2. Capture required tenant language, currency, and time zone.
+3. Optionally capture the intended first tenant admin email.
+4. Reserve tenant code, primary domain, and regional settings in the platform database.
+5. Create a `tenant.create` provision job.
+6. Allocate runtime identifiers such as database name, database user, and ports.
+7. Prepare tenant runtime configuration.
+8. Generate per-table firmware config artifacts.
+9. Create tenant database and database user.
+10. Apply tenant migrations.
+11. Seed initial tenant data, including the default table count and default tenant admin.
+12. Verify tenant API health.
+13. Mark tenant active.
 
 Each step needs a compensation step or a clear retry state.
 

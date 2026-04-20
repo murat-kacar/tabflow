@@ -11,7 +11,9 @@ import {
   tenantListSchema,
   tenantRuntimeSummaryListSchema,
   tenantSchema,
-  tenantStatusSchema
+  tenantStatusSchema,
+  type UpdateTenantRegionalSettingsInput,
+  updateTenantRegionalSettingsInputSchema
 } from "@tabflow/shared-ts";
 import type { PlatformSession } from "./platform-session";
 
@@ -119,6 +121,31 @@ export async function updateTenantStatus(
     },
     body: JSON.stringify({ status: parsedStatus })
   });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+
+  return tenantSchema.parse(await response.json());
+}
+
+export async function updateTenantRegionalSettings(
+  id: string,
+  input: UpdateTenantRegionalSettingsInput,
+  session: PlatformSession
+): Promise<Tenant> {
+  const payload = updateTenantRegionalSettingsInputSchema.parse(input);
+  const response = await fetch(
+    `${platformApiBaseUrl()}/api/platform/tenants/${id}/regional-settings`,
+    {
+      method: "PATCH",
+      headers: {
+        ...platformApiHeaders(session),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
 
   if (!response.ok) {
     throw new Error(await readProblem(response));

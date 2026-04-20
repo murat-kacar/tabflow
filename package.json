@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "i18n:audit": "node scripts/audit-i18n-visible-text.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "pnpm test:dotnet && pnpm test:ts",

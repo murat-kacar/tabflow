@@ -37,6 +37,8 @@ Environment/config values used today:
 - `Tenant:BaseUrl`
 - `Tenant:BootstrapToken`
 - `Tenant:CurrencyCode`
+- `Tenant:LanguageCode`
+- `Tenant:TimeZone`
 - `Tenant:InitialTableCount`
 - `Tenant:DeviceTokenTtlSeconds`
 - `Tenant:DeviceKeySeedJson`
@@ -79,6 +81,8 @@ Returns basic tenant identity:
 - display name
 - primary domain
 - currency
+- language
+- time zone
 
 ### Public Catalog
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getDictionary } from "./i18n/server";
 import {
   closeTenantBill,
   createAdminOrder,
@@ -86,6 +87,8 @@ export async function tenantLoginAction(
   _previousState: TenantLoginActionState,
   formData: FormData
 ): Promise<TenantLoginActionState> {
+  const t = await getDictionary();
+
   try {
     await establishSession(
       String(formData.get("email") ?? "")
@@ -97,7 +100,7 @@ export async function tenantLoginAction(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Giris yapilamadi."
+      message: error instanceof Error ? error.message : t.messages.loginFailed
     };
   }
 
@@ -108,6 +111,8 @@ export async function tenantBootstrapAction(
   _previousState: TenantLoginActionState,
   formData: FormData
 ): Promise<TenantLoginActionState> {
+  const t = await getDictionary();
+
   try {
     await establishSession(
       String(formData.get("email") ?? "")
@@ -119,7 +124,7 @@ export async function tenantBootstrapAction(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Ilk admin olusturulamadi."
+      message: error instanceof Error ? error.message : t.messages.bootstrapFailed
     };
   }
 
@@ -130,12 +135,12 @@ export async function changeTenantPasswordAction(
   _previousState: TenantLoginActionState,
   formData: FormData
 ): Promise<TenantLoginActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -146,7 +151,7 @@ export async function changeTenantPasswordAction(
   if (newPassword !== confirmPassword) {
     return {
       ok: false,
-      message: "Yeni sifre ve tekrar alani ayni olmali."
+      message: t.messages.passwordMismatch
     };
   }
 
@@ -167,7 +172,7 @@ export async function changeTenantPasswordAction(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Sifre degistirilemedi."
+      message: error instanceof Error ? error.message : t.messages.passwordChangeFailed
     };
   }
 
@@ -180,10 +185,10 @@ export async function tenantLogoutAction(): Promise<void> {
 }
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    throw new Error("Oturum bulunamadi.");
+    throw new Error(t.messages.sessionMissing);
   }
 
   await createMenuCategory(session, {
@@ -198,10 +203,10 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function createItemAction(formData: FormData): Promise<void> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    throw new Error("Oturum bulunamadi.");
+    throw new Error(t.messages.sessionMissing);
   }
 
   await createMenuItem(session, {
@@ -223,12 +228,12 @@ export async function rotateDeviceKeyAction(
   _previousState: TenantDeviceActionState,
   formData: FormData
 ): Promise<TenantDeviceActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -238,14 +243,14 @@ export async function rotateDeviceKeyAction(
 
     return {
       ok: true,
-      message: "Cihaz anahtari yenilendi.",
+      message: t.messages.deviceKeyRotated,
       firmwareConfig: result.firmwareConfig,
       rawDeviceKey: result.rawDeviceKey
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Cihaz anahtari yenilenemedi."
+      message: error instanceof Error ? error.message : t.messages.deviceKeyRotateFailed
     };
   }
 }
@@ -254,12 +259,12 @@ export async function refreshDeviceTokenAction(
   _previousState: TenantDeviceActionState,
   formData: FormData
 ): Promise<TenantDeviceActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -269,12 +274,12 @@ export async function refreshDeviceTokenAction(
 
     return {
       ok: true,
-      message: `Yeni token gonderildi. TTL ${result.ttlSeconds}s`
+      message: `${t.messages.deviceTokenSent} ${result.ttlSeconds}s`
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Token gonderilemedi."
+      message: error instanceof Error ? error.message : t.messages.deviceTokenSendFailed
     };
   }
 }
@@ -283,12 +288,12 @@ export async function closeBillAction(
   _previousState: TenantAdminActionState,
   formData: FormData
 ): Promise<TenantAdminActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -298,12 +303,12 @@ export async function closeBillAction(
 
     return {
       ok: true,
-      message: "Acik hesap kapatildi."
+      message: t.messages.billClosed
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Hesap kapatilamadi."
+      message: error instanceof Error ? error.message : t.messages.billCloseFailed
     };
   }
 }
@@ -312,12 +317,12 @@ export async function moveBillAction(
   _previousState: TenantAdminActionState,
   formData: FormData
 ): Promise<TenantAdminActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -329,12 +334,12 @@ export async function moveBillAction(
     revalidatePath("/console");
     return {
       ok: true,
-      message: "Hesap hedef masaya tasindi."
+      message: t.messages.billMoved
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Hesap tasinamadi."
+      message: error instanceof Error ? error.message : t.messages.billMoveFailed
     };
   }
 }
@@ -343,12 +348,12 @@ export async function mergeBillAction(
   _previousState: TenantAdminActionState,
   formData: FormData
 ): Promise<TenantAdminActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -360,12 +365,12 @@ export async function mergeBillAction(
     revalidatePath("/console");
     return {
       ok: true,
-      message: "Hesaplar birlestirildi."
+      message: t.messages.billsMerged
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Hesaplar birlestirilemedi."
+      message: error instanceof Error ? error.message : t.messages.billsMergeFailed
     };
   }
 }
@@ -374,12 +379,12 @@ export async function splitBillAction(
   _previousState: TenantAdminActionState,
   formData: FormData
 ): Promise<TenantAdminActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -392,12 +397,12 @@ export async function splitBillAction(
     revalidatePath("/console");
     return {
       ok: true,
-      message: "Secili siparisler hedef masaya ayrildi."
+      message: t.messages.billSplit
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Hesap ayrilamadi."
+      message: error instanceof Error ? error.message : t.messages.billSplitFailed
     };
   }
 }
@@ -406,12 +411,12 @@ export async function updateOrderStatusAction(
   _previousState: TenantAdminActionState,
   formData: FormData
 ): Promise<TenantAdminActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -425,12 +430,12 @@ export async function updateOrderStatusAction(
 
     return {
       ok: true,
-      message: "Siparis durumu guncellendi."
+      message: t.messages.orderStatusUpdated
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Siparis durumu guncellenemedi."
+      message: error instanceof Error ? error.message : t.messages.orderStatusUpdateFailed
     };
   }
 }
@@ -439,12 +444,13 @@ export async function createPdaOrderAction(
   _previousState: TenantPdaOrderActionState,
   formData: FormData
 ): Promise<TenantPdaOrderActionState> {
+  const t = await getDictionary();
   const session = await getTenantSession();
 
   if (!session) {
     return {
       ok: false,
-      message: "Oturum bulunamadi."
+      message: t.messages.sessionMissing
     };
   }
 
@@ -463,7 +469,7 @@ export async function createPdaOrderAction(
   if (items.length === 0) {
     return {
       ok: false,
-      message: "En az bir urun secmelisin."
+      message: t.messages.orderRequiresItem
     };
   }
 
@@ -480,13 +486,13 @@ export async function createPdaOrderAction(
 
     return {
       ok: true,
-      message: `Siparis gonderildi. Kayit #${order.id.slice(0, 8)}`,
+      message: `${t.messages.pdaOrderSent} #${order.id.slice(0, 8)}`,
       createdOrderId: order.id
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Siparis gonderilemedi."
+      message: error instanceof Error ? error.message : t.messages.pdaOrderFailed
     };
   }
 }
@@ -495,10 +501,10 @@ export async function createTableAction(
   _previousState: TenantTableActionState,
   formData: FormData
 ): Promise<TenantTableActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -512,11 +518,11 @@ export async function createTableAction(
       isActive: formData.get("isActive") === "on"
     });
     revalidatePath("/console");
-    return { ok: true, message: "Masa eklendi." };
+    return { ok: true, message: t.messages.tableCreated };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Masa eklenemedi."
+      message: error instanceof Error ? error.message : t.messages.tableCreateFailed
     };
   }
 }
@@ -525,10 +531,10 @@ export async function updateTableAction(
   _previousState: TenantTableActionState,
   formData: FormData
 ): Promise<TenantTableActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -542,11 +548,11 @@ export async function updateTableAction(
       isActive: formData.get("isActive") === "on"
     });
     revalidatePath("/console");
-    return { ok: true, message: "Masa guncellendi." };
+    return { ok: true, message: t.messages.tableUpdated };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Masa guncellenemedi."
+      message: error instanceof Error ? error.message : t.messages.tableUpdateFailed
     };
   }
 }
@@ -555,10 +561,10 @@ export async function saveFloorLayoutAction(
   _previousState: TenantTableActionState,
   formData: FormData
 ): Promise<TenantTableActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -575,11 +581,11 @@ export async function saveFloorLayoutAction(
     await saveFloorLayoutDocument(session, floorLayoutJson);
     revalidatePath("/service");
     revalidatePath("/console");
-    return { ok: true, message: "Masa duzeni kaydedildi." };
+    return { ok: true, message: t.messages.floorLayoutSaved };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Masa duzeni kaydedilemedi."
+      message: error instanceof Error ? error.message : t.messages.floorLayoutSaveFailed
     };
   }
 }
@@ -588,21 +594,21 @@ export async function deleteTableAction(
   _previousState: TenantTableActionState,
   formData: FormData
 ): Promise<TenantTableActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
     await deleteAdminTable(session, String(formData.get("tableId") ?? ""));
     revalidatePath("/console");
     revalidatePath("/service");
-    return { ok: true, message: "Masa silindi." };
+    return { ok: true, message: t.messages.tableDeleted };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Masa silinemedi."
+      message: error instanceof Error ? error.message : t.messages.tableDeleteFailed
     };
   }
 }
@@ -611,10 +617,10 @@ export async function createStationAction(
   _previousState: TenantStationActionState,
   formData: FormData
 ): Promise<TenantStationActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -628,11 +634,11 @@ export async function createStationAction(
     revalidatePath("/console");
     revalidatePath("/console/stations");
     revalidatePath("/stations");
-    return { ok: true, message: "Istasyon eklendi." };
+    return { ok: true, message: t.messages.stationCreated };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Istasyon eklenemedi."
+      message: error instanceof Error ? error.message : t.messages.stationCreateFailed
     };
   }
 }
@@ -641,10 +647,10 @@ export async function updateStationAction(
   _previousState: TenantStationActionState,
   formData: FormData
 ): Promise<TenantStationActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -658,11 +664,11 @@ export async function updateStationAction(
     revalidatePath("/console");
     revalidatePath("/console/stations");
     revalidatePath("/stations");
-    return { ok: true, message: "Istasyon guncellendi." };
+    return { ok: true, message: t.messages.stationUpdated };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Istasyon guncellenemedi."
+      message: error instanceof Error ? error.message : t.messages.stationUpdateFailed
     };
   }
 }
@@ -671,10 +677,10 @@ export async function deleteStationAction(
   _previousState: TenantStationActionState,
   formData: FormData
 ): Promise<TenantStationActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -682,11 +688,11 @@ export async function deleteStationAction(
     revalidatePath("/console");
     revalidatePath("/console/stations");
     revalidatePath("/stations");
-    return { ok: true, message: "Istasyon silindi." };
+    return { ok: true, message: t.messages.stationDeleted };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Istasyon silinemedi."
+      message: error instanceof Error ? error.message : t.messages.stationDeleteFailed
     };
   }
 }
@@ -695,10 +701,10 @@ export async function updateKitchenItemStatusAction(
   _previousState: TenantAdminActionState,
   formData: FormData
 ): Promise<TenantAdminActionState> {
-  const session = await getTenantSession();
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
 
   if (!session) {
-    return { ok: false, message: "Oturum bulunamadi." };
+    return { ok: false, message: t.messages.sessionMissing };
   }
 
   try {
@@ -709,11 +715,11 @@ export async function updateKitchenItemStatusAction(
     );
     revalidatePath("/console");
     revalidatePath("/stations");
-    return { ok: true, message: "Mutfak kalemi guncellendi." };
+    return { ok: true, message: t.messages.kitchenItemUpdated };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Mutfak kalemi guncellenemedi."
+      message: error instanceof Error ? error.message : t.messages.kitchenItemUpdateFailed
     };
   }
 }

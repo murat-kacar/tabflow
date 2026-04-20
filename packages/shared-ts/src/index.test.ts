@@ -55,6 +55,9 @@ describe("tenantSchema", () => {
       code: "moda",
       displayName: "Moda Cafe",
       initialAdminEmail: "admin@moda.example.com",
+      languageCode: "en",
+      currencyCode: "GBP",
+      timeZone: "Europe/London",
       status: "provisioning",
       primaryDomain: "moda.example.com",
       createdAt: "2026-04-15T00:00:00.000Z",
@@ -71,7 +74,10 @@ describe("createTenantInputSchema", () => {
       code: "moda",
       displayName: "Moda Cafe",
       primaryDomain: "MODA.EXAMPLE.COM.",
-      initialAdminEmail: "ADMIN@MODA.EXAMPLE.COM"
+      initialAdminEmail: "ADMIN@MODA.EXAMPLE.COM",
+      languageCode: "en",
+      currencyCode: "GBP",
+      timeZone: "Europe/London"
     });
 
     expect(input.primaryDomain).toBe("moda.example.com");
@@ -95,6 +101,7 @@ describe("platform auth schemas", () => {
       id: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
       email: "admin@example.com",
       role: "owner",
+      languageCode: "en",
       createdAt: "2026-04-15T00:00:00.000Z"
     });
 
@@ -179,6 +186,8 @@ describe("tenant runtime schemas", () => {
       code: "moda",
       displayName: "Moda Cafe",
       primaryDomain: "moda.example.com",
+      languageCode: "en",
+      timeZone: "Europe/London",
       currencyCode: "GBP"
     });
 
@@ -192,6 +201,8 @@ describe("tenant runtime schemas", () => {
         code: "moda",
         displayName: "Moda Cafe",
         primaryDomain: "moda.example.com",
+        languageCode: "en",
+        timeZone: "Europe/London",
         currencyCode: "GBP"
       },
       categories: [

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TenantDashboard } from "./components/tenant-dashboard";
+import { en } from "./i18n/dictionaries/en";
 
 describe("TenantDashboard", () => {
   it("renders the tenant registry empty state", () => {
@@ -12,15 +13,17 @@ describe("TenantDashboard", () => {
         session={{
           adminId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
           email: "admin@example.com",
+          languageCode: "en",
           role: "owner",
           expiresAt: "2026-04-15T01:00:00.000Z"
         }}
+        t={en}
         tenants={[]}
       />
     );
 
     expect(screen.getByRole("heading", { name: "TabFlow Super Admin" })).toBeInTheDocument();
-    expect(screen.getByText(/henuz tenant yok/i)).toBeInTheDocument();
+    expect(screen.getByText(/no tenants yet/i)).toBeInTheDocument();
   });
 
   it("renders tenant rows", () => {
@@ -55,15 +58,20 @@ describe("TenantDashboard", () => {
         session={{
           adminId: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
           email: "admin@example.com",
+          languageCode: "en",
           role: "owner",
           expiresAt: "2026-04-15T01:00:00.000Z"
         }}
+        t={en}
         tenants={[
           {
             id: "018f6f12-37b6-7cc2-9d37-d49943f7b7a6",
             code: "moda",
             displayName: "Moda Cafe",
             initialAdminEmail: "admin@moda.example.com",
+            languageCode: "en",
+            currencyCode: "GBP",
+            timeZone: "Europe/London",
             status: "active",
             primaryDomain: "moda.example.com",
             createdAt: "2026-04-15T00:00:00.000Z",
@@ -75,6 +83,6 @@ describe("TenantDashboard", () => {
 
     expect(screen.getAllByText("Moda Cafe").length).toBeGreaterThan(0);
     expect(screen.getByText("moda.example.com")).toBeInTheDocument();
-    expect(screen.getByText(/runtime gorunurlugu/i)).toBeInTheDocument();
+    expect(screen.getByText(/runtime visibility/i)).toBeInTheDocument();
   });
 });

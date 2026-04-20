@@ -8,13 +8,22 @@ import {
   type TenantStationActionState,
   updateStationAction
 } from "../auth-actions";
+import type { Dictionary } from "../i18n/server";
 
 const initialState: TenantStationActionState = {
   ok: false,
   message: ""
 };
 
-function StationCard({ station }: { station: ServiceStation }) {
+function StationCard({
+  common,
+  station,
+  t
+}: {
+  common: Dictionary["common"];
+  station: ServiceStation;
+  t: Dictionary["stationsManager"];
+}) {
   const [updateState, updateAction, updatePending] = useActionState(
     updateStationAction,
     initialState
@@ -41,17 +50,17 @@ function StationCard({ station }: { station: ServiceStation }) {
             station.isActive ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-700"
           }`}
         >
-          {station.isActive ? "Aktif" : "Pasif"}
+          {station.isActive ? common.active : common.passive}
         </span>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-2xl bg-stone-50 px-4 py-3">
-          <p className="text-stone-500">Sira</p>
+          <p className="text-stone-500">{t.sortOrder}</p>
           <p className="mt-1 font-semibold text-stone-950">{station.sortOrder}</p>
         </div>
         <div className="rounded-2xl bg-stone-50 px-4 py-3">
-          <p className="text-stone-500">Renk</p>
+          <p className="text-stone-500">{t.color}</p>
           <p className="mt-1 font-mono font-semibold text-stone-950">{station.colorHex}</p>
         </div>
       </div>
@@ -81,7 +90,7 @@ function StationCard({ station }: { station: ServiceStation }) {
         />
         <label className="flex items-center gap-2 text-sm text-stone-700">
           <input defaultChecked={station.isActive} name="isActive" type="checkbox" />
-          Aktif
+          {t.active}
         </label>
         <div className="flex flex-wrap gap-3">
           <button
@@ -89,7 +98,7 @@ function StationCard({ station }: { station: ServiceStation }) {
             disabled={updatePending}
             type="submit"
           >
-            Guncelle
+            {t.update}
           </button>
         </div>
       </form>
@@ -100,7 +109,7 @@ function StationCard({ station }: { station: ServiceStation }) {
           disabled={deletePending}
           type="submit"
         >
-          Sil
+          {t.delete}
         </button>
       </form>
       {updateState.message ? (
@@ -117,7 +126,7 @@ function StationCard({ station }: { station: ServiceStation }) {
   );
 }
 
-export function StationManager({ stations }: { stations: ServiceStation[] }) {
+export function StationManager({ stations, t }: { stations: ServiceStation[]; t: Dictionary }) {
   const [createState, createAction, createPending] = useActionState(
     createStationAction,
     initialState
@@ -129,33 +138,34 @@ export function StationManager({ stations }: { stations: ServiceStation[] }) {
       <section className="mx-auto max-w-7xl">
         <section className="rounded-[2rem] border border-black/10 bg-[#19352d] p-8 text-white shadow-xl">
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">
-            Stations
+            {t.stationsManager.heroEyebrow}
           </p>
-          <h1 className="mt-4 text-5xl font-bold tracking-tight">
-            Istasyon kurulumunu ve akisini tek yerden yonet
-          </h1>
+          <h1 className="mt-4 text-5xl font-bold tracking-tight">{t.stationsManager.heroTitle}</h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-emerald-50/85">
-            Station-first operasyon modeli burada kurulur. Barista, bar, nargile, fastfood veya
-            sana ozel hatlarin hepsi bu yuzeyde tanimlanir.
+            {t.stationsManager.heroBody}
           </p>
         </section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Toplam istasyon
+              {t.stationsManager.totalStations}
             </p>
-            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">{stations.length}</p>
+            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">
+              {stations.length}
+            </p>
           </article>
           <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Aktif istasyon
+              {t.stationsManager.activeStations}
             </p>
-            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">{activeStations}</p>
+            <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">
+              {activeStations}
+            </p>
           </article>
           <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Fallback adaylari
+              {t.stationsManager.fallbackCandidates}
             </p>
             <p className="mt-3 text-4xl font-bold tracking-tight text-stone-950">
               {stations.filter((station) => station.code === "general").length}
@@ -166,35 +176,41 @@ export function StationManager({ stations }: { stations: ServiceStation[] }) {
         <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Station Grid
+              {t.stationsManager.gridEyebrow}
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">Istasyon duzeni</h2>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+              {t.stationsManager.gridTitle}
+            </h2>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               {stations.map((station) => (
-                <StationCard key={station.id} station={station} />
+                <StationCard
+                  common={t.common}
+                  key={station.id}
+                  station={station}
+                  t={t.stationsManager}
+                />
               ))}
             </div>
           </div>
 
           <aside className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">
-              Yeni station
+              {t.stationsManager.newStationEyebrow}
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">Kurulum sihirbazi</h2>
-            <p className="mt-3 text-sm leading-6 text-stone-600">
-              Ilk adimda istasyon kimligini tanimla. Sonraki iterasyonda urun kapsami ve gorunur
-              roller de bu panelde wizard adimlari olarak acilacak.
-            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+              {t.stationsManager.wizardTitle}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-stone-600">{t.stationsManager.wizardBody}</p>
             <form action={createAction} className="mt-5 grid gap-3">
               <input
                 className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3"
                 name="name"
-                placeholder="Barista"
+                placeholder={t.stationsManager.namePlaceholder}
               />
               <input
                 className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 font-mono"
                 name="code"
-                placeholder="barista"
+                placeholder={t.stationsManager.codePlaceholder}
               />
               <input
                 className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 font-mono"
@@ -209,18 +225,20 @@ export function StationManager({ stations }: { stations: ServiceStation[] }) {
               />
               <label className="flex items-center gap-2 text-sm text-stone-700">
                 <input defaultChecked name="isActive" type="checkbox" />
-                Aktif
+                {t.stationsManager.active}
               </label>
               <button
                 className="rounded-full bg-[#16392e] px-5 py-3 text-sm font-semibold text-white"
                 disabled={createPending}
                 type="submit"
               >
-                Istasyon ekle
+                {t.stationsManager.create}
               </button>
             </form>
             {createState.message ? (
-              <p className={`mt-3 text-sm ${createState.ok ? "text-emerald-700" : "text-rose-700"}`}>
+              <p
+                className={`mt-3 text-sm ${createState.ok ? "text-emerald-700" : "text-rose-700"}`}
+              >
                 {createState.message}
               </p>
             ) : null}

@@ -24,6 +24,7 @@ public static class TenantEndpoints
         group.MapGet("/{id:guid}/runtime", GetTenantRuntime);
         group.MapGet("/{id:guid}/jobs", ListTenantJobs);
         group.MapPost("/", CreateTenant).WithMetadata(new RequirePlatformRoleAttribute(PlatformAdminRole.Admin, PlatformAdminRole.Owner));
+        group.MapPatch("/{id:guid}/regional-settings", UpdateRegionalSettings).WithMetadata(new RequirePlatformRoleAttribute(PlatformAdminRole.Admin, PlatformAdminRole.Owner));
         group.MapPatch("/{id:guid}/status", UpdateStatus).WithMetadata(new RequirePlatformRoleAttribute(PlatformAdminRole.Admin, PlatformAdminRole.Owner));
         group.MapGet("/jobs", ListJobs);
         group.MapGet("/jobs/{jobId:guid}", GetJob);
@@ -71,6 +72,9 @@ public static class TenantEndpoints
         var initialAdminEmail = string.IsNullOrWhiteSpace(request.InitialAdminEmail)
             ? $"admin@{code}.tabflow.uk"
             : request.InitialAdminEmail.Trim().ToLowerInvariant();
+        var languageCode = NormalizeLanguageCode(request.LanguageCode);
+        var currencyCode = NormalizeCurrencyCode(request.CurrencyCode);
+        var timeZone = request.TimeZone.Trim();
 
         if (!TenantValidation.IsValidCode(code))
         {
@@ -104,6 +108,12 @@ public static class TenantEndpoints
             });
         }
 
+        var regionalSettingsProblem = ValidateRegionalSettings(languageCode, currencyCode, timeZone);
+        if (regionalSettingsProblem is not null)
+        {
+            return regionalSettingsProblem;
+        }
+
         var conflicts = await db.Tenants.AnyAsync(tenant => tenant.Code == code, cancellationToken)
             || await db.TenantDomains.AnyAsync(domain => domain.Host == host, cancellationToken);
 
@@ -116,7 +126,10 @@ public static class TenantEndpoints
         {
             code,
             primaryDomain = host,
-            initialAdminEmail
+            initialAdminEmail,
+            languageCode,
+            currencyCode,
+            timeZone
         });
 
         var tenant = new Tenant
@@ -124,6 +137,9 @@ public static class TenantEndpoints
             Code = code,
             DisplayName = displayName,
             InitialAdminEmail = initialAdminEmail,
+            LanguageCode = languageCode,
+            CurrencyCode = currencyCode,
+            TimeZone = timeZone,
             Status = TenantStatus.Provisioning
         };
         tenant.Domains.Add(new TenantDomain { Host = host, IsPrimary = true });
@@ -144,6 +160,61 @@ public static class TenantEndpoints
             cancellationToken);
 
         return Results.Created($"/api/platform/tenants/{tenant.Id}", ToResponse(tenant));
+    }
+
+    private static async Task<IResult> UpdateRegionalSettings(
+        Guid id,
+        UpdateTenantRegionalSettingsRequest request,
+        PlatformDbContext db,
+        PlatformAuditWriter auditWriter,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var languageCode = NormalizeLanguageCode(request.LanguageCode);
+        var currencyCode = NormalizeCurrencyCode(request.CurrencyCode);
+        var timeZone = request.TimeZone.Trim();
+        var regionalSettingsProblem = ValidateRegionalSettings(languageCode, currencyCode, timeZone);
+        if (regionalSettingsProblem is not null)
+        {
+            return regionalSettingsProblem;
+        }
+
+        var tenant = await db.Tenants
+            .Include(tenant => tenant.Domains)
+            .FirstOrDefaultAsync(tenant => tenant.Id == id, cancellationToken);
+
+        if (tenant is null)
+        {
+            return Results.NotFound();
+        }
+
+        tenant.LanguageCode = languageCode;
+        tenant.CurrencyCode = currencyCode;
+        tenant.TimeZone = timeZone;
+        tenant.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            languageCode,
+            currencyCode,
+            timeZone
+        });
+        tenant.ProvisionJobs.Add(new ProvisionJob
+        {
+            Type = "tenant.settings.update",
+            PayloadJson = payload
+        });
+
+        await auditWriter.WriteAsync(
+            PlatformActorAccessor.Read(httpContext),
+            "tenant.regional_settings_changed",
+            "tenant",
+            tenant.Id.ToString(),
+            payload,
+            cancellationToken);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(ToResponse(tenant));
     }
 
     private static async Task<IResult> UpdateStatus(
@@ -267,10 +338,41 @@ public static class TenantEndpoints
             tenant.Code,
             tenant.DisplayName,
             tenant.InitialAdminEmail,
+            tenant.LanguageCode,
+            tenant.CurrencyCode,
+            tenant.TimeZone,
             tenant.Status,
             primaryDomain,
             tenant.CreatedAt,
             tenant.UpdatedAt);
+    }
+
+    private static string NormalizeLanguageCode(string languageCode) =>
+        languageCode.Trim().ToLowerInvariant();
+
+    private static string NormalizeCurrencyCode(string currencyCode) =>
+        currencyCode.Trim().ToUpperInvariant();
+
+    private static IResult? ValidateRegionalSettings(string languageCode, string currencyCode, string timeZone)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (languageCode is not ("en" or "tr"))
+        {
+            errors["languageCode"] = ["Language must be one of: en, tr."];
+        }
+
+        if (currencyCode is not ("GBP" or "TRY" or "EUR" or "USD"))
+        {
+            errors["currencyCode"] = ["Currency must be one of: GBP, TRY, EUR, USD."];
+        }
+
+        if (timeZone is not ("Europe/London" or "Europe/Istanbul" or "UTC"))
+        {
+            errors["timeZone"] = ["Time zone must be one of: Europe/London, Europe/Istanbul, UTC."];
+        }
+
+        return errors.Count > 0 ? Results.ValidationProblem(errors) : null;
     }
 
     private static ProvisionJobResponse ToResponse(ProvisionJob job) =>

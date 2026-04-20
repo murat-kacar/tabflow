@@ -27,6 +27,15 @@ public static class TenantDatabaseInitializer
         return $"admin@{CatalogValidation.NormalizeCode(options.Code)}.tabflow.uk";
     }
 
+    internal static string NormalizeLanguageCode(string languageCode) =>
+        languageCode.Trim().ToLowerInvariant() is "tr" ? "tr" : "en";
+
+    internal static string NormalizeTimeZone(string timeZone)
+    {
+        var normalized = timeZone.Trim();
+        return normalized is "Europe/Istanbul" or "UTC" ? normalized : "Europe/London";
+    }
+
     public static async Task InitializeAsync(IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
@@ -80,6 +89,12 @@ public static class TenantDatabaseInitializer
             ALTER TABLE tenant_profile
             ADD COLUMN IF NOT EXISTS floor_layout_json text NOT NULL DEFAULT '{}';
 
+            ALTER TABLE tenant_profile
+            ADD COLUMN IF NOT EXISTS language_code varchar(8) NOT NULL DEFAULT 'en';
+
+            ALTER TABLE tenant_profile
+            ADD COLUMN IF NOT EXISTS time_zone varchar(80) NOT NULL DEFAULT 'Europe/London';
+
             ALTER TABLE menu_items
             ADD COLUMN IF NOT EXISTS station_id uuid NULL;
 
@@ -103,15 +118,31 @@ public static class TenantDatabaseInitializer
 
     private static async Task EnsureSeedDataAsync(TenantDbContext db, TenantRuntimeOptions options)
     {
-        if (!await db.TenantProfiles.AnyAsync())
+        var normalizedLanguageCode = NormalizeLanguageCode(options.LanguageCode);
+        var normalizedCurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode);
+        var normalizedTimeZone = NormalizeTimeZone(options.TimeZone);
+
+        var profile = await db.TenantProfiles.OrderBy(profile => profile.CreatedAt).FirstOrDefaultAsync();
+        if (profile is null)
         {
             db.TenantProfiles.Add(new TenantProfile
             {
                 Code = CatalogValidation.NormalizeCode(options.Code),
                 DisplayName = options.DisplayName.Trim(),
                 PrimaryDomain = CatalogValidation.NormalizeHost(options.BaseUrl),
-                CurrencyCode = CatalogValidation.NormalizeCurrency(options.CurrencyCode)
+                CurrencyCode = normalizedCurrencyCode,
+                LanguageCode = normalizedLanguageCode,
+                TimeZone = normalizedTimeZone
             });
+        }
+        else
+        {
+            profile.DisplayName = options.DisplayName.Trim();
+            profile.PrimaryDomain = CatalogValidation.NormalizeHost(options.BaseUrl);
+            profile.CurrencyCode = normalizedCurrencyCode;
+            profile.LanguageCode = normalizedLanguageCode;
+            profile.TimeZone = normalizedTimeZone;
+            profile.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
         if (!await db.TenantAdmins.AnyAsync(admin => admin.IsActive))

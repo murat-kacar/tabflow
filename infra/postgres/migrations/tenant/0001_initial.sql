@@ -12,13 +12,19 @@ CREATE TABLE IF NOT EXISTS tenant_profile (
     code varchar(63) NOT NULL,
     display_name varchar(160) NOT NULL,
     primary_domain varchar(253) NOT NULL,
+    language_code varchar(8) NOT NULL DEFAULT 'en',
     currency_code char(3) NOT NULL,
+    time_zone varchar(80) NOT NULL DEFAULT 'Europe/London',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tenant_profile_code ON tenant_profile (code);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tenant_profile_primary_domain ON tenant_profile (primary_domain);
+
+ALTER TABLE tenant_profile
+    ADD COLUMN IF NOT EXISTS language_code varchar(8) NOT NULL DEFAULT 'en',
+    ADD COLUMN IF NOT EXISTS time_zone varchar(80) NOT NULL DEFAULT 'Europe/London';
 
 CREATE TABLE IF NOT EXISTS tenant_admins (
     id uuid PRIMARY KEY,

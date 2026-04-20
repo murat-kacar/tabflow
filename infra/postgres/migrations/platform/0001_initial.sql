@@ -24,13 +24,19 @@ CREATE TABLE IF NOT EXISTS platform_tenants (
   code varchar(63) NOT NULL UNIQUE,
   display_name varchar(160) NOT NULL,
   initial_admin_email varchar(254),
+  language_code varchar(8) NOT NULL DEFAULT 'en',
+  currency_code varchar(3) NOT NULL DEFAULT 'GBP',
+  time_zone varchar(80) NOT NULL DEFAULT 'Europe/London',
   status tenant_status NOT NULL DEFAULT 'provisioning',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE platform_tenants
-  ADD COLUMN IF NOT EXISTS initial_admin_email varchar(254);
+  ADD COLUMN IF NOT EXISTS initial_admin_email varchar(254),
+  ADD COLUMN IF NOT EXISTS language_code varchar(8) NOT NULL DEFAULT 'en',
+  ADD COLUMN IF NOT EXISTS currency_code varchar(3) NOT NULL DEFAULT 'GBP',
+  ADD COLUMN IF NOT EXISTS time_zone varchar(80) NOT NULL DEFAULT 'Europe/London';
 
 CREATE TABLE IF NOT EXISTS platform_tenant_domains (
   id uuid PRIMARY KEY,
@@ -49,9 +55,13 @@ CREATE TABLE IF NOT EXISTS platform_admins (
   email varchar(254) NOT NULL UNIQUE,
   password_hash varchar(512) NOT NULL,
   role platform_admin_role NOT NULL DEFAULT 'admin',
+  language_code varchar(8) NOT NULL DEFAULT 'en',
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE platform_admins
+  ADD COLUMN IF NOT EXISTS language_code varchar(8) NOT NULL DEFAULT 'en';
 
 CREATE TABLE IF NOT EXISTS platform_provision_jobs (
   id uuid PRIMARY KEY,

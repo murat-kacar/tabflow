@@ -4,6 +4,7 @@ import type { KitchenStationBoard } from "@tabflow/shared-ts";
 import Link from "next/link";
 import { useActionState } from "react";
 import { type TenantAdminActionState, updateKitchenItemStatusAction } from "../auth-actions";
+import type { Dictionary } from "../i18n/server";
 
 const initialState: TenantAdminActionState = {
   ok: false,
@@ -18,56 +19,58 @@ type StationVariant = {
   heroCopy: string;
 };
 
-function stationVariant(stationCode: string): StationVariant {
+type KitchenCopy = Dictionary["kitchenBoard"];
+
+function stationVariant(stationCode: string, t: KitchenCopy): StationVariant {
   switch (stationCode) {
     case "barista":
       return {
-        actionLabel: "Bardağa al",
+        actionLabel: t.stationVariants.baristaAction,
         boardLabel: "Barista Board",
         boardTone: "from-[#2d1f17] via-[#4a3124] to-[#1b1512]",
-        emptyLabel: "Barista kuyruğu sakin.",
-        heroCopy: "Kahve ve sicak icecek akisi hizli ritimle ilerlemeli."
+        emptyLabel: t.stationVariants.baristaEmpty,
+        heroCopy: t.stationVariants.baristaHero
       };
     case "bar":
       return {
-        actionLabel: "Shaker'a al",
+        actionLabel: t.stationVariants.barAction,
         boardLabel: "Bar Board",
         boardTone: "from-[#1b2233] via-[#20294a] to-[#131826]",
-        emptyLabel: "Bar kuyruğunda bekleyen ticket yok.",
-        heroCopy: "Bar hattında servis temposu ve sunum hızı kritik."
+        emptyLabel: t.stationVariants.barEmpty,
+        heroCopy: t.stationVariants.barHero
       };
     case "hookah":
     case "nargile":
       return {
-        actionLabel: "Hazirlamaya basla",
+        actionLabel: t.stationVariants.hookahAction,
         boardLabel: "Hookah Board",
         boardTone: "from-[#2d2232] via-[#442d52] to-[#1d1822]",
-        emptyLabel: "Nargile hattı şu an sakin.",
-        heroCopy: "Nargile akışında hazırlık, teslim ve takip daha uzun çevrimlidir."
+        emptyLabel: t.stationVariants.hookahEmpty,
+        heroCopy: t.stationVariants.hookahHero
       };
     case "fastfood":
       return {
-        actionLabel: "Hatta al",
+        actionLabel: t.stationVariants.fastfoodAction,
         boardLabel: "Fastfood Board",
         boardTone: "from-[#332316] via-[#5c3420] to-[#23170f]",
-        emptyLabel: "Fastfood hattında açık ticket yok.",
-        heroCopy: "Hız, sıralama ve sıcak teslim bu istasyonun ana KPI'ı."
+        emptyLabel: t.stationVariants.fastfoodEmpty,
+        heroCopy: t.stationVariants.fastfoodHero
       };
     case "dispatch":
       return {
-        actionLabel: "Paketlemeye al",
+        actionLabel: t.stationVariants.dispatchAction,
         boardLabel: "Dispatch Board",
         boardTone: "from-[#1c2830] via-[#1e3a46] to-[#152026]",
-        emptyLabel: "Paketleme hattı boş.",
-        heroCopy: "Paketleme ve devir teslim akışı burada kapanır."
+        emptyLabel: t.stationVariants.dispatchEmpty,
+        heroCopy: t.stationVariants.dispatchHero
       };
     default:
       return {
-        actionLabel: "Hazirlamaya al",
-        boardLabel: "Station Board",
+        actionLabel: t.stationVariants.defaultAction,
+        boardLabel: t.stationBoard,
         boardTone: "from-[#143328] via-[#1b2d29] to-[#0d1413]",
-        emptyLabel: "Bu kolon için aktif ticket yok.",
-        heroCopy: "Istasyon akışını tek bakışta gör, sırayı bozma, hattı temiz tut."
+        emptyLabel: t.stationVariants.defaultEmpty,
+        heroCopy: t.stationVariants.defaultHero
       };
   }
 }
@@ -85,14 +88,14 @@ function elapsedTone(status: KitchenStationBoard["items"][number]["itemStatus"])
   }
 }
 
-function statusLabel(status: KitchenStationBoard["items"][number]["itemStatus"]) {
+function statusLabel(status: KitchenStationBoard["items"][number]["itemStatus"], t: KitchenCopy) {
   switch (status) {
     case "submitted":
-      return "Yeni";
+      return t.new;
     case "preparing":
-      return "Hazirlaniyor";
+      return t.preparing;
     case "ready":
-      return "Hazir";
+      return t.ready;
     default:
       return status;
   }
@@ -127,12 +130,20 @@ function urgencyForItem(item: KitchenStationBoard["items"][number]) {
   };
 }
 
+function urgencyLabel(label: ReturnType<typeof urgencyForItem>["label"], t: KitchenCopy): string {
+  if (label === "Urgent") return t.urgent;
+  if (label === "Warning") return t.warning;
+  return t.fresh;
+}
+
 function KitchenCard({
   item,
-  prepareLabel
+  prepareLabel,
+  t
 }: {
   item: KitchenStationBoard["items"][number];
   prepareLabel: string;
+  t: KitchenCopy;
 }) {
   const [state, action, pending] = useActionState(updateKitchenItemStatusAction, initialState);
   const urgency = urgencyForItem(item);
@@ -142,18 +153,26 @@ function KitchenCard({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">
-            {item.tableNumber ? `Masa ${item.tableNumber.toString().padStart(3, "0")}` : "Masa yok"}
+            {item.tableNumber
+              ? `${t.table} ${item.tableNumber.toString().padStart(3, "0")}`
+              : t.noTable}
           </p>
-          <p className="text-xs text-stone-300">Siparis #{item.orderId.slice(0, 8)}</p>
+          <p className="text-xs text-stone-300">
+            {t.order} #{item.orderId.slice(0, 8)}
+          </p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${elapsedTone(item.itemStatus)}`}>
-          {statusLabel(item.itemStatus)}
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${elapsedTone(item.itemStatus)}`}
+        >
+          {statusLabel(item.itemStatus, t)}
         </span>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${urgency.tone}`}>
-          {urgency.label} • {urgency.elapsedMinutes} dk
+        <span
+          className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${urgency.tone}`}
+        >
+          {urgencyLabel(urgency.label, t)} • {urgency.elapsedMinutes} {t.minutes}
         </span>
       </div>
 
@@ -161,9 +180,15 @@ function KitchenCard({
         <p className="text-xl font-bold text-white">
           {item.quantity}x {item.itemName}
         </p>
-        {item.itemNote ? <p className="mt-1 text-sm text-amber-200">Not: {item.itemNote}</p> : null}
+        {item.itemNote ? (
+          <p className="mt-1 text-sm text-amber-200">
+            {t.itemNote} {item.itemNote}
+          </p>
+        ) : null}
         {item.orderNote ? (
-          <p className="mt-1 text-sm text-stone-300">Siparis notu: {item.orderNote}</p>
+          <p className="mt-1 text-sm text-stone-300">
+            {t.orderNote} {item.orderNote}
+          </p>
         ) : null}
       </div>
 
@@ -188,7 +213,7 @@ function KitchenCard({
             type="submit"
             value="ready"
           >
-            Hazir yap
+            {t.makeReady}
           </button>
         ) : null}
         {item.itemStatus === "ready" ? (
@@ -199,7 +224,7 @@ function KitchenCard({
             type="submit"
             value="preparing"
           >
-            Tekrar hazirla
+            {t.remake}
           </button>
         ) : null}
         {item.itemStatus !== "ready" ? (
@@ -210,7 +235,7 @@ function KitchenCard({
             type="submit"
             value="cancelled"
           >
-            Iptal
+            {t.cancel}
           </button>
         ) : null}
       </form>
@@ -223,49 +248,72 @@ function KitchenCard({
   );
 }
 
-function EmptyColumn({ label, emptyLabel }: { label: string; emptyLabel: string }) {
+function EmptyColumn({
+  emptyLabel,
+  isFirstColumn,
+  label,
+  t
+}: {
+  emptyLabel: string;
+  isFirstColumn: boolean;
+  label: string;
+  t: KitchenCopy;
+}) {
   return (
     <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-stone-400">
-      {label === "Yeni" ? emptyLabel : `${label} kolonunda aktif ticket yok.`}
+      {isFirstColumn ? emptyLabel : `${label} ${t.columnEmptySuffix}`}
     </div>
   );
 }
 
-function StationPulse({ board }: { board: KitchenStationBoard }) {
+function StationPulse({ board, t }: { board: KitchenStationBoard; t: KitchenCopy }) {
   const urgentItems = board.items.filter((item) => urgencyForItem(item).label === "Urgent").length;
-  const warningItems = board.items.filter((item) => urgencyForItem(item).label === "Warning").length;
+  const warningItems = board.items.filter(
+    (item) => urgencyForItem(item).label === "Warning"
+  ).length;
   const readyItems = board.items.filter((item) => item.itemStatus === "ready").length;
 
   return (
     <div className="grid gap-3 lg:grid-cols-4">
       <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Hat kimligi</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+          {t.lineIdentity}
+        </p>
         <p className="mt-2 text-lg font-bold text-white">{board.stationName}</p>
-        <p className="mt-1 text-sm text-stone-300">{board.stationCode} uretim akisi canli.</p>
+        <p className="mt-1 text-sm text-stone-300">
+          {board.stationCode} {t.productionLive}
+        </p>
       </article>
       <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Warning</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+          {t.warning}
+        </p>
         <p className="mt-2 text-lg font-bold text-amber-100">{warningItems}</p>
-        <p className="mt-1 text-sm text-stone-300">3 dakika uzerine cikan ticket sayisi.</p>
+        <p className="mt-1 text-sm text-stone-300">{t.warningDetail}</p>
       </article>
       <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Urgent</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+          {t.urgent}
+        </p>
         <p className="mt-2 text-lg font-bold text-rose-100">{urgentItems}</p>
-        <p className="mt-1 text-sm text-stone-300">7 dakika ve uzeri ticket baskisi.</p>
+        <p className="mt-1 text-sm text-stone-300">{t.urgentDetail}</p>
       </article>
       <article className="rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Servis cikisi</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+          {t.serviceOutput}
+        </p>
         <p className="mt-2 text-lg font-bold text-emerald-100">{readyItems}</p>
-        <p className="mt-1 text-sm text-stone-300">Masa + Kasa tarafina haber verilmesi gereken hazir kalemler.</p>
+        <p className="mt-1 text-sm text-stone-300">{t.serviceOutputDetail}</p>
       </article>
     </div>
   );
 }
 
-function StationSlaStrip({ boards }: { boards: KitchenStationBoard[] }) {
+function StationSlaStrip({ boards, t }: { boards: KitchenStationBoard[]; t: KitchenCopy }) {
   const totalItems = boards.reduce((sum, board) => sum + board.items.length, 0);
   const urgentItems = boards.reduce(
-    (sum, board) => sum + board.items.filter((item) => urgencyForItem(item).label === "Urgent").length,
+    (sum, board) =>
+      sum + board.items.filter((item) => urgencyForItem(item).label === "Urgent").length,
     0
   );
   const readyItems = boards.reduce(
@@ -276,15 +324,21 @@ function StationSlaStrip({ boards }: { boards: KitchenStationBoard[] }) {
   return (
     <section className="mt-6 grid gap-3 md:grid-cols-3">
       <article className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Canli ticket</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+          {t.liveTickets}
+        </p>
         <p className="mt-2 text-2xl font-black text-white">{totalItems}</p>
       </article>
       <article className="rounded-[1.5rem] border border-rose-400/20 bg-rose-500/10 px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-100">SLA riski</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-100">
+          {t.slaRisk}
+        </p>
         <p className="mt-2 text-2xl font-black text-rose-50">{urgentItems}</p>
       </article>
       <article className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-500/10 px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">Servise hazir</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+          {t.serviceReady}
+        </p>
         <p className="mt-2 text-2xl font-black text-emerald-50">{readyItems}</p>
       </article>
     </section>
@@ -293,10 +347,12 @@ function StationSlaStrip({ boards }: { boards: KitchenStationBoard[] }) {
 
 function QueueFocus({
   board,
-  focused
+  focused,
+  t
 }: {
   board: KitchenStationBoard;
   focused: boolean;
+  t: KitchenCopy;
 }) {
   const submitted = board.items.filter((item) => item.itemStatus === "submitted").length;
   const preparing = board.items.filter((item) => item.itemStatus === "preparing").length;
@@ -316,7 +372,9 @@ function QueueFocus({
           <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: board.colorHex }} />
           <div>
             <p className="text-sm font-semibold">{board.stationName}</p>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-stone-400">{board.stationCode}</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-stone-400">
+              {board.stationCode}
+            </p>
           </div>
         </div>
         <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
@@ -326,19 +384,19 @@ function QueueFocus({
 
       <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs">
         <div className="rounded-2xl bg-black/20 px-2 py-3">
-          <p className="text-stone-400">Yeni</p>
+          <p className="text-stone-400">{t.new}</p>
           <p className="mt-1 text-sm font-bold text-white">{submitted}</p>
         </div>
         <div className="rounded-2xl bg-black/20 px-2 py-3">
-          <p className="text-stone-400">Haz.</p>
+          <p className="text-stone-400">{t.preparing}</p>
           <p className="mt-1 text-sm font-bold text-white">{preparing}</p>
         </div>
         <div className="rounded-2xl bg-black/20 px-2 py-3">
-          <p className="text-stone-400">Ready</p>
+          <p className="text-stone-400">{t.readyShort}</p>
           <p className="mt-1 text-sm font-bold text-white">{ready}</p>
         </div>
         <div className="rounded-2xl bg-black/20 px-2 py-3">
-          <p className="text-stone-400">Urgent</p>
+          <p className="text-stone-400">{t.urgent}</p>
           <p className="mt-1 text-sm font-bold text-white">{urgent}</p>
         </div>
       </div>
@@ -348,13 +406,15 @@ function QueueFocus({
 
 export function KitchenBoard({
   boards,
-  focusedStationCode
+  focusedStationCode,
+  t
 }: {
   boards: KitchenStationBoard[];
   focusedStationCode?: string;
+  t: Dictionary["kitchenBoard"];
 }) {
   const singleStationMode = boards.length === 1;
-  const heroVariant = stationVariant(boards[0]?.stationCode ?? "general");
+  const heroVariant = stationVariant(boards[0]?.stationCode ?? "general", t);
 
   return (
     <main
@@ -365,17 +425,15 @@ export function KitchenBoard({
       <section className="mx-auto max-w-[1600px]">
         <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-sm backdrop-blur">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-200">
-            Station Board
+            {t.stationBoard}
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight">
             {singleStationMode
-              ? `${boards[0]?.stationName ?? "Istasyon"} • ${heroVariant.boardLabel}`
-              : "Istasyon bazli uretim panosu"}
+              ? `${boards[0]?.stationName ?? t.fallbackStation} • ${heroVariant.boardLabel}`
+              : t.allStationsTitle}
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-stone-300">
-            {singleStationMode
-              ? heroVariant.heroCopy
-              : "Her istasyon kendi ticket akisina odaklanir. Supervisor tum istasyonlari ayni panoda gorebilir; operator ise sadece kendi hattini net ve hizli sekilde yonetir."}
+            {singleStationMode ? heroVariant.heroCopy : t.allStationsBody}
           </p>
           {singleStationMode ? (
             <div className="mt-5 flex flex-wrap gap-3">
@@ -383,22 +441,22 @@ export function KitchenBoard({
                 className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30"
                 href="/stations"
               >
-                Tum istasyonlara don
+                {t.backToStations}
               </Link>
               <Link
                 className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30"
                 href="/service"
               >
-                Masa + Kasa
+                {t.floorCash}
               </Link>
               <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white">
-                Buyuk ekran modu: tek istasyon, dusuk dikkat daginikligi
+                {t.bigScreenMode}
               </span>
             </div>
           ) : null}
         </div>
 
-        <StationSlaStrip boards={boards} />
+        <StationSlaStrip boards={boards} t={t} />
 
         <section className="mt-6">
           <div
@@ -414,7 +472,11 @@ export function KitchenBoard({
               >
                 <QueueFocus
                   board={board}
-                  focused={focusedStationCode === board.stationCode || (singleStationMode && boards.length === 1)}
+                  focused={
+                    focusedStationCode === board.stationCode ||
+                    (singleStationMode && boards.length === 1)
+                  }
+                  t={t}
                 />
               </Link>
             ))}
@@ -422,91 +484,103 @@ export function KitchenBoard({
         </section>
 
         <section className="mt-8 grid gap-5">
-          {boards.map((board) => (
+          {boards.map((board) =>
             (() => {
-              const variant = stationVariant(board.stationCode);
+              const variant = stationVariant(board.stationCode, t);
               return (
-            <section
-              className={`rounded-[2rem] border p-5 shadow-sm ${
-                singleStationMode ? "border-white/15 bg-white/[0.04]" : "border-white/10"
-              }`}
-              key={board.stationCode}
-              style={{ backgroundColor: `${board.colorHex}18` }}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-4 w-4 rounded-full"
-                    style={{ backgroundColor: board.colorHex }}
-                  />
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-300">
-                      {board.stationCode}
-                    </p>
-                    <h2 className="text-2xl font-bold tracking-tight">{board.stationName}</h2>
+                <section
+                  className={`rounded-[2rem] border p-5 shadow-sm ${
+                    singleStationMode ? "border-white/15 bg-white/[0.04]" : "border-white/10"
+                  }`}
+                  key={board.stationCode}
+                  style={{ backgroundColor: `${board.colorHex}18` }}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="h-4 w-4 rounded-full"
+                        style={{ backgroundColor: board.colorHex }}
+                      />
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-300">
+                          {board.stationCode}
+                        </p>
+                        <h2 className="text-2xl font-bold tracking-tight">{board.stationName}</h2>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-stone-100">
+                        {t.total} {board.items.length}
+                      </span>
+                      <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-100">
+                        {t.new}{" "}
+                        {board.items.filter((item) => item.itemStatus === "submitted").length}
+                      </span>
+                      <span className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-100">
+                        {t.preparing}{" "}
+                        {board.items.filter((item) => item.itemStatus === "preparing").length}
+                      </span>
+                      <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">
+                        {t.ready} {board.items.filter((item) => item.itemStatus === "ready").length}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-stone-100">
-                    Toplam {board.items.length}
-                  </span>
-                  <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-100">
-                    Yeni {board.items.filter((item) => item.itemStatus === "submitted").length}
-                  </span>
-                  <span className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-100">
-                    Hazirlaniyor {board.items.filter((item) => item.itemStatus === "preparing").length}
-                  </span>
-                  <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">
-                    Hazir {board.items.filter((item) => item.itemStatus === "ready").length}
-                  </span>
-                </div>
-              </div>
 
-              <div className="mt-5">
-                <StationPulse board={board} />
-              </div>
+                  <div className="mt-5">
+                    <StationPulse board={board} t={t} />
+                  </div>
 
-              <div className={`mt-6 grid gap-4 ${singleStationMode ? "xl:grid-cols-3" : "xl:grid-cols-3"}`}>
-                {[
-                  { id: "submitted", label: "Yeni" },
-                  { id: "preparing", label: "Hazirlaniyor" },
-                  { id: "ready", label: "Hazir" }
-                ].map((column) => {
-                  const items = board.items.filter((item) => item.itemStatus === column.id);
+                  <div
+                    className={`mt-6 grid gap-4 ${singleStationMode ? "xl:grid-cols-3" : "xl:grid-cols-3"}`}
+                  >
+                    {[
+                      { id: "submitted", label: t.new },
+                      { id: "preparing", label: t.preparing },
+                      { id: "ready", label: t.ready }
+                    ].map((column, index) => {
+                      const items = board.items.filter((item) => item.itemStatus === column.id);
 
-                  return (
-                    <section
-                      className="rounded-[1.6rem] border border-white/10 bg-black/15 p-4"
-                      key={column.id}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="text-lg font-bold tracking-tight text-white">{column.label}</h3>
-                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-stone-200">
-                          {items.length}
-                        </span>
-                      </div>
+                      return (
+                        <section
+                          className="rounded-[1.6rem] border border-white/10 bg-black/15 p-4"
+                          key={column.id}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-lg font-bold tracking-tight text-white">
+                              {column.label}
+                            </h3>
+                            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-stone-200">
+                              {items.length}
+                            </span>
+                          </div>
 
-                      <div className="mt-4 grid gap-4">
-                        {items.length === 0 ? (
-                          <EmptyColumn emptyLabel={variant.emptyLabel} label={column.label} />
-                        ) : (
-                          items.map((item) => (
-                            <KitchenCard
-                              item={item}
-                              key={item.orderItemId}
-                              prepareLabel={variant.actionLabel}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-            </section>
+                          <div className="mt-4 grid gap-4">
+                            {items.length === 0 ? (
+                              <EmptyColumn
+                                emptyLabel={variant.emptyLabel}
+                                isFirstColumn={index === 0}
+                                label={column.label}
+                                t={t}
+                              />
+                            ) : (
+                              items.map((item) => (
+                                <KitchenCard
+                                  item={item}
+                                  key={item.orderItemId}
+                                  prepareLabel={variant.actionLabel}
+                                  t={t}
+                                />
+                              ))
+                            )}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                </section>
               );
             })()
-          ))}
+          )}
         </section>
       </section>
     </main>

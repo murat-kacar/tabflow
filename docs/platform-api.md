@@ -124,7 +124,10 @@ Content-Type: application/json
   "code": "moda",
   "displayName": "Moda Cafe",
   "primaryDomain": "moda.example.com",
-  "initialAdminEmail": "admin@moda.example.com"
+  "initialAdminEmail": "admin@moda.example.com",
+  "languageCode": "en",
+  "currencyCode": "GBP",
+  "timeZone": "Europe/London"
 }
 ```
 
@@ -133,6 +136,7 @@ Current behavior:
 - normalizes `code`
 - normalizes `primaryDomain`
 - accepts optional `initialAdminEmail` for the tenant's first runtime admin intent
+- requires tenant-scoped language, currency, and time zone settings
 - validates safe tenant code format
 - validates hostname format
 - validates email format when an initial admin email is provided
@@ -141,6 +145,25 @@ Current behavior:
 - creates primary domain row
 - creates pending `tenant.create` provision job
 - stores the intended first tenant admin email as registry metadata
+- stores language, currency, and time zone as tenant regional settings
+
+### Update Tenant Regional Settings
+
+```http
+PATCH /api/platform/tenants/{id}/regional-settings
+```
+
+```json
+{
+  "languageCode": "tr",
+  "currencyCode": "TRY",
+  "timeZone": "Europe/Istanbul"
+}
+```
+
+Updates the platform registry source of truth for tenant language, currency, and
+time zone. The platform also queues a `tenant.settings.update` provisioning job
+so the operator can rewrite runtime env files and restart tenant API/Web.
 
 Provisioning is intentionally not executed inline.
 

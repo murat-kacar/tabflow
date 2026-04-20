@@ -26,7 +26,9 @@ import {
   serviceStationListSchema,
   splitBillInputSchema,
   type TenantCatalog,
+  type TenantProfile,
   tenantCatalogSchema,
+  tenantProfileSchema,
   type UpdateTableLayoutEntry,
   type UpsertMenuCategoryInput,
   type UpsertMenuItemInput,
@@ -548,6 +550,18 @@ export async function getPublicCatalog(): Promise<TenantCatalog> {
   }
 
   return tenantCatalogSchema.parse(await response.json());
+}
+
+export async function getTenantProfile(): Promise<TenantProfile> {
+  const response = await fetch(`${tenantApiBaseUrl()}/api/tenant/profile`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProblem(response));
+  }
+
+  return tenantProfileSchema.parse(await response.json());
 }
 
 export async function verifyTableToken(token: string): Promise<VerifiedCustomerSession> {

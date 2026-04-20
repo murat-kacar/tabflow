@@ -8,6 +8,8 @@ import type {
 } from "@tabflow/shared-ts";
 import { useActionState, useEffect, useState } from "react";
 import { createPdaOrderAction, type TenantPdaOrderActionState } from "../auth-actions";
+import type { Dictionary } from "../i18n/server";
+import { formatMoney } from "../lib/format";
 
 type CartLine = {
   menuItemId: string;
@@ -20,21 +22,12 @@ const initialState: TenantPdaOrderActionState = {
   message: ""
 };
 
-const quickNotes = ["Az sekerli", "Sogansiz", "Acisiz", "Paket", "Onden gelsin"];
-
-function formatMoney(amountMinor: number, currencyCode: string): string {
-  return new Intl.NumberFormat("tr-TR", {
-    currency: currencyCode,
-    style: "currency"
-  }).format(amountMinor / 100);
-}
-
-function statusLabel(table: AdminTableSummary): string {
-  if (!table.isActive) return "Kapali";
-  if (table.readyOrderCount > 0) return "Servis bekliyor";
-  if (table.openBillId) return "Acik hesap";
-  if (table.activeSessionCount > 0) return "Misafir aktif";
-  return "Bos";
+function statusLabel(table: AdminTableSummary, t: Dictionary["pda"]): string {
+  if (!table.isActive) return t.status.closed;
+  if (table.readyOrderCount > 0) return t.status.serviceReady;
+  if (table.openBillId) return t.status.openBill;
+  if (table.activeSessionCount > 0) return t.status.guestActive;
+  return t.status.empty;
 }
 
 function tableTone(table: AdminTableSummary): string {
@@ -49,12 +42,14 @@ export function PdaOrderWorkspace({
   bills,
   catalog,
   orders,
-  tables
+  tables,
+  t
 }: {
   bills: CustomerBillSummary[];
   catalog: TenantCatalog;
   orders: CustomerOrderSummary[];
   tables: AdminTableSummary[];
+  t: Dictionary;
 }) {
   const activeTables = tables.filter((table) => table.isActive);
   const [selectedTableId, setSelectedTableId] = useState(activeTables[0]?.id ?? "");
@@ -164,13 +159,13 @@ export function PdaOrderWorkspace({
       <section className="mx-auto grid min-h-screen max-w-7xl gap-4 px-3 py-4 md:grid-cols-[18rem_1fr_20rem] md:px-5">
         <aside className="rounded-[2rem] border border-white/10 bg-[#201911] p-4 shadow-2xl shadow-black/30">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-300">
-            Garson PDA
+            {t.pda.title}
           </p>
-          <h1 className="mt-2 text-2xl font-black tracking-tight">Masa sec</h1>
+          <h1 className="mt-2 text-2xl font-black tracking-tight">{t.pda.selectTable}</h1>
           <input
             className="mt-4 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold text-white placeholder:text-stone-500"
             onChange={(event) => setTableQuery(event.target.value)}
-            placeholder="Masa ara: 5, balkon, salon..."
+            placeholder={t.pda.tableSearchPlaceholder}
             type="search"
             value={tableQuery}
           />
@@ -188,14 +183,14 @@ export function PdaOrderWorkspace({
                   M{table.number.toString().padStart(2, "0")}
                 </span>
                 <span className="mt-1 block text-xs font-bold uppercase tracking-[0.16em] opacity-70">
-                  {statusLabel(table)}
+                  {statusLabel(table, t.pda)}
                 </span>
                 <span className="mt-2 block text-sm font-semibold">{table.name}</span>
               </button>
             ))}
             {visibleTables.length === 0 ? (
               <p className="col-span-2 rounded-2xl bg-white/5 p-4 text-sm text-stone-300 md:col-span-1">
-                Bu aramayla masa bulunamadi.
+                {t.pda.noTableFound}
               </p>
             ) : null}
           </div>
@@ -204,21 +199,19 @@ export function PdaOrderWorkspace({
         <section className="rounded-[2rem] border border-white/10 bg-[#f4ead7] p-4 text-stone-950 shadow-2xl shadow-black/30">
           <div className="rounded-[1.5rem] bg-[#2f2619] p-4 text-white">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-300">
-              Siparis olustur
+              {t.pda.createOrder}
             </p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="text-3xl font-black tracking-tight">
                   {selectedTable
-                    ? `Masa ${selectedTable.number.toString().padStart(2, "0")}`
-                    : "Aktif masa yok"}
+                    ? `${t.common.table} ${selectedTable.number.toString().padStart(2, "0")}`
+                    : t.pda.selectedTableFallback}
                 </h2>
-                <p className="mt-1 text-sm text-stone-300">
-                  Urunleri sec, notu gir, tek dokunusla istasyonlara gonder.
-                </p>
+                <p className="mt-1 text-sm text-stone-300">{t.pda.helper}</p>
               </div>
               <div className="rounded-2xl bg-amber-300 px-4 py-3 text-right text-stone-950">
-                <p className="text-xs font-black uppercase tracking-[0.18em]">Sepet</p>
+                <p className="text-xs font-black uppercase tracking-[0.18em]">{t.pda.cartTotal}</p>
                 <p className="text-xl font-black">{formatMoney(cartTotal, currencyCode)}</p>
               </div>
             </div>
@@ -280,11 +273,11 @@ export function PdaOrderWorkspace({
                       <input
                         className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
                         onChange={(event) => updateNote(item.id, event.target.value)}
-                        placeholder="Urun notu"
+                        placeholder={t.pda.itemNotePlaceholder}
                         value={line.note}
                       />
                       <div className="flex gap-2 overflow-x-auto pb-1">
-                        {quickNotes.map((note) => (
+                        {t.pda.quickNotes.map((note) => (
                           <button
                             className="whitespace-nowrap rounded-full bg-amber-100 px-3 py-2 text-xs font-black text-amber-950"
                             key={note}
@@ -314,7 +307,7 @@ export function PdaOrderWorkspace({
             ))}
 
             <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-300">
-              Aktif sepet
+              {t.common.activeCart}
             </p>
             {cartLines.length > 0 ? (
               <button
@@ -322,13 +315,13 @@ export function PdaOrderWorkspace({
                 onClick={() => setCart({})}
                 type="button"
               >
-                Sepeti temizle
+                {t.common.clearCart}
               </button>
             ) : null}
             <div className="mt-4 space-y-3">
               {cartLines.length === 0 ? (
                 <p className="rounded-2xl bg-white/5 p-4 text-sm text-stone-300">
-                  Urun ekleyince burada gonderim ozeti olusur.
+                  {t.pda.emptyCart}
                 </p>
               ) : (
                 cartLines.map((line) => {
@@ -336,7 +329,7 @@ export function PdaOrderWorkspace({
                   return (
                     <div className="rounded-2xl bg-white p-3 text-stone-950" key={line.menuItemId}>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-black">{item?.name ?? "Urun"}</p>
+                        <p className="font-black">{item?.name ?? t.pda.itemFallback}</p>
                         <p className="rounded-full bg-stone-950 px-3 py-1 text-sm font-black text-white">
                           x{line.quantity}
                         </p>
@@ -352,12 +345,12 @@ export function PdaOrderWorkspace({
 
             <label className="mt-4 block">
               <span className="text-xs font-black uppercase tracking-[0.18em] text-stone-400">
-                Genel not
+                {t.pda.generalNote}
               </span>
               <textarea
                 className="mt-2 min-h-24 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-white placeholder:text-stone-500"
                 name="orderNote"
-                placeholder="Orn: once icecekler, alerji, servis notu..."
+                placeholder={t.pda.generalNotePlaceholder}
               />
             </label>
 
@@ -366,7 +359,7 @@ export function PdaOrderWorkspace({
               disabled={pending || cartLines.length === 0 || !selectedTable}
               type="submit"
             >
-              {pending ? "Gonderiliyor..." : "Siparisi gonder"}
+              {pending ? t.pda.sending : t.pda.sendOrder}
             </button>
             {state.message ? (
               <p
@@ -379,27 +372,27 @@ export function PdaOrderWorkspace({
 
           <section className="mt-5 rounded-2xl bg-white/5 p-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-stone-400">
-              Acik hesap
+              {t.common.activeBill}
             </p>
             <p className="mt-2 text-2xl font-black">
               {selectedBill
                 ? formatMoney(selectedBill.subtotalMinor, selectedBill.currencyCode)
-                : "Hesap yok"}
+                : t.pda.billEmpty}
             </p>
             <p className="mt-1 text-sm text-stone-400">
               {selectedBill
-                ? `${selectedBill.orderCount} siparis kaydi`
-                : "Ilk siparis hesabi acar."}
+                ? `${selectedBill.orderCount} ${t.pda.billOrderCount}`
+                : t.pda.billHintEmpty}
             </p>
           </section>
 
           <section className="mt-4 rounded-2xl bg-white/5 p-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-stone-400">
-              Son hareketler
+              {t.pda.recentActivity}
             </p>
             <div className="mt-3 space-y-2">
               {selectedOrders.length === 0 ? (
-                <p className="text-sm text-stone-400">Bu masa icin henuz siparis yok.</p>
+                <p className="text-sm text-stone-400">{t.pda.recentEmpty}</p>
               ) : (
                 selectedOrders.map((order) => (
                   <div className="rounded-xl bg-black/20 p-3" key={order.id}>

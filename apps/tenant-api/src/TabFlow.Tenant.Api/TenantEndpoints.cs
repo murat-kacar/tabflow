@@ -1590,6 +1590,8 @@ public static class TenantEndpoints
             profile.Code,
             profile.DisplayName,
             profile.PrimaryDomain,
+            profile.LanguageCode,
+            profile.TimeZone,
             profile.CurrencyCode);
 
     private static CustomerOrderDetailResponse ToDetailResponse(CustomerOrder order) =>

@@ -6,15 +6,26 @@ public sealed record CreateTenantRequest(
     string Code,
     string DisplayName,
     string PrimaryDomain,
-    string? InitialAdminEmail);
+    string? InitialAdminEmail,
+    string LanguageCode,
+    string CurrencyCode,
+    string TimeZone);
 
 public sealed record UpdateTenantStatusRequest(TenantStatus Status);
+
+public sealed record UpdateTenantRegionalSettingsRequest(
+    string LanguageCode,
+    string CurrencyCode,
+    string TimeZone);
 
 public sealed record TenantResponse(
     Guid Id,
     string Code,
     string DisplayName,
     string? InitialAdminEmail,
+    string LanguageCode,
+    string CurrencyCode,
+    string TimeZone,
     TenantStatus Status,
     string? PrimaryDomain,
     DateTimeOffset CreatedAt,

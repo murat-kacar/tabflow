@@ -66,8 +66,8 @@ public static class PlatformDatabaseInitializer
 
         var command = db.Database.GetDbConnection().CreateCommand();
         command.CommandText = """
-            INSERT INTO platform_admins (id, email, password_hash, role, is_active, created_at)
-            VALUES (@id, @email, @password_hash, 'owner'::platform_admin_role, TRUE, now())
+            INSERT INTO platform_admins (id, email, password_hash, role, language_code, is_active, created_at)
+            VALUES (@id, @email, @password_hash, 'owner'::platform_admin_role, 'en', TRUE, now())
             """;
 
         var idParameter = command.CreateParameter();
