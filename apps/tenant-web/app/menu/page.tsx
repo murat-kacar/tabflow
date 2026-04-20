@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { CustomerMenu } from "../components/customer-menu";
-import { getDictionary } from "../i18n/server";
+import { en } from "../i18n/dictionaries/en";
+import { tr } from "../i18n/dictionaries/tr";
+import { getLocale } from "../i18n/server";
 import { getCustomerSession } from "../lib/customer-session";
 import { getCustomerSessionStatus, getPublicCatalog } from "../lib/tenant-api";
 
@@ -19,7 +21,14 @@ export default async function CustomerMenuPage() {
     redirect("/");
   }
 
-  const [catalog, t] = await Promise.all([getPublicCatalog(), getDictionary()]);
+  const [catalog, locale] = await Promise.all([getPublicCatalog(), getLocale()]);
 
-  return <CustomerMenu catalog={catalog} session={session} t={t.customerMenu} />;
+  return (
+    <CustomerMenu
+      catalog={catalog}
+      initialLocale={locale}
+      session={session}
+      translations={{ en: en.customerMenu, tr: tr.customerMenu }}
+    />
+  );
 }

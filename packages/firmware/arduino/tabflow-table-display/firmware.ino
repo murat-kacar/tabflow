@@ -57,7 +57,6 @@ uint32_t last_ws_attempt_ms = 0;
 uint32_t last_ping_ms = 0;
 uint32_t last_bar_ms = 0;
 uint32_t last_heartbeat_ms = 0;
-uint32_t last_auth_attempt_ms = 0;
 uint32_t last_network_diagnostic_ms = 0;
 
 static const size_t QR_BITS_MAX_BYTES = 4096;
@@ -267,22 +266,6 @@ void redrawScreen() {
   drawCountdown();
 }
 
-void sendWsAuth() {
-  if (String(WS_DEVICE_KEY).length() == 0) {
-    logLine("[WS] Warning: WS_DEVICE_KEY is empty.");
-    return;
-  }
-
-  StaticJsonDocument<160> doc;
-  doc["type"] = "auth";
-  doc["deviceKey"] = WS_DEVICE_KEY;
-  String auth_payload;
-  serializeJson(doc, auth_payload);
-  logLine("[WS] Auth payload: " + auth_payload);
-  ws.sendTXT(auth_payload);
-  logLine("[WS] Auth message sent.");
-}
-
 void handleWsMessage(const String& data) {
   StaticJsonDocument<1024> doc;
   if (deserializeJson(doc, data)) {
@@ -339,8 +322,7 @@ void handleWsEvent(WStype_t type, uint8_t* payload, size_t length) {
     ws_connected = true;
     ws_auth_ok = false;
     logLine("[WS] Connected.");
-    last_auth_attempt_ms = millis();
-    sendWsAuth();
+    logLine("[WS] Waiting for backend auth_ok over query-auth session.");
     return;
   }
 
@@ -598,11 +580,6 @@ void loop() {
 
   if (ws_connected) {
     ws.loop();
-
-    if (!ws_auth_ok && millis() - last_auth_attempt_ms >= 2000) {
-      last_auth_attempt_ms = millis();
-      sendWsAuth();
-    }
   } else {
     const bool token_expired = token_ready && millis() - token_received_ms >= token_duration_ms;
 

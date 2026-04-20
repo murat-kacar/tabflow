@@ -256,15 +256,61 @@ export const tr: typeof en = {
     addItem: "Ürün ekle"
   },
   customerMenu: {
-    title: "Masa için menü hazır",
-    bodyPrefix: "QR doğrulandı. Bu oturum yalnızca",
+    sessionLabel: "Oturum",
+    heroTitlePrefix: "",
+    heroBody:
+      "{{tenant}} canlı siparişe hazır. Kategorileri gez, seçimini oluştur ve siparişi {{table}} üzerinden doğrudan gönder.",
+    menuTab: "Menü",
+    infoTab: "Bilgi & Wi-Fi",
     leaveSession: "Oturumu kapat",
-    orderEyebrow: "Sipariş",
-    chooseItems: "Ürünlerini seç",
+    languageLabel: "Dil",
+    english: "İngilizce",
+    turkish: "Türkçe",
+    themeLabel: "Tema",
+    nightMode: "Gece",
+    dayMode: "Gündüz",
+    preferenceCardTitle: "Misafir tercihleri",
+    preferenceCardBody:
+      "Dil ve tema önce cihazdan okunur, sonra bu ekranda hafif müşteri cookie'leri ile sabit kalır.",
+    metrics: {
+      categories: "Kategori",
+      items: "Ürün"
+    },
+    categoriesEyebrow: "Gezin",
+    categoriesTitle: "Kategoriler",
+    itemsCount: "ürün",
+    featuredEyebrow: "Seçili kategori",
+    categoryBody: "Bu bölümde {{count}} ürün hazır.",
+    stationFallback: "Mutfak hattı",
+    itemDescriptionFallback: "Bu ürün canlı katalogdan siparişe hazır.",
+    addToOrder: "Siparişe ekle",
+    addOneMore: "Bir tane daha ekle",
     notePlaceholder: "Not",
+    cartEyebrow: "Siparişin",
+    cartTitle: "Sipariş özeti",
+    sessionBadge: "Masa oturumu",
+    tableOnlyHint: "Bu QR oturumu yalnızca bu masaya aittir. Siparişler canlı tenant akışına düşer.",
+    emptyCart: "Sipariş özetini burada oluşturmak için ürün seç.",
+    totalLabel: "Tahmini toplam",
     generalNote: "Genel not",
     generalNotePlaceholder: "Örnek: Az şekerli, soğansız, gluten hassasiyeti...",
-    sendOrder: "Siparişi gönder"
+    sending: "Gönderiliyor...",
+    sendOrder: "Siparişi gönder",
+    infoEyebrow: "Misafir bilgisi",
+    infoTitle: "İletişim, Wi-Fi ve işletme bağlamı",
+    infoBody:
+      "{{tenant}} burada Wi-Fi notları, mekan yönlendirmeleri ve misafir mesajlarını gösterebilir. Bu yüzey bir sonraki içerik katmanına hazır.",
+    wifiCardTitle: "Wi-Fi",
+    wifiPendingTitle: "Wi-Fi kartı hazır",
+    wifiPendingBody:
+      "Bu paneli işletme Wi-Fi bilgileri için hazırladık. Tenant tarafından yönetilen misafir bilgileri eklendiğinde bilgiler burada görünebilir.",
+    contactCardTitle: "İşletme",
+    infoPanelTitle: "Oturum detayları",
+    infoRows: {
+      tenant: "İşletme",
+      table: "Masa",
+      domain: "Domain"
+    }
   },
   kitchenBoard: {
     stationBoard: "İstasyon Panosu",

@@ -256,15 +256,61 @@ export const en = {
     addItem: "Add product"
   },
   customerMenu: {
-    title: "Menu is ready for table",
-    bodyPrefix: "QR verified. This session is valid only for",
+    sessionLabel: "Session",
+    heroTitlePrefix: "Explore the menu for",
+    heroBody:
+      "{{tenant}} is ready for live ordering. Browse categories, build your selection, and send it directly from {{table}}.",
+    menuTab: "Menu",
+    infoTab: "Info & Wi-Fi",
     leaveSession: "Close session",
-    orderEyebrow: "Order",
-    chooseItems: "Choose your items",
+    languageLabel: "Language",
+    english: "English",
+    turkish: "Turkish",
+    themeLabel: "Theme",
+    nightMode: "Night",
+    dayMode: "Day",
+    preferenceCardTitle: "Guest preferences",
+    preferenceCardBody:
+      "Language and theme default to the device, then stay on this screen with lightweight customer cookies.",
+    metrics: {
+      categories: "Categories",
+      items: "Items"
+    },
+    categoriesEyebrow: "Browse",
+    categoriesTitle: "Categories",
+    itemsCount: "items",
+    featuredEyebrow: "Selected category",
+    categoryBody: "{{count}} items are ready in this section.",
+    stationFallback: "Kitchen routing",
+    itemDescriptionFallback: "This item is ready to be ordered from the live catalog.",
+    addToOrder: "Add to order",
+    addOneMore: "Add one more",
     notePlaceholder: "Note",
+    cartEyebrow: "Your order",
+    cartTitle: "Order summary",
+    sessionBadge: "Table session",
+    tableOnlyHint: "This QR session belongs only to this table. Orders are routed into the live tenant flow.",
+    emptyCart: "Select products to build your order summary here.",
+    totalLabel: "Estimated total",
     generalNote: "General note",
     generalNotePlaceholder: "Example: less sugar, no onion, gluten sensitivity...",
-    sendOrder: "Send order"
+    sending: "Sending...",
+    sendOrder: "Send order",
+    infoEyebrow: "Guest info",
+    infoTitle: "Contact, Wi-Fi, and tenant context",
+    infoBody:
+      "{{tenant}} can keep Wi-Fi notes, venue guidance, and hospitality messages here. This surface is ready for that next content layer.",
+    wifiCardTitle: "Wi-Fi",
+    wifiPendingTitle: "Wi-Fi card is ready",
+    wifiPendingBody:
+      "We have prepared this panel for venue Wi-Fi details. Once tenant-managed guest info is added, credentials can appear here.",
+    contactCardTitle: "Venue",
+    infoPanelTitle: "Session details",
+    infoRows: {
+      tenant: "Tenant",
+      table: "Table",
+      domain: "Domain"
+    }
   },
   kitchenBoard: {
     stationBoard: "Station Board",

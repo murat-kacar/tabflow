@@ -27,7 +27,6 @@ public static class DeviceWebSocketEndpoint
         var runtime = context.RequestServices.GetRequiredService<IOptions<TenantRuntimeOptions>>().Value;
         var registry = context.RequestServices.GetRequiredService<DeviceConnectionRegistry>();
         var tokenService = context.RequestServices.GetRequiredService<TableTokenService>();
-        var environment = context.RequestServices.GetRequiredService<IHostEnvironment>();
         var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("DeviceWebSocket");
         var socket = await context.WebSockets.AcceptWebSocketAsync();
         var cancellationToken = context.RequestAborted;
@@ -45,12 +44,7 @@ public static class DeviceWebSocketEndpoint
 
         try
         {
-            var queryKey = environment.IsDevelopment()
-                ? context.Request.Query["anahtar"].ToString().Trim()
-                : string.Empty;
-            var rawKey = string.IsNullOrWhiteSpace(queryKey)
-                ? await ReceiveAuthKeyAsync(socket, cancellationToken)
-                : queryKey;
+            var rawKey = context.Request.Query["anahtar"].ToString().Trim();
 
             var activeKey = table.DeviceKeys.OrderByDescending(key => key.CreatedAt).FirstOrDefault();
             if (activeKey is null || string.IsNullOrWhiteSpace(rawKey) || !DeviceKeyService.Verify(rawKey, activeKey.KeyHash))
@@ -110,9 +104,13 @@ public static class DeviceWebSocketEndpoint
                 }
             }
         }
-        catch (WebSocketException)
+        catch (WebSocketException exception)
         {
-            logger.LogWarning("WS connection aborted tableNumber={TableNumber}", tableNumber);
+            logger.LogWarning(
+                exception,
+                "WS connection aborted tableNumber={TableNumber} socketState={SocketState}",
+                tableNumber,
+                socket.State);
         }
         finally
         {
@@ -130,27 +128,6 @@ public static class DeviceWebSocketEndpoint
         qr_side = payload.QrSide,
         qr_bits_hex = payload.QrBitsHex
     };
-
-    private static async Task<string> ReceiveAuthKeyAsync(WebSocket socket, CancellationToken cancellationToken)
-    {
-        var message = await ReceiveTextAsync(socket, cancellationToken);
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            var payload = JsonSerializer.Deserialize<DeviceAuthMessage>(message);
-            return payload is not null && string.Equals(payload.Type, "auth", StringComparison.OrdinalIgnoreCase)
-                ? payload.DeviceKey?.Trim() ?? string.Empty
-                : string.Empty;
-        }
-        catch (JsonException)
-        {
-            return string.Empty;
-        }
-    }
 
     private static async Task<string?> ReceiveTextAsync(WebSocket socket, CancellationToken cancellationToken)
     {
@@ -186,6 +163,4 @@ public static class DeviceWebSocketEndpoint
             : rawKey.Length <= 16
                 ? rawKey
                 : rawKey[^16..];
-
-    private sealed record DeviceAuthMessage(string Type, string? DeviceKey);
 }
