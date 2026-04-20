@@ -2,112 +2,112 @@ import type { en } from "./en";
 
 export const tr: typeof en = {
   common: {
-    email: "Email",
-    password: "Sifre"
+    email: "E-posta",
+    password: "Şifre"
   },
   language: {
     label: "Dil"
   },
   shell: {
-    logout: "Cikis yap"
+    logout: "Çıkış yap"
   },
   login: {
     heroEyebrow: "Control Plane",
-    heroTitle: "Tenantlar, domainler ve lifecycle tek ekranda.",
+    heroTitle: "İşletmeler, alan adları ve yaşam döngüsü tek ekranda.",
     heroBody:
-      "Platform login akisi aktif. Buradan sonra tenant yaratma, durdurma, arsivleme ve provisioning gozlemi tek bir super admin deneyimine baglanacak.",
+      "Platform giriş akışı aktif. Buradan sonra işletme oluşturma, durdurma, arşivleme ve kurulum (provisioning) gözlemi tek bir süper admin deneyimine bağlanacak.",
     formEyebrow: "Platform Login",
-    formTitle: "Super admin girisi",
+    formTitle: "Süper admin girişi",
     formBody:
-      "Bu giris yalnizca platform yonetimi icindir. Tenant domainleri burada asla fallback almamali.",
+      "Bu giriş yalnızca platform yönetimi içindir. İşletme domainleri burada asla fallback almamalıdır.",
     bootstrapNotice:
-      "Henuz platform admin yok. PLATFORM_BOOTSTRAP_EMAIL ve PLATFORM_BOOTSTRAP_PASSWORD env degerleriyle ilk admin otomatik uretilir.",
+      "Henüz platform admini yok. PLATFORM_BOOTSTRAP_EMAIL ve PLATFORM_BOOTSTRAP_PASSWORD çevre değişkenleriyle ilk admin otomatik üretilir.",
     emailPlaceholder: "admin@example.com",
-    submit: "Giris yap",
-    pending: "Giris kontrol ediliyor..."
+    submit: "Giriş yap",
+    pending: "Giriş kontrol ediliyor..."
   },
   createTenant: {
-    eyebrow: "Yeni Tenant",
-    title: "Isletme olustur",
+    eyebrow: "Yeni İşletme",
+    title: "İşletme oluştur",
     bodyPrefix:
-      "Bu adim tenant kaydini rezerve eder ve provisioning job olusturur. Container, TLS ve firmware uretimi sonraki worker adiminda calisacak. Ilk admin e-postasi otomatik olarak",
+      "Bu adım işletme kaydını rezerve eder ve kurulum işi (provisioning job) oluşturur. Konteyner, TLS ve yazılım üretimi sonraki adımlarda çalışacaktır. İlk admin e-postası otomatik olarak",
     bodySuffix: "seklinde atanir.",
-    code: "Tenant kodu",
+    code: "İşletme kodu",
     codePlaceholder: "moda",
-    displayName: "Gorunen ad",
+    displayName: "Görünen ad",
     displayNamePlaceholder: "Moda Cafe",
-    primaryDomain: "Primary domain",
+    primaryDomain: "Birincil alan adı",
     primaryDomainPlaceholder: "demo.example.com",
-    language: "Runtime dili",
+    language: "Çalışma zamanı dili",
     languages: {
-      en: "Ingilizce",
-      tr: "Turkce"
+      en: "İngilizce",
+      tr: "Türkçe"
     },
     currency: "Para birimi",
     timeZone: "Saat dilimi",
-    submit: "Tenant olustur",
-    pending: "Olusturuluyor...",
-    viewerBlocked: "Viewer rolu tenant olusturamaz."
+    submit: "İşletme oluştur",
+    pending: "Oluşturuluyor...",
+    viewerBlocked: "Görüntüleyici rolü işletme oluşturamaz."
   },
   dashboard: {
-    apiConnectionFailed: "Platform API baglantisi kurulamadi.",
+    apiConnectionFailed: "Platform API bağlantısı kurulamadı.",
     eyebrow: "Platform",
     title: "TabFlow Super Admin",
-    body: "Tenant registry, domain sahipligi, ilk admin niyeti ve provisioning akislari tek operasyon panelinde yonetilir.",
-    totalTenants: "Toplam tenant",
+    body: "İşletme kaydı, domain sahipliği, ilk admin yapılandırması ve kurulum akışları tek operasyon panelinde yönetilir.",
+    totalTenants: "Toplam işletme",
     role: "Rol",
     active: "Aktif",
     passive: "Pasif",
-    auditRecords: "Audit kaydi",
-    tenantsEyebrow: "Tenantlar",
-    tenantRecords: "Isletme kayitlari",
-    emptyTenants: "Henuz tenant yok. Ilk isletmeyi sagdaki formdan olustur.",
+    auditRecords: "Denetim kaydı",
+    tenantsEyebrow: "İşletmeler",
+    tenantRecords: "İşletme kayıtları",
+    emptyTenants: "Henüz işletme yok. İlk işletmeyi sağdaki formdan oluşturun.",
     code: "Kod",
     domain: "Domain",
-    firstAdmin: "Ilk admin",
-    notSpecified: "Henuz belirtilmedi",
-    selectedTenant: "Secili tenant",
-    firstAdminEmail: "Ilk admin e-postasi",
-    regionalSettings: "Bolgesel ayarlar",
+    firstAdmin: "İlk admin",
+    notSpecified: "Henüz belirtilmedi",
+    selectedTenant: "Seçili işletme",
+    firstAdminEmail: "İlk admin e-postası",
+    regionalSettings: "Bölgesel ayarlar",
     language: "Dil",
     languages: {
-      en: "Ingilizce",
-      tr: "Turkce"
+      en: "İngilizce",
+      tr: "Türkçe"
     },
     currency: "Para birimi",
     timeZone: "Saat dilimi",
-    saveRegionalSettings: "Bolgesel ayarlari kaydet",
-    createdAt: "Olusturma",
-    updatedAt: "Son guncelleme",
-    runtimeVisibility: "Runtime gorunurlugu",
+    saveRegionalSettings: "Bölgesel ayarları kaydet",
+    createdAt: "Oluşturma",
+    updatedAt: "Son güncelleme",
+    runtimeVisibility: "Çalışma zamanı görünürlüğü",
     unknown: "Bilinmiyor",
-    internalHealth: "Ic health",
-    externalExposure: "Dis exposure",
+    internalHealth: "İç sağlık",
+    externalExposure: "Dış erişim",
     ports: "Portlar",
-    exposureError: "Exposure hata",
+    exposureError: "Erişim hatası",
     activate: "Aktif yap",
     suspend: "Pasif yap",
-    archive: "Arsivle",
-    latestJobs: "Son joblar",
-    tenantJobsSuffix: "joblari",
-    noProvisionJobs: "Bu baglamda provisioning job yok.",
-    step: "Adim",
+    archive: "Arşivle",
+    latestJobs: "Son işler",
+    tenantJobsSuffix: "işleri",
+    noProvisionJobs: "Bu bağlamda kurulum işi (provisioning job) yok.",
+    step: "Adım",
     attempt: "Deneme",
     latestActivity: "Son hareketler",
     tenantActivitySuffix: "hareketleri",
-    noAuditRecords: "Bu baglamda audit kaydi yok.",
+    noAuditRecords: "Bu bağlamda denetim kaydı yok.",
     statuses: {
-      provisioning: "Provisioning",
+      provisioning: "Kuruluyor",
       active: "Aktif",
       suspended: "Pasif",
-      archived: "Arsiv"
+      archived: "Arşiv"
     }
   },
   messages: {
-    loginFailed: "Giris yapilamadi.",
-    sessionMissing: "Oturum bulunamadi.",
-    tenantCreated: "Tenant kaydi olusturuldu. Provisioning job siraya alindi.",
-    tenantCreateFailed: "Tenant olusturulamadi.",
-    regionalSettingsUpdated: "Tenant bolgesel ayarlari guncellendi."
+    loginFailed: "Giriş yapılamadı.",
+    sessionMissing: "Oturum bulunamadı.",
+    tenantCreated: "İşletme kaydı oluşturuldu. Kurulum işi sıraya alındı.",
+    tenantCreateFailed: "İşletme oluşturulamadı.",
+    regionalSettingsUpdated: "İşletme bölgesel ayarları güncellendi."
   }
 };
