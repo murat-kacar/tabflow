@@ -31,7 +31,7 @@ export const tr: typeof en = {
     title: "İşletme oluştur",
     bodyPrefix:
       "Bu adım işletme kaydını rezerve eder ve kurulum işi (provisioning job) oluşturur. Konteyner, TLS ve yazılım üretimi sonraki adımlarda çalışacaktır. İlk admin e-postası otomatik olarak",
-    bodySuffix: "seklinde atanir.",
+    bodySuffix: "şeklinde atanır.",
     code: "İşletme kodu",
     codePlaceholder: "moda",
     displayName: "Görünen ad",

@@ -118,8 +118,8 @@ location with restricted filesystem permissions. If `Provisioning:OutputRoot`
 is overridden, the same `tenants/<tenant-code>/firmware/...` layout still
 applies under that root.
 
-Table creation and device key rotation return a ready-to-flash single-file
-Arduino sketch named from the current table label, for example:
+Table creation returns the only ready-to-flash single-file Arduino sketch for
+that table lifecycle, named from the current table label, for example:
 
 ```text
 masa-balkon-003.ino

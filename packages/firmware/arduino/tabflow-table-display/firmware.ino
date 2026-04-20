@@ -70,6 +70,35 @@ void logLine(const String& text) {
   Serial.println(text);
 }
 
+const char* wsEventName(WStype_t type) {
+  switch (type) {
+    case WStype_DISCONNECTED:
+      return "DISCONNECTED";
+    case WStype_CONNECTED:
+      return "CONNECTED";
+    case WStype_TEXT:
+      return "TEXT";
+    case WStype_BIN:
+      return "BIN";
+    case WStype_ERROR:
+      return "ERROR";
+    case WStype_FRAGMENT_TEXT_START:
+      return "FRAGMENT_TEXT_START";
+    case WStype_FRAGMENT_BIN_START:
+      return "FRAGMENT_BIN_START";
+    case WStype_FRAGMENT:
+      return "FRAGMENT";
+    case WStype_FRAGMENT_FIN:
+      return "FRAGMENT_FIN";
+    case WStype_PING:
+      return "PING";
+    case WStype_PONG:
+      return "PONG";
+    default:
+      return "UNKNOWN";
+  }
+}
+
 void resetWsState() {
   ws_connected = false;
   ws_auth_ok = false;
@@ -246,9 +275,10 @@ void sendWsAuth() {
 
   StaticJsonDocument<160> doc;
   doc["type"] = "auth";
-  doc["device_key"] = WS_DEVICE_KEY;
+  doc["deviceKey"] = WS_DEVICE_KEY;
   String auth_payload;
   serializeJson(doc, auth_payload);
+  logLine("[WS] Auth payload: " + auth_payload);
   ws.sendTXT(auth_payload);
   logLine("[WS] Auth message sent.");
 }
@@ -299,6 +329,12 @@ void handleWsMessage(const String& data) {
 }
 
 void handleWsEvent(WStype_t type, uint8_t* payload, size_t length) {
+  logLine(
+    String("[WS] Event: ") + wsEventName(type) +
+    " (" + String(static_cast<int>(type)) + ")" +
+    " len=" + String(length)
+  );
+
   if (type == WStype_CONNECTED) {
     ws_connected = true;
     ws_auth_ok = false;
@@ -325,6 +361,18 @@ void handleWsEvent(WStype_t type, uint8_t* payload, size_t length) {
       return;
     }
     handleWsMessage(data);
+    return;
+  }
+
+  if (type == WStype_ERROR) {
+    String error_text;
+    error_text.reserve(length);
+    for (size_t i = 0; i < length; i++) {
+      error_text += static_cast<char>(payload[i]);
+    }
+    if (error_text.length() > 0) {
+      logLine("[WS] Error payload: " + error_text);
+    }
     return;
   }
 
@@ -433,6 +481,12 @@ bool tryWs(
   bool secure
 ) {
   resetWsClient();
+  logLine(
+    String("[WS] Opening ") + (secure ? "WSS" : "WS") +
+    " host=" + host +
+    " port=" + String(port) +
+    " path=" + path_and_query
+  );
 
   const uint32_t t0 = millis();
   if (secure) {

@@ -13,25 +13,17 @@ import {
   createTableAction,
   mergeBillAction,
   moveBillAction,
-  rotateDeviceKeyAction,
   saveFloorLayoutAction,
   splitBillAction,
   type TenantAdminActionState,
-  type TenantDeviceActionState,
   type TenantFirmwareDefaultsActionState,
-  type TenantTableActionState
-  ,
+  type TenantTableActionState,
   updateFirmwareDefaultsAction
 } from "../auth-actions";
 import type { Dictionary } from "../i18n/server";
 import { formatDateTime, formatMoney } from "../lib/format";
 
 const initialState: TenantAdminActionState = {
-  ok: false,
-  message: ""
-};
-
-const deviceActionInitialState: TenantDeviceActionState = {
   ok: false,
   message: ""
 };
@@ -2120,25 +2112,7 @@ function SelectedTablePanel({
   tables: AdminTableSummary[];
 }) {
   const [state, action, pending] = useActionState(closeBillAction, initialState);
-  const [deviceState, deviceAction, devicePending] = useActionState(
-    rotateDeviceKeyAction,
-    deviceActionInitialState
-  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("nakit");
-
-  useEffect(() => {
-    if (!deviceState.ok || !deviceState.firmwareSketch || !deviceState.firmwareFileName) {
-      return;
-    }
-
-    const blob = new Blob([deviceState.firmwareSketch], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = deviceState.firmwareFileName;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [deviceState]);
 
   return (
     <aside className="rounded-[0.75rem] border border-[#9eb8d6] bg-[#eef4fb] p-3 shadow-sm">
@@ -2181,22 +2155,7 @@ function SelectedTablePanel({
             <p className="mt-1 text-sm text-stone-600">
               {device ? (device.deviceOnline ? t.deviceOnline : t.deviceOffline) : t.noDevice}
             </p>
-            <form action={deviceAction} className="mt-3 flex flex-wrap items-center gap-3">
-              <input name="tableId" type="hidden" value={table.id} />
-              <button
-                className="rounded-full bg-[#16392e] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0f251f] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={devicePending}
-                type="submit"
-              >
-                {devicePending ? t.deviceFirmwarePreparing : t.deviceFirmwareDownload}
-              </button>
-              <p className="text-xs text-stone-500">
-                {t.deviceFirmwareHint} <span className="font-semibold text-stone-700">{table.name}</span>
-              </p>
-            </form>
-            {deviceState.message ? (
-              <p className="mt-2 text-xs text-stone-600">{deviceState.message}</p>
-            ) : null}
+            <p className="mt-3 text-xs text-stone-500">{t.deviceFirmwareLockedHint}</p>
           </div>
 
           <div className="rounded-2xl bg-stone-50 px-4 py-4">
@@ -2425,6 +2384,28 @@ function ProvisioningPanel({
               type="text"
             />
           </label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-stone-700">
+              <span>{t.quickProvisionWifiSsid}</span>
+              <input
+                className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+                defaultValue={profile.defaultFirmwareWifiSsid}
+                name="firmwareWifiSsidOverride"
+                placeholder={t.firmwareWifiSsidPlaceholder}
+                type="text"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-stone-700">
+              <span>{t.quickProvisionWifiPassword}</span>
+              <input
+                className="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-[#6492cb] focus:bg-white"
+                defaultValue={profile.defaultFirmwareWifiPassword}
+                name="firmwareWifiPasswordOverride"
+                placeholder={t.firmwareWifiPasswordPlaceholder}
+                type="text"
+              />
+            </label>
+          </div>
           <label className="inline-flex items-center gap-3 text-sm text-stone-700">
             <input defaultChecked name="isActive" type="checkbox" />
             <span>{t.quickProvisionActive}</span>

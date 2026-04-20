@@ -86,6 +86,12 @@ public static class TenantDatabaseInitializer
             ALTER TABLE service_tables
             ADD COLUMN IF NOT EXISTS layout_y integer NOT NULL DEFAULT 0;
 
+            ALTER TABLE service_tables
+            ADD COLUMN IF NOT EXISTS firmware_wifi_ssid_override varchar(160) NULL;
+
+            ALTER TABLE service_tables
+            ADD COLUMN IF NOT EXISTS firmware_wifi_password_override varchar(160) NULL;
+
             ALTER TABLE tenant_profile
             ADD COLUMN IF NOT EXISTS floor_layout_json text NOT NULL DEFAULT '{}';
 

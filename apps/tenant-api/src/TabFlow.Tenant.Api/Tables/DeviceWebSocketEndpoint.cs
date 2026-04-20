@@ -28,6 +28,7 @@ public static class DeviceWebSocketEndpoint
         var registry = context.RequestServices.GetRequiredService<DeviceConnectionRegistry>();
         var tokenService = context.RequestServices.GetRequiredService<TableTokenService>();
         var environment = context.RequestServices.GetRequiredService<IHostEnvironment>();
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("DeviceWebSocket");
         var socket = await context.WebSockets.AcceptWebSocketAsync();
         var cancellationToken = context.RequestAborted;
 
@@ -37,6 +38,7 @@ public static class DeviceWebSocketEndpoint
 
         if (table is null)
         {
+            logger.LogWarning("WS auth failed: table_not_found tableNumber={TableNumber}", tableNumber);
             await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "table_not_found", cancellationToken);
             return;
         }
@@ -53,10 +55,23 @@ public static class DeviceWebSocketEndpoint
             var activeKey = table.DeviceKeys.OrderByDescending(key => key.CreatedAt).FirstOrDefault();
             if (activeKey is null || string.IsNullOrWhiteSpace(rawKey) || !DeviceKeyService.Verify(rawKey, activeKey.KeyHash))
             {
+                logger.LogWarning(
+                    "WS auth failed: unauthorized tableNumber={TableNumber} tableId={TableId} hasActiveKey={HasActiveKey} rawKeyPresent={RawKeyPresent} rawKeyHint={RawKeyHint} expectedKeyHint={ExpectedKeyHint}",
+                    table.Number,
+                    table.Id,
+                    activeKey is not null,
+                    !string.IsNullOrWhiteSpace(rawKey),
+                    CreateKeyHint(rawKey),
+                    activeKey?.KeyHint ?? "<none>");
                 await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "unauthorized", cancellationToken);
                 return;
             }
 
+            logger.LogInformation(
+                "WS auth ok tableNumber={TableNumber} tableId={TableId} keyHint={KeyHint}",
+                table.Number,
+                table.Id,
+                activeKey.KeyHint);
             activeKey.LastSeenAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(cancellationToken);
 
@@ -97,6 +112,7 @@ public static class DeviceWebSocketEndpoint
         }
         catch (WebSocketException)
         {
+            logger.LogWarning("WS connection aborted tableNumber={TableNumber}", tableNumber);
         }
         finally
         {
@@ -163,6 +179,13 @@ public static class DeviceWebSocketEndpoint
 
     private static Task SendJsonAsync(WebSocket socket, object payload, CancellationToken cancellationToken) =>
         socket.SendAsync(JsonSerializer.SerializeToUtf8Bytes(payload), WebSocketMessageType.Text, true, cancellationToken);
+
+    private static string CreateKeyHint(string? rawKey) =>
+        string.IsNullOrWhiteSpace(rawKey)
+            ? "<empty>"
+            : rawKey.Length <= 16
+                ? rawKey
+                : rawKey[^16..];
 
     private sealed record DeviceAuthMessage(string Type, string? DeviceKey);
 }

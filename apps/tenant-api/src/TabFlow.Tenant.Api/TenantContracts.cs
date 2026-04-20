@@ -32,6 +32,8 @@ public sealed record AdminTableSummaryResponse(
     Guid? OpenBillId,
     int OpenBillSubtotalMinor,
     string? OpenBillCurrencyCode,
+    string? FirmwareWifiSsidOverride,
+    string? FirmwareWifiPasswordOverride,
     DateTimeOffset UpdatedAt);
 
 public sealed record DeviceKeySummaryResponse(
@@ -55,12 +57,6 @@ public sealed record DeviceTokenSummaryResponse(
     int TtlSeconds,
     DateTimeOffset ExpiresAt);
 
-public sealed record RotateDeviceKeyResponse(
-    AdminDeviceResponse Device,
-    string RawDeviceKey,
-    string FirmwareSketch,
-    string FirmwareFileName);
-
 public sealed record CreatedServiceTableResponse(
     Guid Id,
     int Number,
@@ -76,7 +72,9 @@ public sealed record UpsertServiceTableRequest(
     string LayoutCode,
     int LayoutX,
     int LayoutY,
-    bool IsActive);
+    bool IsActive,
+    string? FirmwareWifiSsidOverride,
+    string? FirmwareWifiPasswordOverride);
 
 public sealed record UpdateTableLayoutEntryRequest(Guid TableId, string LayoutCode, int LayoutX, int LayoutY);
 

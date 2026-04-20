@@ -208,6 +208,8 @@ export const adminTableSummarySchema = z.object({
   openBillId: z.uuid().nullable(),
   openBillSubtotalMinor: z.number().int().nonnegative(),
   openBillCurrencyCode: z.string().nullable(),
+  firmwareWifiSsidOverride: z.string().nullable(),
+  firmwareWifiPasswordOverride: z.string().nullable(),
   updatedAt: z.string()
 });
 
@@ -289,15 +291,6 @@ export const adminDeviceSchema = z.object({
 
 export type AdminDevice = z.infer<typeof adminDeviceSchema>;
 export const adminDeviceListSchema = z.array(adminDeviceSchema);
-
-export const rotateDeviceKeyResponseSchema = z.object({
-  device: adminDeviceSchema,
-  rawDeviceKey: z.string(),
-  firmwareSketch: z.string(),
-  firmwareFileName: z.string()
-});
-
-export type RotateDeviceKeyResponse = z.infer<typeof rotateDeviceKeyResponseSchema>;
 
 export const createdServiceTableResponseSchema = z.object({
   id: z.uuid(),
@@ -514,7 +507,9 @@ export const upsertServiceTableInputSchema = z.object({
   layoutCode: z.string().trim().min(1).max(63),
   layoutX: z.number().int(),
   layoutY: z.number().int(),
-  isActive: z.boolean()
+  isActive: z.boolean(),
+  firmwareWifiSsidOverride: z.string().trim().max(160).nullable().optional(),
+  firmwareWifiPasswordOverride: z.string().trim().max(160).nullable().optional()
 });
 
 export type UpsertServiceTableInput = z.infer<typeof upsertServiceTableInputSchema>;

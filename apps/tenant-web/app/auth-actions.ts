@@ -15,7 +15,6 @@ import {
   mergeTenantBill,
   moveTenantBill,
   refreshDeviceToken,
-  rotateDeviceKey,
   saveAdminTableLayouts,
   saveFloorLayoutDocument,
   splitTenantBill,
@@ -41,9 +40,6 @@ export type TenantLoginActionState = {
 export type TenantDeviceActionState = {
   ok: boolean;
   message: string;
-  firmwareSketch?: string;
-  firmwareFileName?: string;
-  rawDeviceKey?: string;
 };
 
 export type TenantAdminActionState = {
@@ -232,38 +228,6 @@ export async function createItemAction(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/console");
-}
-
-export async function rotateDeviceKeyAction(
-  _previousState: TenantDeviceActionState,
-  formData: FormData
-): Promise<TenantDeviceActionState> {
-  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
-
-  if (!session) {
-    return {
-      ok: false,
-      message: t.messages.sessionMissing
-    };
-  }
-
-  try {
-    const result = await rotateDeviceKey(session, String(formData.get("tableId") ?? ""));
-    revalidatePath("/console");
-
-    return {
-      ok: true,
-      message: t.messages.deviceKeyRotated,
-      firmwareSketch: result.firmwareSketch,
-      firmwareFileName: result.firmwareFileName,
-      rawDeviceKey: result.rawDeviceKey
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : t.messages.deviceKeyRotateFailed
-    };
-  }
 }
 
 export async function refreshDeviceTokenAction(
@@ -526,7 +490,10 @@ export async function createTableAction(
       layoutCode: "ana-kat",
       layoutX: 0,
       layoutY: 0,
-      isActive: formData.get("isActive") === "on"
+      isActive: formData.get("isActive") === "on",
+      firmwareWifiSsidOverride: String(formData.get("firmwareWifiSsidOverride") ?? "").trim() || null,
+      firmwareWifiPasswordOverride:
+        String(formData.get("firmwareWifiPasswordOverride") ?? "").trim() || null
     });
     revalidatePath("/console");
     return {
@@ -562,7 +529,10 @@ export async function updateTableAction(
       layoutCode: String(formData.get("layoutCode") ?? "ana-kat"),
       layoutX: Number(formData.get("layoutX") ?? 0),
       layoutY: Number(formData.get("layoutY") ?? 0),
-      isActive: formData.get("isActive") === "on"
+      isActive: formData.get("isActive") === "on",
+      firmwareWifiSsidOverride: String(formData.get("firmwareWifiSsidOverride") ?? "").trim() || null,
+      firmwareWifiPasswordOverride:
+        String(formData.get("firmwareWifiPasswordOverride") ?? "").trim() || null
     });
     revalidatePath("/console");
     return { ok: true, message: t.messages.tableUpdated };

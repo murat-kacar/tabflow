@@ -18,6 +18,10 @@ public sealed class ServiceTable
 
     public bool IsActive { get; set; } = true;
 
+    public string? FirmwareWifiSsidOverride { get; set; }
+
+    public string? FirmwareWifiPasswordOverride { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

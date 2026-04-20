@@ -22,7 +22,6 @@ import {
   mergeBillInputSchema,
   moveBillInputSchema,
   platformProblemSchema,
-  rotateDeviceKeyResponseSchema,
   type ServiceStation,
   type SplitBillInput,
   serviceStationListSchema,
@@ -529,27 +528,6 @@ export async function listAdminDevices(session: TenantSession): Promise<AdminDev
   }
 
   return adminDeviceListSchema.parse(await response.json());
-}
-
-export async function rotateDeviceKey(
-  session: TenantSession,
-  tableId: string
-): Promise<{ firmwareSketch: string; firmwareFileName: string; rawDeviceKey: string }> {
-  const response = await fetch(`${tenantApiBaseUrl()}/api/admin/devices/${tableId}/rotate-key`, {
-    method: "POST",
-    headers: tenantAdminHeaders(session)
-  });
-
-  if (!response.ok) {
-    throw new Error(await readProblem(response));
-  }
-
-  const payload = rotateDeviceKeyResponseSchema.parse(await response.json());
-  return {
-    firmwareSketch: payload.firmwareSketch,
-    firmwareFileName: payload.firmwareFileName,
-    rawDeviceKey: payload.rawDeviceKey
-  };
 }
 
 export async function refreshDeviceToken(

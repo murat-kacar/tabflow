@@ -15,7 +15,6 @@ import {
   platformAdminProfileSchema,
   platformAuditLogSchema,
   provisionJobSchema,
-  rotateDeviceKeyResponseSchema,
   serviceStationSchema,
   serviceTableSchema,
   tenantAdminBootstrapStatusSchema,
@@ -265,6 +264,8 @@ describe("tenant runtime schemas", () => {
       openBillId: "018f6f12-37b6-7cc2-9d37-d49943f7b7b1",
       openBillSubtotalMinor: 4200,
       openBillCurrencyCode: "GBP",
+      firmwareWifiSsidOverride: null,
+      firmwareWifiPasswordOverride: null,
       updatedAt: "2026-04-15T00:01:00.000Z"
     });
 
@@ -442,7 +443,9 @@ describe("tenant runtime schemas", () => {
       layoutCode: "balkon",
       layoutX: 22,
       layoutY: 14,
-      isActive: false
+      isActive: false,
+      firmwareWifiSsidOverride: "Cafe10-Staff",
+      firmwareWifiPasswordOverride: "Secret123"
     });
 
     expect(table.number).toBe(12);
@@ -518,14 +521,7 @@ describe("tenant runtime schemas", () => {
       },
       activeToken: token
     });
-    const rotated = rotateDeviceKeyResponseSchema.parse({
-      device,
-      rawDeviceKey: "a1b2c3d4e5f6-masa001",
-      firmwareSketch: "#define MASA_ID 1",
-      firmwareFileName: "masa-balkon-001.ino"
-    });
-
-    expect(rotated.device.deviceOnline).toBe(true);
-    expect(rotated.rawDeviceKey).toContain("masa001");
+    expect(device.deviceOnline).toBe(true);
+    expect(device.activeKey?.keyHint).toContain("masa001");
   });
 });

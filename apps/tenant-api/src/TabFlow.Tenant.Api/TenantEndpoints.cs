@@ -62,7 +62,6 @@ public static class TenantEndpoints
         adminGroup.MapPost("/orders", CreateAdminOrder);
         adminGroup.MapPost("/orders/{orderId:guid}/status", UpdateOrderStatus);
         adminGroup.MapGet("/devices", ListDevices);
-        adminGroup.MapPost("/devices/{tableId:guid}/rotate-key", RotateDeviceKey);
         adminGroup.MapPost("/devices/{tableId:guid}/refresh-token", RefreshDeviceToken);
 
         return routes;
@@ -617,6 +616,8 @@ public static class TenantEndpoints
                 openBill?.Id,
                 openBill?.SubtotalMinor ?? 0,
                 openBill?.CurrencyCode,
+                table.FirmwareWifiSsidOverride,
+                table.FirmwareWifiPasswordOverride,
                 table.UpdatedAt);
         });
 
@@ -632,6 +633,12 @@ public static class TenantEndpoints
         var name = request.Name.Trim();
         var serviceNote = request.ServiceNote.Trim();
         var layoutCode = request.LayoutCode.Trim();
+        var firmwareWifiSsidOverride = string.IsNullOrWhiteSpace(request.FirmwareWifiSsidOverride)
+            ? null
+            : request.FirmwareWifiSsidOverride.Trim();
+        var firmwareWifiPasswordOverride = string.IsNullOrWhiteSpace(request.FirmwareWifiPasswordOverride)
+            ? null
+            : request.FirmwareWifiPasswordOverride.Trim();
 
         if (request.Number <= 0 || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(layoutCode) || serviceNote.Length > 1200)
         {
@@ -657,7 +664,9 @@ public static class TenantEndpoints
             LayoutCode = layoutCode,
             LayoutX = request.LayoutX,
             LayoutY = request.LayoutY,
-            IsActive = request.IsActive
+            IsActive = request.IsActive,
+            FirmwareWifiSsidOverride = firmwareWifiSsidOverride,
+            FirmwareWifiPasswordOverride = firmwareWifiPasswordOverride
         };
 
         db.ServiceTables.Add(table);
@@ -679,7 +688,7 @@ public static class TenantEndpoints
                 table.Number,
                 table.Name,
                 rawKey,
-                RenderFirmwareSketch(runtimeOptions.Value, profile, table.Number, table.Name, rawKey),
+                RenderFirmwareSketch(runtimeOptions.Value, profile, table, rawKey),
                 BuildFirmwareFileName(table.Name, table.Number)));
     }
 
@@ -698,6 +707,12 @@ public static class TenantEndpoints
         var name = request.Name.Trim();
         var serviceNote = request.ServiceNote.Trim();
         var layoutCode = request.LayoutCode.Trim();
+        var firmwareWifiSsidOverride = string.IsNullOrWhiteSpace(request.FirmwareWifiSsidOverride)
+            ? null
+            : request.FirmwareWifiSsidOverride.Trim();
+        var firmwareWifiPasswordOverride = string.IsNullOrWhiteSpace(request.FirmwareWifiPasswordOverride)
+            ? null
+            : request.FirmwareWifiPasswordOverride.Trim();
 
         if (request.Number <= 0 || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(layoutCode) || serviceNote.Length > 1200)
         {
@@ -722,6 +737,8 @@ public static class TenantEndpoints
         table.LayoutX = request.LayoutX;
         table.LayoutY = request.LayoutY;
         table.IsActive = request.IsActive;
+        table.FirmwareWifiSsidOverride = firmwareWifiSsidOverride;
+        table.FirmwareWifiPasswordOverride = firmwareWifiPasswordOverride;
         table.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
 
@@ -1330,64 +1347,6 @@ public static class TenantEndpoints
         return Results.Ok(response);
     }
 
-    private static async Task<IResult> RotateDeviceKey(
-        Guid tableId,
-        TenantDbContext db,
-        IOptions<TenantRuntimeOptions> runtimeOptions,
-        DeviceConnectionRegistry registry,
-        CancellationToken cancellationToken)
-    {
-        if (!await db.ServiceTables.AsNoTracking().AnyAsync(current => current.Id == tableId, cancellationToken))
-        {
-            return Results.NotFound();
-        }
-
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await TenantDatabaseLocks.AcquireTransactionLockAsync(db, $"table:{tableId}", cancellationToken);
-
-        var table = await db.ServiceTables
-            .Include(current => current.DeviceKeys)
-            .FirstAsync(current => current.Id == tableId, cancellationToken);
-
-        foreach (var deviceKey in table.DeviceKeys.Where(current => current.IsActive))
-        {
-            deviceKey.IsActive = false;
-        }
-
-        var rawKey = DeviceKeyService.GenerateRawKey(table.Number);
-        var newKey = new DeviceKey
-        {
-            TableId = table.Id,
-            KeyHash = DeviceKeyService.Hash(rawKey),
-            KeyHint = DeviceKeyService.CreateHint(rawKey)
-        };
-
-        db.DeviceKeys.Add(newKey);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        await registry.CloseAsync(table.Id, WebSocketCloseStatus.PolicyViolation, "device_key_rotated", cancellationToken);
-
-        var response = new RotateDeviceKeyResponse(
-            new AdminDeviceResponse(
-                table.Id,
-                table.Number,
-                table.Name,
-                table.IsActive,
-                false,
-                new DeviceKeySummaryResponse(newKey.Id, newKey.KeyHint, newKey.IsActive, newKey.LastSeenAt, newKey.CreatedAt),
-                null),
-            rawKey,
-            RenderFirmwareSketch(
-                runtimeOptions.Value,
-                await db.TenantProfiles.AsNoTracking().OrderBy(current => current.CreatedAt).FirstAsync(cancellationToken),
-                table.Number,
-                table.Name,
-                rawKey),
-            BuildFirmwareFileName(table.Name, table.Number));
-
-        return Results.Ok(response);
-    }
-
     private static async Task<IResult> RefreshDeviceToken(
         Guid tableId,
         TenantDbContext db,
@@ -1732,26 +1691,27 @@ public static class TenantEndpoints
     private static string RenderFirmwareSketch(
         TenantRuntimeOptions options,
         TenantProfile profile,
-        int tableNumber,
-        string tableName,
+        ServiceTable table,
         string rawDeviceKey)
     {
         const string marker = "#include \"config.h\"";
         var template = LoadFirmwareTemplate();
+        var wifiSsid = table.FirmwareWifiSsidOverride ?? profile.DefaultFirmwareWifiSsid;
+        var wifiPassword = table.FirmwareWifiPasswordOverride ?? profile.DefaultFirmwareWifiPassword;
         var configBlock = $$"""
         // Auto-generated by TabFlow.
         // Tenant: {{profile.DisplayName}}
         // Domain: {{profile.PrimaryDomain}}
-        // Table: {{tableName}}
-        // File: {{BuildFirmwareFileName(tableName, tableNumber)}}
+        // Table: {{table.Name}}
+        // File: {{BuildFirmwareFileName(table.Name, table.Number)}}
 
-        #define WIFI_SSID "{{EscapeCppString(profile.DefaultFirmwareWifiSsid)}}"
-        #define WIFI_PASSWORD "{{EscapeCppString(profile.DefaultFirmwareWifiPassword)}}"
+        #define WIFI_SSID "{{EscapeCppString(wifiSsid)}}"
+        #define WIFI_PASSWORD "{{EscapeCppString(wifiPassword)}}"
 
         #define BACKEND_HOST "{{CatalogValidation.NormalizeHost(options.BaseUrl)}}"
         #define BACKEND_PORT 443
 
-        #define MASA_ID {{tableNumber}}
+        #define MASA_ID {{table.Number}}
         #define WS_DEVICE_KEY "{{EscapeCppString(rawDeviceKey)}}"
 
         #define TFT_SCLK_PIN 0

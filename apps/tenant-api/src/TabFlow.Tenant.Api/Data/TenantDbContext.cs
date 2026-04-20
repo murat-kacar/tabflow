@@ -82,6 +82,8 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.Property(table => table.LayoutX).HasColumnName("layout_x");
             entity.Property(table => table.LayoutY).HasColumnName("layout_y");
             entity.Property(table => table.IsActive).HasColumnName("is_active");
+            entity.Property(table => table.FirmwareWifiSsidOverride).HasColumnName("firmware_wifi_ssid_override").HasMaxLength(160);
+            entity.Property(table => table.FirmwareWifiPasswordOverride).HasColumnName("firmware_wifi_password_override").HasMaxLength(160);
             entity.Property(table => table.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
             entity.Property(table => table.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
         });
