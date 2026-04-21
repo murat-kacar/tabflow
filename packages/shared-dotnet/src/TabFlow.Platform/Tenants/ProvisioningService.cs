@@ -17,6 +17,8 @@ public sealed class ProvisioningService(
     PlatformDbContext db,
     IConfiguration configuration)
 {
+    private const int MaxProvisionJobErrorMessageLength = 2000;
+
     public async Task<int> ProcessPendingJobsAsync(CancellationToken cancellationToken)
     {
         var options = ReadOptions();
@@ -204,7 +206,7 @@ public sealed class ProvisioningService(
             var now = DateTimeOffset.UtcNow;
             var terminalFailure = job.AttemptCount >= options.MaxAttempts;
             job.Status = ProvisionJobStatus.Failed;
-            job.ErrorMessage = exception.Message;
+            job.ErrorMessage = TruncateErrorMessage(exception.Message);
             job.CompletedAt = now;
             job.CurrentStep = terminalFailure ? "failed" : "retry_scheduled";
             job.WorkerId = null;
@@ -270,7 +272,7 @@ public sealed class ProvisioningService(
             var now = DateTimeOffset.UtcNow;
             var terminalFailure = job.AttemptCount >= options.MaxAttempts;
             job.Status = ProvisionJobStatus.Failed;
-            job.ErrorMessage = exception.Message;
+            job.ErrorMessage = TruncateErrorMessage(exception.Message);
             job.CompletedAt = now;
             job.CurrentStep = terminalFailure ? "failed" : "retry_scheduled";
             job.WorkerId = null;
@@ -930,6 +932,18 @@ public sealed class ProvisioningService(
         {
             return false;
         }
+    }
+
+    private static string TruncateErrorMessage(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return "Provisioning failed.";
+        }
+
+        return message.Length <= MaxProvisionJobErrorMessageLength
+            ? message
+            : message[..MaxProvisionJobErrorMessageLength];
     }
 
     private sealed record ProvisionedRuntime(
