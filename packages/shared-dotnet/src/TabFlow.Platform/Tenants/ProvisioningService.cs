@@ -18,6 +18,7 @@ public sealed class ProvisioningService(
     IConfiguration configuration)
 {
     private const int MaxProvisionJobErrorMessageLength = 2000;
+    private static readonly int[] InitialSeedTableNumbers = [0, 999];
 
     public async Task<int> ProcessPendingJobsAsync(CancellationToken cancellationToken)
     {
@@ -385,7 +386,7 @@ public sealed class ProvisioningService(
         var deviceSeeds = new List<object>();
         var sketchFiles = new List<string>();
         var template = LoadProvisionedFirmwareTemplate();
-        for (var tableId = 1; tableId <= options.InitialTableCount; tableId++)
+        foreach (var tableId in InitialSeedTableNumbers)
         {
             var filePath = Path.Combine(firmwareRoot, $"masa-{tableId:000}.ino");
             var deviceKey = $"{tenant.Code}-masa{tableId:000}-{Guid.NewGuid():N}"[..36];
@@ -523,7 +524,7 @@ public sealed class ProvisioningService(
             : Path.GetFullPath(options.NginxSitesEnabledRoot);
         options.TenantBackendPortStart = options.TenantBackendPortStart <= 0 ? 8100 : options.TenantBackendPortStart;
         options.TenantWebPortStart = options.TenantWebPortStart <= 0 ? 3100 : options.TenantWebPortStart;
-        options.InitialTableCount = options.InitialTableCount <= 0 ? 5 : options.InitialTableCount;
+        options.InitialTableCount = InitialSeedTableNumbers.Length;
         options.MaxAttempts = options.MaxAttempts <= 0 ? 5 : options.MaxAttempts;
         options.RetryDelaySeconds = options.RetryDelaySeconds <= 0 ? 60 : options.RetryDelaySeconds;
         options.LeaseSeconds = options.LeaseSeconds <= 0 ? 300 : options.LeaseSeconds;

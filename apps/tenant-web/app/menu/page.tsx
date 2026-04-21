@@ -6,6 +6,8 @@ import { getLocale } from "../i18n/server";
 import { getCustomerSession } from "../lib/customer-session";
 import { getCustomerSessionStatus, getPublicCatalog } from "../lib/tenant-api";
 
+const defaultMenuTheme = "day" as const;
+
 export const dynamic = "force-dynamic";
 
 export default async function CustomerMenuPage() {
@@ -27,6 +29,7 @@ export default async function CustomerMenuPage() {
     <CustomerMenu
       catalog={catalog}
       initialLocale={locale}
+      initialTheme={defaultMenuTheme}
       session={session}
       translations={{ en: en.customerMenu, tr: tr.customerMenu }}
     />

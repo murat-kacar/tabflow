@@ -269,7 +269,7 @@ Current worker behavior:
 
 - polling pending or failed `tenant.create` jobs
 - allocating deterministic runtime metadata such as DB name, DB user, and ports
-- writing per-table ready-to-flash firmware `.ino` files for the configured initial table count
+- writing ready-to-flash firmware `.ino` files for the bootstrap test tables `000` and `999`
 - generating per-tenant secret material for runtime configuration
 - creating the tenant PostgreSQL database when it does not already exist
 - writing tenant API and tenant web environment files under `/etc/tabflow/tenants`

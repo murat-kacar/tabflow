@@ -12,6 +12,8 @@ namespace TabFlow.Tenant.Api;
 
 public static class TenantDatabaseInitializer
 {
+    private static readonly int[] InitialSeedTableNumbers = [0, 999];
+
     private static readonly JsonSerializerOptions DeviceKeySeedJsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -184,7 +186,7 @@ public static class TenantDatabaseInitializer
 
         if (!await db.ServiceTables.AnyAsync())
         {
-            for (var tableNumber = 1; tableNumber <= Math.Max(1, options.InitialTableCount); tableNumber++)
+            foreach (var tableNumber in InitialSeedTableNumbers)
             {
                 db.ServiceTables.Add(new ServiceTable
                 {

@@ -13,6 +13,7 @@ import {
   createTableAction,
   mergeBillAction,
   moveBillAction,
+  openPreviewMenuAction,
   saveFloorLayoutAction,
   splitBillAction,
   type TenantAdminActionState,
@@ -2434,6 +2435,21 @@ function ProvisioningPanel({
             </p>
           ) : null}
         </form>
+        <div className="mt-5 rounded-2xl border border-dashed border-[#c7d7eb] bg-[#f6f8fc] px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+            {t.previewMenuEyebrow}
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-stone-950">{t.previewMenuTitle}</h3>
+          <p className="mt-2 text-sm leading-6 text-stone-600">{t.previewMenuBody}</p>
+          <form action={openPreviewMenuAction} className="mt-4">
+            <button
+              className="rounded-full bg-[#2a5f4d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#214b3d]"
+              type="submit"
+            >
+              {t.previewMenuCta}
+            </button>
+          </form>
+        </div>
       </article>
     </section>
   );

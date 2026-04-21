@@ -506,6 +506,11 @@ export const tr: typeof en = {
       "Burada masa oluşturulmadan önce masa bazlı Wi-Fi override verebilirsiniz. İndirilen .ino dosyası, o masa yaşam döngüsündeki tek firmware çıktısıdır.",
     quickProvisionCreate: "Masayı oluştur ve .ino indir",
     quickProvisionPreparing: "Masa oluşuyor ve firmware hazırlanıyor...",
+    previewMenuEyebrow: "Müşteri menü önizlemesi",
+    previewMenuTitle: "Canlı menüyü müşteri gibi aç",
+    previewMenuBody:
+      "Varsayılan Test / 999 masası yoksa oluşturulur, varsa yeniden kullanılır; ardından canlı müşteri session'ına bağlanıp menü müşterinin gördüğü haliyle açılır.",
+    previewMenuCta: "Menüyü müşteri gibi gör",
     editModeEyebrow: "Düzenleme Modu",
     allLayouts: "Tüm Kat Planları",
     editorSkeletonSuffix: "için editör iskeleti",

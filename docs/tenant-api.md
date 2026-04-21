@@ -9,7 +9,7 @@ The Tenant API is the runtime backend for one business tenant.
 Base behavior today:
 
 - initializes tenant schema from `infra/postgres/migrations/tenant/0001_initial.sql`
-- seeds tenant profile, default tables, and starter menu catalog on empty databases
+- seeds tenant profile, starter tables `000` and `999`, and starter menu catalog on empty databases
 - seeds a default tenant admin on empty databases
 - optionally seeds initial per-table device keys from configuration
 - exposes read-oriented tenant and catalog endpoints
@@ -40,6 +40,7 @@ Environment/config values used today:
 - `Tenant:LanguageCode`
 - `Tenant:TimeZone`
 - `Tenant:InitialTableCount`
+  note: current bootstrap convention always seeds exactly two test tables, `000` and `999`
 - `Tenant:DeviceTokenTtlSeconds`
 - `Tenant:DeviceKeySeedJson`
 - `Tenant:CustomerSessionTtlMinutes`

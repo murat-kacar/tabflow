@@ -12,6 +12,7 @@ import {
   createStation,
   deleteAdminTable,
   deleteStation,
+  listAdminTables,
   mergeTenantBill,
   moveTenantBill,
   refreshDeviceToken,
@@ -21,6 +22,7 @@ import {
   updateFirmwareDefaults,
   updateAdminTable,
   updateKitchenItemStatus,
+  verifyTableToken,
   updateStation,
   updateTenantOrderStatus
 } from "./lib/tenant-api";
@@ -31,6 +33,10 @@ import {
   getTenantSession,
   setTenantSessionCookie
 } from "./lib/tenant-session";
+import {
+  createCustomerSessionToken,
+  setCustomerSessionCookie
+} from "./lib/customer-session";
 
 export type TenantLoginActionState = {
   ok: boolean;
@@ -70,6 +76,9 @@ export type TenantStationActionState = {
   ok: boolean;
   message: string;
 };
+
+const previewMenuTableNumber = 999;
+const previewMenuTableName = "Test";
 
 async function establishSession(
   email: string,
@@ -601,6 +610,73 @@ export async function updateFirmwareDefaultsAction(
       message: error instanceof Error ? error.message : t.messages.firmwareDefaultsSaveFailed
     };
   }
+}
+
+export async function openPreviewMenuAction(): Promise<void> {
+  const [session, t] = await Promise.all([getTenantSession(), getDictionary()]);
+
+  if (!session) {
+    throw new Error(t.messages.sessionMissing);
+  }
+
+  const tables = await listAdminTables(session);
+  let previewTable = tables.find((table) => table.number === previewMenuTableNumber);
+
+  if (!previewTable) {
+    const created = await createAdminTable(session, {
+      number: previewMenuTableNumber,
+      name: previewMenuTableName,
+      serviceNote: "UI/UX preview table",
+      layoutCode: "ana-kat",
+      layoutX: 0,
+      layoutY: 0,
+      isActive: true,
+      firmwareWifiSsidOverride: null,
+      firmwareWifiPasswordOverride: null
+    });
+
+    previewTable = {
+      id: created.id,
+      number: created.number,
+      name: created.name,
+      serviceNote: "UI/UX preview table",
+      layoutCode: "ana-kat",
+      layoutX: 0,
+      layoutY: 0,
+      isActive: true,
+      deviceOnline: false,
+      activeSessionCount: 0,
+      submittedOrderCount: 0,
+      preparingOrderCount: 0,
+      readyOrderCount: 0,
+      openBillId: null,
+      openBillSubtotalMinor: 0,
+      openBillCurrencyCode: null,
+      firmwareWifiSsidOverride: null,
+      firmwareWifiPasswordOverride: null,
+      updatedAt: new Date().toISOString()
+    };
+
+    revalidatePath("/service");
+    revalidatePath("/console");
+  }
+
+  const token = await refreshDeviceToken(session, previewTable.id);
+  const verified = await verifyTableToken(token.url);
+  const customer = createCustomerSessionToken({
+    backendSessionId: verified.sessionId,
+    backendSessionToken: verified.sessionToken,
+    tableId: verified.tableId,
+    tableNumber: verified.tableNumber,
+    tableName: verified.tableName,
+    tenantCode: verified.tenantCode,
+    tenantDisplayName: verified.tenantDisplayName,
+    tenantPrimaryDomain: verified.tenantPrimaryDomain,
+    expiresAt: verified.sessionExpiresAt
+  });
+
+  await setCustomerSessionCookie(customer.token, customer.session.expiresAt);
+  redirect("/menu");
 }
 
 export async function deleteTableAction(

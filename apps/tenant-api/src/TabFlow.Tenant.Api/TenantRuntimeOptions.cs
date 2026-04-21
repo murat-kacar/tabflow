@@ -24,7 +24,7 @@ public sealed class TenantRuntimeOptions
 
     public string DefaultFirmwareWifiPassword { get; set; } = "CHANGE_ME";
 
-    public int InitialTableCount { get; set; } = 5;
+    public int InitialTableCount { get; set; } = 2;
 
     public int DeviceTokenTtlSeconds { get; set; } = 60;
 

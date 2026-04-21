@@ -109,16 +109,18 @@ export function CustomerMenu({
   catalog,
   session,
   initialLocale,
+  initialTheme,
   translations
 }: {
   catalog: TenantCatalog;
   session: CustomerSession;
   initialLocale: Locale;
+  initialTheme: ThemeMode;
   translations: Record<Locale, CustomerMenuCopy>;
 }) {
   const [orderState, submitAction, pending] = useActionState(submitCustomerOrderAction, initialState);
-  const [locale, setLocale] = useState<Locale>(() => detectLocale(initialLocale));
-  const [theme, setTheme] = useState<ThemeMode>(() => detectTheme());
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [activeView, setActiveView] = useState<"menu" | "info">("menu");
   const [activeCategoryId, setActiveCategoryId] = useState<string>(catalog.categories[0]?.id ?? "");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -140,6 +142,11 @@ export function CustomerMenu({
   const currentCurrency = cartEntries[0]?.currencyCode ?? catalog.tenant.currencyCode;
   const heroCategoryCount = categories.length;
   const heroItemCount = flatItems.length;
+
+  useEffect(() => {
+    setLocale(detectLocale(initialLocale));
+    setTheme(detectTheme());
+  }, [initialLocale, initialTheme]);
 
   useEffect(() => {
     const root = document.documentElement;

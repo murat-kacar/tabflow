@@ -505,6 +505,11 @@ export const en = {
       "You can override Wi-Fi for this table before creation. The downloaded .ino is the only firmware artifact for that table lifecycle.",
     quickProvisionCreate: "Create table and download .ino",
     quickProvisionPreparing: "Creating table and preparing firmware...",
+    previewMenuEyebrow: "Customer menu preview",
+    previewMenuTitle: "Open the live menu as a customer",
+    previewMenuBody:
+      "This creates or reuses the default preview table Test / 999, joins its live customer session, and opens the menu exactly as the guest sees it.",
+    previewMenuCta: "View menu as customer",
     editModeEyebrow: "Edit Mode",
     allLayouts: "All layouts",
     editorSkeletonSuffix: "editor skeleton",
