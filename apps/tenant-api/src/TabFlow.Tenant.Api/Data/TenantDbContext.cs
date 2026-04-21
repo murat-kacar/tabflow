@@ -193,6 +193,7 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.ToTable("customer_orders");
             entity.HasKey(order => order.Id);
             entity.Property(order => order.Id).HasColumnName("id");
+            entity.Property(order => order.CustomerSessionId).HasColumnName("customer_session_id");
             entity.Property(order => order.BillId).HasColumnName("bill_id");
             entity.Property(order => order.TableId).HasColumnName("table_id");
             entity.Property(order => order.Status).HasColumnName("status").HasColumnType("customer_order_status");
@@ -204,6 +205,10 @@ public sealed class TenantDbContext(DbContextOptions<TenantDbContext> options) :
             entity.HasOne(order => order.Table)
                 .WithMany()
                 .HasForeignKey(order => order.TableId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(order => order.CustomerSession)
+                .WithMany()
+                .HasForeignKey(order => order.CustomerSessionId)
                 .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(order => order.Bill)
                 .WithMany(bill => bill.Orders)

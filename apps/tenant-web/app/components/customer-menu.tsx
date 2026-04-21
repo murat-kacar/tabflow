@@ -125,6 +125,7 @@ export function CustomerMenu({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [orderNote, setOrderNote] = useState("");
+  const [checkoutToken, setCheckoutToken] = useState("");
 
   const t = translations[locale];
   const categories = catalog.categories;
@@ -491,6 +492,22 @@ export function CustomerMenu({
                         value={orderNote}
                       />
                     </label>
+                    <label className="mt-4 block">
+                      <span className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                        {t.checkoutProofLabel}
+                      </span>
+                      <input
+                        className={`mt-3 w-full rounded-[1.25rem] border px-4 py-3 text-sm outline-none transition ${borderClass} ${
+                          theme === "night"
+                            ? "bg-black/20 text-[#f3e7d3] placeholder:text-[#7f725f]"
+                            : "bg-[#fcf7ef] text-[#241c12] placeholder:text-[#8d7756]"
+                        }`}
+                        onChange={(event) => setCheckoutToken(event.target.value)}
+                        placeholder={t.checkoutProofPlaceholder}
+                        value={checkoutToken}
+                      />
+                      <p className={`mt-2 text-xs leading-5 ${mutedClass}`}>{t.checkoutProofHint}</p>
+                    </label>
                   </div>
 
                   {flatItems.map((item) => (
@@ -500,10 +517,11 @@ export function CustomerMenu({
                     </div>
                   ))}
                   <input name="orderNote" type="hidden" value={orderNote} />
+                  <input name="checkoutToken" type="hidden" value={checkoutToken} />
 
                   <button
                     className={`w-full rounded-full px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${accentButtonClass}`}
-                    disabled={pending}
+                    disabled={pending || checkoutToken.trim().length === 0}
                     type="submit"
                   >
                     {pending ? t.sending : t.sendOrder}

@@ -65,6 +65,23 @@ Current default tenant admin baseline:
 - default password is `TabFlow123.`
 - first successful login must force a password change before admin surfaces unlock
 
+## Customer Runtime Security Baseline
+
+Tenant lifecycle also owns the shape of the customer-facing runtime security
+model because provisioning decides QR TTL and tenant runtime configuration.
+
+Customer runtime direction:
+
+- table QR codes are short-lived and single-use
+- a fresh QR starts or joins the live table session
+- browser access is carried through a signed first-party cookie
+- closing the open check must terminate the underlying live table session
+- later customer requests must fail cleanly until a fresh QR is scanned again
+- order submission is the critical security boundary and should require a fresh
+  QR checkout proof every time
+
+Detailed target behavior lives in `docs/customer-sessionization.md`.
+
 ## Idempotency And Compensation Matrix
 
 | Step | Current source-baseline state | Idempotency key/input | Retry behavior | Compensation or rollback | Terminal failure rule |

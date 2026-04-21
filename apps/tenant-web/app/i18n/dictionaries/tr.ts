@@ -40,6 +40,7 @@ export const tr: typeof en = {
     title: "Masa tabanlı sipariş girişi hazır",
     body: "Müşteri akışı QR ile başlar. Geçerli bir token okutulduğunda oturum açılır ve menü ekranına yönlendirilir.",
     returnToMenu: "Menüye dön",
+    scanQrPrompt: "Canlı menüyü açmak için masadaki güncel QR'ı okut.",
     tenantAdmin: "İşletme yönetimi"
   },
   language: {
@@ -294,6 +295,10 @@ export const tr: typeof en = {
     totalLabel: "Tahmini toplam",
     generalNote: "Genel not",
     generalNotePlaceholder: "Örnek: Az şekerli, soğansız, gluten hassasiyeti...",
+    checkoutProofLabel: "Güncel QR kanıtı",
+    checkoutProofPlaceholder: "Masadaki son QR tokenını ya da tam QR linkini yapıştır",
+    checkoutProofHint:
+      "Güvenlik kontrolü sipariş gönderiminde yapılır. Masadaki ekranda o an görünen en güncel QR kullanılmalıdır.",
     sending: "Gönderiliyor...",
     sendOrder: "Siparişi gönder",
     infoEyebrow: "Misafir bilgisi",

@@ -44,7 +44,8 @@ export async function submitCustomerOrderAction(
     await createCustomerOrder({
       sessionToken: session.backendSessionToken,
       note: String(formData.get("orderNote") ?? ""),
-      items
+      items,
+      checkoutToken: String(formData.get("checkoutToken") ?? "")
     });
     revalidatePath("/menu");
 

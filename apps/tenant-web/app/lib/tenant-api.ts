@@ -590,6 +590,7 @@ export async function createCustomerOrder(input: {
   sessionToken: string;
   note: string;
   items: Array<{ menuItemId: string; note: string; quantity: number }>;
+  checkoutToken: string;
 }): Promise<CustomerOrderDetail> {
   const response = await fetch(`${tenantApiBaseUrl()}/api/public/orders`, {
     method: "POST",
@@ -599,7 +600,8 @@ export async function createCustomerOrder(input: {
     },
     body: JSON.stringify({
       note: input.note,
-      items: input.items
+      items: input.items,
+      checkoutToken: input.checkoutToken
     })
   });
 

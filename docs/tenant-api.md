@@ -119,9 +119,17 @@ Current behavior:
 
 - verifies a still-active unconsumed table token
 - marks the token as consumed
-- creates a persisted backend customer session
+- creates or joins the live table session model described in `docs/customer-sessionization.md`
+- issues a browser-scoped access ticket for the joining browser
 - returns tenant + table identity plus backend session token so tenant web can open a signed customer session cookie
 - tenant web uses this behind `/g/{token}` and redirects the user to `/menu`
+
+Target behavior:
+
+- the scanned QR is only a short-lived join proof
+- the browser cookie represents a browser-scoped access ticket, not a physical device identity
+- repeated order submission must not rely on the long-lived browser cookie alone
+- final order submission should require a fresh QR checkout proof
 
 ### Customer Session Status
 
@@ -136,6 +144,15 @@ Current behavior:
 - active session status returns table identity and expiry timestamps
 - logout closes the backend session
 - order creation accepts the same session header and binds the order to that session's table and open bill
+
+Direction of travel:
+
+- the current customer session record is an intermediate baseline
+- the final model should distinguish:
+  - canonical live table session
+  - browser-scoped access ticket
+  - fresh checkout proof for order submission
+- when the open bill closes, all linked customer-facing access must become invalid
 
 ### Tenant Admin Bootstrap Status
 
@@ -459,3 +476,11 @@ Not built yet:
 
 - deeper bill operations such as split/merge/reassign and payment closure metadata
 - tenant admin session-backed edit/delete UI for categories and items
+Direction of travel:
+
+- menu browsing and check visibility may continue while the table session is open
+- `POST /api/public/orders` should become checkout-gated
+- a fresh QR proof should be required for every order submission
+- orders should remain attributable to the browser access ticket that created them
+
+See `docs/customer-sessionization.md` for the full target model.

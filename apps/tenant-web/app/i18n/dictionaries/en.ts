@@ -38,6 +38,7 @@ export const en = {
     title: "Table-based ordering is ready",
     body: "The customer flow starts with a QR scan. When a valid token is scanned, a session opens and the customer is redirected to the menu.",
     returnToMenu: "Return to menu",
+    scanQrPrompt: "Scan the current table QR to open the live menu.",
     tenantAdmin: "Tenant admin"
   },
   language: {
@@ -294,6 +295,10 @@ export const en = {
     totalLabel: "Estimated total",
     generalNote: "General note",
     generalNotePlaceholder: "Example: less sugar, no onion, gluten sensitivity...",
+    checkoutProofLabel: "Fresh QR proof",
+    checkoutProofPlaceholder: "Paste the latest table QR token or full QR link",
+    checkoutProofHint:
+      "Security check lives at order submit. Use the latest QR currently shown on the table display.",
     sending: "Sending...",
     sendOrder: "Send order",
     infoEyebrow: "Guest info",

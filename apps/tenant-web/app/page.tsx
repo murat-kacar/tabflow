@@ -23,7 +23,11 @@ export default async function TenantHome() {
             >
               {t.home.returnToMenu}
             </Link>
-          ) : null}
+          ) : (
+            <div className="rounded-full border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900">
+              {t.home.scanQrPrompt}
+            </div>
+          )}
           <Link
             className="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700"
             href="/login"

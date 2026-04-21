@@ -82,6 +82,12 @@ public sealed class TableTokenService(IOptions<TenantRuntimeOptions> options)
             return null;
         }
 
+        var tenantProfile = await db.TenantProfiles
+            .AsNoTracking()
+            .OrderBy(current => current.CreatedAt)
+            .FirstAsync(cancellationToken);
+        await CustomerBillService.GetOrCreateOpenBillAsync(db, table.Id, tenantProfile.CurrencyCode, cancellationToken);
+
         var issuedSession = await sessionService.CreateAsync(db, table, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -92,6 +98,41 @@ public sealed class TableTokenService(IOptions<TenantRuntimeOptions> options)
             table.Number,
             table.Name,
             issuedSession.SessionExpiresAt);
+    }
+
+    public async Task<ConsumedTableTokenResult?> ConsumeCheckoutProofAsync(
+        TenantDbContext db,
+        Guid expectedTableId,
+        string rawToken,
+        CancellationToken cancellationToken)
+    {
+        var normalized = ExtractRawToken(rawToken);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var tokenHash = Hash(normalized);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var tableId = await ConsumeTokenAsync(db, tokenHash, now, cancellationToken);
+
+        if (tableId is null || tableId.Value != expectedTableId)
+        {
+            return null;
+        }
+
+        var table = await db.ServiceTables
+            .AsNoTracking()
+            .FirstOrDefaultAsync(current => current.Id == tableId.Value && current.IsActive, cancellationToken);
+
+        if (table is null)
+        {
+            return null;
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return new ConsumedTableTokenResult(table.Id, table.Number, table.Name);
     }
 
     private static async Task<Guid?> ConsumeTokenAsync(
@@ -142,6 +183,24 @@ public sealed class TableTokenService(IOptions<TenantRuntimeOptions> options)
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
+
+    private static string ExtractRawToken(string value)
+    {
+        var normalized = value.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.Empty;
+        }
+
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out var uri))
+        {
+            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var token = segments.LastOrDefault();
+            return token?.Trim().ToLowerInvariant() ?? string.Empty;
+        }
+
+        return normalized.ToLowerInvariant();
+    }
 }
 
 public sealed record DeviceTokenPayload(
@@ -160,3 +219,8 @@ public sealed record VerifiedTokenResult(
     int TableNumber,
     string TableName,
     DateTimeOffset SessionExpiresAt);
+
+public sealed record ConsumedTableTokenResult(
+    Guid TableId,
+    int TableNumber,
+    string TableName);

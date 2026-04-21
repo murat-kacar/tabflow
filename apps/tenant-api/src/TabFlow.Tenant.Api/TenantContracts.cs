@@ -182,7 +182,8 @@ public sealed record CreateCustomerOrderItemRequest(Guid MenuItemId, int Quantit
 
 public sealed record CreateCustomerOrderRequest(
     string Note,
-    IReadOnlyList<CreateCustomerOrderItemRequest> Items);
+    IReadOnlyList<CreateCustomerOrderItemRequest> Items,
+    string CheckoutToken);
 
 public sealed record CreateAdminOrderRequest(
     Guid TableId,

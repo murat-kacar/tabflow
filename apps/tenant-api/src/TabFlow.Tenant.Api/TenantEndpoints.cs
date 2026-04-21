@@ -415,6 +415,7 @@ public static class TenantEndpoints
         return await CreateOrderForTableAsync(
             db,
             request.TableId,
+            null,
             request.Note,
             request.Items,
             "/api/admin/orders",
@@ -1121,6 +1122,8 @@ public static class TenantEndpoints
         CreateCustomerOrderRequest request,
         TenantDbContext db,
         CustomerSessionService sessionService,
+        TableTokenService tokenService,
+        DeviceConnectionRegistry registry,
         CancellationToken cancellationToken)
     {
         var sessionToken = context.Request.Headers["X-Customer-Session-Token"].ToString();
@@ -1159,9 +1162,31 @@ public static class TenantEndpoints
             });
         }
 
+        var checkoutProof = await tokenService.ConsumeCheckoutProofAsync(
+            db,
+            effectiveTableId,
+            request.CheckoutToken,
+            cancellationToken);
+
+        if (checkoutProof is null)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["checkoutToken"] = ["A fresh table QR proof is required to submit the order."]
+            });
+        }
+
+        var liveTable = await db.ServiceTables.FirstOrDefaultAsync(current => current.Id == effectiveTableId, cancellationToken);
+        if (liveTable is not null)
+        {
+            var payload = await tokenService.RotateAsync(db, liveTable, cancellationToken);
+            await registry.SendJsonAsync(liveTable.Id, DeviceWebSocketEndpoint.ToWirePayload(payload), cancellationToken);
+        }
+
         return await CreateOrderForTableAsync(
             db,
             effectiveTableId,
+            activeSession.SessionId,
             request.Note,
             request.Items,
             "/api/public/orders",
@@ -1171,6 +1196,7 @@ public static class TenantEndpoints
     private static async Task<IResult> CreateOrderForTableAsync(
         TenantDbContext db,
         Guid tableId,
+        Guid? customerSessionId,
         string note,
         IReadOnlyList<CreateCustomerOrderItemRequest> items,
         string locationBasePath,
@@ -1219,6 +1245,7 @@ public static class TenantEndpoints
             var order = CustomerOrderFactory.Build(tableId, note, currencyCode, menuItems, items);
             var bill = await CustomerBillService.GetOrCreateOpenBillAsync(db, tableId, currencyCode, cancellationToken);
             order.BillId = bill.Id;
+            order.CustomerSessionId = customerSessionId;
 
             db.CustomerOrders.Add(order);
             await db.SaveChangesAsync(cancellationToken);
@@ -1250,12 +1277,20 @@ public static class TenantEndpoints
         TenantDbContext db,
         TableTokenService tokenService,
         CustomerSessionService sessionService,
+        DeviceConnectionRegistry registry,
         CancellationToken cancellationToken)
     {
         var verified = await tokenService.VerifyAsync(db, request.Token, sessionService, cancellationToken);
         if (verified is null)
         {
             return Results.Unauthorized();
+        }
+
+        var liveTable = await db.ServiceTables.FirstOrDefaultAsync(current => current.Id == verified.TableId, cancellationToken);
+        if (liveTable is not null)
+        {
+            var payload = await tokenService.RotateAsync(db, liveTable, cancellationToken);
+            await registry.SendJsonAsync(liveTable.Id, DeviceWebSocketEndpoint.ToWirePayload(payload), cancellationToken);
         }
 
         var profile = await db.TenantProfiles.AsNoTracking().OrderBy(current => current.CreatedAt).FirstAsync(cancellationToken);

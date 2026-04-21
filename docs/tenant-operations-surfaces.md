@@ -10,9 +10,20 @@ TabFlow tenant tarafında şimdilik kesinleşen operasyon yüzleri:
 4. `Garson PDA Web`
 
 `Customer/Tablet Menu` bu dokümanın dışında tutulmuştur ve ayrı tasarım yönüyle ele alınacaktır.
+Customer erişim ve güvenlik modeli için resmi referans:
+
+- `docs/customer-sessionization.md`
 
 POS / yazarkasa / fiziksel ödeme entegrasyonu bu fazın dışında kalır.
 Ödeme alma ve hesap kapatma akışı operasyonel olarak sistemde izlenir, tahsilat manuel alınır.
+
+Customer-facing rule baseline:
+
+- menu and open check visibility should remain lightweight once a browser has
+  joined a live table session
+- the critical security boundary is order submission
+- every order submission should require a fresh QR proof from the current table
+  display
 
 ## Product Principle
 

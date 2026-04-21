@@ -6,6 +6,10 @@ public sealed class CustomerOrder
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    public Guid? CustomerSessionId { get; set; }
+
+    public CustomerSession? CustomerSession { get; set; }
+
     public Guid? BillId { get; set; }
 
     public CustomerBill? Bill { get; set; }
