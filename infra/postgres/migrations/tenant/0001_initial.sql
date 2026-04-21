@@ -205,6 +205,9 @@ CREATE TABLE IF NOT EXISTS customer_orders (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE customer_orders
+    ADD COLUMN IF NOT EXISTS customer_session_id uuid NULL REFERENCES customer_sessions (id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS ix_customer_orders_bill_id ON customer_orders (bill_id);
 CREATE INDEX IF NOT EXISTS ix_customer_orders_customer_session_id ON customer_orders (customer_session_id);
 CREATE INDEX IF NOT EXISTS ix_customer_orders_table_id ON customer_orders (table_id);
