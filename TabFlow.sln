@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TabFlow.Platform", "package
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TabFlow.Platform.Api.Tests", "apps\platform-api\tests\TabFlow.Platform.Api.Tests\TabFlow.Platform.Api.Tests.csproj", "{4110B420-2171-4CF5-9804-399D9F7C48FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TabFlow.Platform.Operator", "apps\platform-operator\src\TabFlow.Platform.Operator\TabFlow.Platform.Operator.csproj", "{F3B9D0B3-26C7-4D5B-B2CC-04D8DCEAA021}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TabFlow.Platform.Worker", "apps\platform-worker\src\TabFlow.Platform.Worker\TabFlow.Platform.Worker.csproj", "{F3B9D0B3-26C7-4D5B-B2CC-04D8DCEAA021}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TabFlow.Tenant.Api.Tests", "apps\tenant-api\tests\TabFlow.Tenant.Api.Tests\TabFlow.Tenant.Api.Tests.csproj", "{5DAF90CC-E699-434F-B5B5-4EE8DBF955B6}"
 EndProject

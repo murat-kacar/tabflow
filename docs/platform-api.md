@@ -263,9 +263,9 @@ Current worker behavior:
 - records provisioning progress and failures in the platform database
 - keeps long-running lifecycle work outside frontend request handlers
 
-## Platform Operator
+## Platform Worker
 
-`apps/platform-operator` is the worker responsible for:
+`apps/platform-worker` is the worker responsible for:
 
 - polling pending or failed `tenant.create` jobs
 - allocating deterministic runtime metadata such as DB name, DB user, and ports

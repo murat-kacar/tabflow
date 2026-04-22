@@ -28,7 +28,7 @@ the source architecture is stable.
 ```text
 apps/
   platform-api/   Platform admin API and tenant provisioning
-  platform-operator/ Provisioning worker source
+  platform-worker/   Provisioning worker source
   platform-web/   Platform admin web app
   tenant-api/     Tenant runtime API and device WebSocket API
   tenant-web/     Customer menu and tenant admin web app

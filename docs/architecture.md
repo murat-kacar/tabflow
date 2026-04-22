@@ -41,7 +41,7 @@ apps/platform-api
   Platform admin API, tenant registry, lifecycle job records, tenant state,
   platform admin auth, and future provisioning orchestration.
 
-apps/platform-operator
+apps/platform-worker
   Background worker source that watches platform provisioning jobs and performs
   tenant setup orchestration through explicit application services.
 
@@ -117,7 +117,7 @@ Do not hide infrastructure side effects inside a frontend request handler.
 Current execution split:
 
 - platform-api owns registry state and provisioning job creation
-- platform-operator watches pending jobs and prepares tenant runtime metadata
+- platform-worker watches pending jobs and prepares tenant runtime metadata
 - tenant-api owns tenant schema initialization and runtime seed data
 - runtime packaging and host automation are intentionally outside this source baseline
 
