@@ -21,7 +21,7 @@ Planned majoring direction:
 
 ## OpenAPI Publication Direction
 
-Current source baseline:
+Current source scope:
 
 - OpenAPI is exposed for local/development use
 - stable repository-hosted artifacts are a planned next step

@@ -51,7 +51,6 @@ Repository support roots:
 
 ```text
 docs/
-scripts/
 ```
 
 `src/` is the canonical source root for workspace-aware tooling.
@@ -275,7 +274,7 @@ Planned:
 
 - advanced payment lifecycle and richer bill operations
 
-Out of scope for the current source baseline:
+Out of scope for the current repository:
 
 - production secret management automation
 - fully generalized runtime packaging/host automation inside the repo

@@ -12,16 +12,15 @@ This repository is documentation-led. Architecture and operations documents are
 expected to describe the intended shape before implementation fills it in. When
 code and docs disagree, treat that as a bug.
 
-This source baseline targets:
+Current source targets:
 
 - Backend: ASP.NET Core on .NET 10
 - Frontend: Next.js + TypeScript + Tailwind CSS 4
 - Database: PostgreSQL 17
 
-This directory intentionally excludes deployment, VPS, Docker, operating-system,
-Nginx, Certbot, CI, Git metadata, runtime state, and secret-management layers.
-Those concerns should be reintroduced later as explicit, generic layers after
-the source architecture is stable.
+The repository keeps source, documentation, and stable project configuration in
+Git. Runtime state, deployment output, host-owned configuration, and secrets
+stay outside the repository tree.
 
 ## Layout
 
@@ -72,20 +71,6 @@ Tooling root:
 - Runtime packaging and host automation are separate layers, not source
   requirements.
 
-## Documentation Scope
-
-Every document should declare one scope line near the top:
-
-- `Scope: Source Baseline` for source-owned contracts and architecture.
-- `Scope: Operational Reference` for environment-specific runtime runbooks.
-
-This repository currently ships only source-baseline docs.
-
-## Current Baseline
-
-Use [docs/capability-matrix.md](docs/capability-matrix.md) as the single
-feature status reference instead of duplicating a long list in this README.
-
 ## Development Commands
 
 ```bash
@@ -103,14 +88,18 @@ pnpm --filter @tabflow/tenant-web build
 
 ## Documentation Map
 
-- `SOURCE_BASELINE.md`: what this source-only baseline includes and excludes.
-- `docs/capability-matrix.md`: implemented/partial/planned capability matrix.
-- `docs/architecture.md`: service, package, and data boundaries.
-- `docs/api-governance.md`: API versioning and OpenAPI publication policy.
-- `docs/tenant-lifecycle.md`: tenant create/archive/delete lifecycle.
-- `docs/platform-api.md`: current platform API contract.
-- `docs/tenant-api.md`: current tenant API baseline.
-- `docs/firmware.md`: ESP32 device architecture and hardware lock.
-- `docs/nfr-baseline.md`: non-functional baseline and operational targets.
-- `docs/adr-0001-stack.md`: stack decision record.
-- `docs/adr-0002-internal-trust-boundary.md`: planned internal auth boundary evolution.
+- [docs/README.md](docs/README.md): documentation entrypoint.
+- [docs/tutorials/getting-started.md](docs/tutorials/getting-started.md):
+  contributor onboarding path.
+- [docs/reference/architecture/system-overview.md](docs/reference/architecture/system-overview.md):
+  source tree, boundaries, runtime model, and capability snapshot.
+- [docs/reference/api/README.md](docs/reference/api/README.md): API governance
+  and API reference entrypoint.
+- [docs/reference/database/schema.md](docs/reference/database/schema.md):
+  platform and tenant database ownership.
+- [docs/explanation/concepts/tenant-lifecycle.md](docs/explanation/concepts/tenant-lifecycle.md):
+  tenant lifecycle model.
+- [docs/explanation/concepts/customer-session-model.md](docs/explanation/concepts/customer-session-model.md):
+  QR, table session, access ticket, and checkout proof model.
+- [docs/how-to/deploy-to-production.md](docs/how-to/deploy-to-production.md):
+  current host-side deployment shape.
