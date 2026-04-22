@@ -11,3 +11,8 @@ Good candidates for this section:
 - how customer access and sessionization should be understood
 - why operational surfaces are split by role
 - why key architectural choices were made
+
+Explanation entrypoints:
+
+- [concepts/README.md](./concepts/README.md)
+- [decisions/README.md](./decisions/README.md)

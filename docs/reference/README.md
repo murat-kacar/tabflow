@@ -8,3 +8,9 @@ Use this section for:
 - architecture snapshots
 - schema and stable storage reference
 - terminology and other durable facts
+
+Reference entrypoints:
+
+- [architecture/README.md](./architecture/README.md)
+- [api/README.md](./api/README.md)
+- [database/README.md](./database/README.md)

@@ -2,7 +2,7 @@
 
 Rules for the new docs tree:
 
-- write into the new `docs/` tree, not `old-docs/`
+- write into the active `docs/` tree
 - prefer updating an existing source-of-truth document before opening a new file
 - place task guides in `how-to/`, stable facts in `reference/`, and reasoning
   in `explanation/`

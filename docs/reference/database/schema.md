@@ -31,11 +31,62 @@ Tenant database groups:
 - tenant profile
 - menu categories and items
 - service tables
+- floor layouts, zones, and table placements
 - device keys
 - QR tokens and customer-facing session state
 - customer bills and orders
 - tenant-local admin users
 - station and kitchen-facing runtime state
+
+## Tenant Runtime Group Notes
+
+### Catalog And Routing
+
+Catalog ownership includes:
+
+- categories
+- menu items
+- item availability
+- item-to-station routing
+
+Direction of travel:
+
+- category-level station assignment may exist as a default
+- item-level station assignment is the final routing source
+- one fallback station should remain available so unrouted items still surface
+  operationally
+
+### Floor Model
+
+Floor-planning ownership includes:
+
+- layouts
+- zones
+- table placements
+- fixed floor objects
+
+Reference direction:
+
+- one tenant may have multiple layouts
+- one layout may have multiple zones
+- table identity remains separate from layout placement
+- placement records hold coordinates, size, shape, rotation, and z-order
+
+### Customer Access And Check State
+
+Customer-facing state ownership includes:
+
+- QR join tokens
+- live table session state
+- browser-scoped access tickets or equivalent session records
+- checkout-proof validation state
+- bills and orders tied to the active table experience
+
+The schema should continue to distinguish:
+
+- operational table/check state
+- browser participation state
+- longer-lived pseudonymous customer identity
 
 ## Migration Ownership
 

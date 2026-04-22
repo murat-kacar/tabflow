@@ -51,7 +51,6 @@ Repository support roots:
 
 ```text
 docs/
-old-docs/
 scripts/
 ```
 

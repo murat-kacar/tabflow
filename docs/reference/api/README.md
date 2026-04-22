@@ -38,3 +38,8 @@ Deprecated endpoints or fields should be documented with:
 - deprecation date
 - replacement contract
 - sunset date
+
+Current API references:
+
+- [platform-api.md](./platform-api.md)
+- [tenant-api.md](./tenant-api.md)

@@ -7,3 +7,7 @@ Use it for:
 - schema overview
 - separation between platform and tenant storage
 - migration ownership boundaries
+
+Current document:
+
+- [schema.md](./schema.md)

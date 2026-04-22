@@ -181,6 +181,17 @@ TFT RESET    -> GPIO3
 TFT CS       -> GPIO4
 ```
 
+Pins intentionally avoided:
+
+- GPIO8 and GPIO9 because of boot/strapping risk
+- GPIO20 and GPIO21 to avoid USB/serial interference
+
+Current prototype caveat:
+
+- GPIO2 is accepted today for TFT A0/DC because of current physical wiring
+- if boot instability appears, firmware generation and the committed firmware
+  baseline should move A0/DC to a safer free GPIO together
+
 The tenant runtime owns QR generation and delivery. Firmware does not generate
 QR codes locally.
 
@@ -202,6 +213,13 @@ Device behavior baseline:
 - open a WebSocket to the tenant runtime
 - receive fresh token payloads
 - render backend-produced QR matrix data
+
+Current runtime direction:
+
+- device join/auth should stay backend-owned
+- QR/token generation should stay in tenant runtime
+- generated firmware should stay a table-specific single-file artifact rather
+  than a manually edited source fork
 
 Expected message types include:
 
@@ -226,3 +244,24 @@ Rules:
 - they are runtime outputs and must not be committed
 - committed source stays under `src/packages/firmware`
 - generated artifacts belong in runtime-owned output roots
+
+Reference output layout:
+
+```text
+runtime/generated/tenants/<tenant-code>/firmware/
+  masa-000.ino
+  masa-999.ino
+  masa-balkon-003.ino
+```
+
+Naming rule:
+
+- generated filename should come from the current table label
+- the result should be slugged into a flash-ready single sketch name
+
+Output-root rule:
+
+- local defaults may place generated artifacts under a repo-adjacent runtime
+  tree
+- production deployments should point provisioning output at a restricted host
+  runtime directory outside the source tree

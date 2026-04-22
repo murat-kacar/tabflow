@@ -6,6 +6,10 @@ runtime knowledge.
 Use it for:
 
 - docs contribution rules
-- migration notes from `old-docs/`
 - naming and structure conventions
 - lightweight docs maintenance logs
+
+Current meta documents:
+
+- `contributing.md`
+- `changelog.md`

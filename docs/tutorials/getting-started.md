@@ -59,9 +59,3 @@ Read:
 
 - [`../how-to/provision-tenant.md`](../how-to/provision-tenant.md)
 - [`../reference/api/platform-api.md`](../reference/api/platform-api.md)
-
-## 7. Legacy Material
-
-If you need older notes while the new docs tree is still being consolidated,
-use [`old-docs/`](../../old-docs/) as source material rather than as the active
-source of truth.

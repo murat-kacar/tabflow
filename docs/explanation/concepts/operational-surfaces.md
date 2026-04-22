@@ -59,6 +59,31 @@ Expected navigation baseline:
 - `Staff`
 - `Settings`
 
+Admin-console visual direction:
+
+- warm stone and paper-like neutrals rather than glossy SaaS chrome
+- white or near-white work surfaces with strong station accents
+- big, trustworthy headings and compact operational detail underneath
+- high-contrast status chips for device, station, and fallback warnings
+
+Expected overview content:
+
+- top summary band for active tables, open checks, ready orders, and offline
+  devices
+- attention queue for fallback-station items, unhealthy devices, and delayed
+  stations
+- station health panel
+- quick setup actions for stations, catalog coverage, and devices
+
+Expected station-management behavior:
+
+- station cards should show name, code, color, type, active state, product
+  count, operator count, and fallback status
+- detail view should support reorder, disable, fallback selection, and product
+  coverage review
+- product routing should be explicit at item level, with category-level station
+  assignment acting only as a helper default
+
 ### Floor And Cash Workspace
 
 Role:
@@ -81,6 +106,38 @@ Expected top-level views:
 - `Open Checks`
 - `Payment Queue`
 - `Closed Checks`
+
+Primary mental model:
+
+- one workspace should reveal both physical floor flow and bill/payment flow
+- operators should not have to jump between a decorative floor planner and a
+  separate cash-only screen to understand the live state of a table
+
+Core information shown on each table card:
+
+- table number
+- occupancy state
+- open-check presence
+- order intensity
+- ready-to-serve signal
+- device or QR health
+
+Primary actions from the selected table context:
+
+- mark payment received
+- close check
+- move table/check
+- merge tables/checks
+- split check
+- inspect live order details
+
+Interaction principle:
+
+- normal mode is operational
+- layout editing must be explicit and separate
+- move/merge/split/close actions should be quick but still deliberate
+- closing a check should require a stronger confirmation than normal table
+  selection
 
 ### Station Board
 
@@ -106,6 +163,42 @@ include:
 - fastfood
 - dispatch
 
+Board structure baseline:
+
+- default single-station view should emphasize `new`, `preparing`, and `ready`
+  columns
+- supervisor view may add station switching or multi-station summary
+- cards should prioritize distance readability over dense data presentation
+
+Ticket-card anchors:
+
+- table number
+- order id
+- item name
+- quantity
+- item note and order note
+- elapsed time
+
+Urgency direction:
+
+- 0-3 minutes: normal
+- 3-7 minutes: warning
+- 7+ minutes: urgent
+
+Expected operator actions:
+
+- start preparing
+- mark ready
+- mark remake/rework when needed
+- cancel when authorized by the runtime flow
+
+Visual direction:
+
+- high contrast
+- dark board background
+- large timers and action buttons
+- readable from distance and under high-pressure conditions
+
 ### Waiter / PDA Web
 
 Role:
@@ -116,6 +209,14 @@ Role:
 
 This surface should behave like a focused field tool rather than a compressed
 admin screen.
+
+PDA direction:
+
+- one-handed use
+- quick table selection
+- fast note entry
+- minimal navigation chrome
+- no dependency on customer QR flow for protected waiter actions
 
 ### Customer Menu
 
@@ -131,6 +232,13 @@ Security note:
   experience
 - final order submission remains the critical boundary and should require a
   fresh QR proof
+
+Experience direction:
+
+- category-first browsing
+- strong mobile-first layout
+- lightweight session continuity while the table session remains open
+- final order submission as the only deliberately high-friction step
 
 ## Shared Runtime Language
 
@@ -182,6 +290,13 @@ without hard-coding one narrow restaurant structure forever.
 The model should always have one fallback station so product routing failures do
 not make items disappear operationally.
 
+Catalog direction:
+
+- item-level station assignment is the final routing source
+- category-level station assignment may exist as a helpful default only
+- admins should be able to see when an item is falling back rather than
+  explicitly routed
+
 ## Floor Layout Model
 
 Floor and cash operation is not just a table list.
@@ -203,9 +318,28 @@ Direction of travel:
   the floor model
 - edit mode should be distinct from normal operations mode
 
+Reference data direction:
+
+- one tenant may own multiple layouts
+- one layout may own multiple zones
+- tables keep placement metadata per layout
+- fixed floor objects act as edit-friendly anchors rather than runtime orders
+  or billing entities
+
 ## UX Principle
 
 The same business state should be visible through role-appropriate surfaces, not
 through one giant shared UI.
 
 This is a core TabFlow product principle, not a visual afterthought.
+
+## First Design Emphasis
+
+The product language should sharpen first around:
+
+1. tenant admin overview
+2. floor and cash workspace
+3. station board
+
+If those three surfaces feel operational, fast, and premium, the rest of the
+runtime family can inherit the same language without becoming repetitive.

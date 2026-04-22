@@ -8,3 +8,9 @@ Use it for:
 - runtime surface map
 - repo structure
 - stable architecture decisions
+
+Current documents:
+
+- [system-overview.md](./system-overview.md)
+- [runtime-surfaces.md](./runtime-surfaces.md)
+- [decisions.md](./decisions.md)
