@@ -15,7 +15,7 @@ importers:
         specifier: 2.9.6
         version: 2.9.6
 
-  apps/platform-web:
+  src/apps/platform-web:
     dependencies:
       '@tabflow/shared-ts':
         specifier: workspace:*
@@ -67,7 +67,7 @@ importers:
         specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
-  apps/tenant-web:
+  src/apps/tenant-web:
     dependencies:
       '@tabflow/shared-ts':
         specifier: workspace:*
@@ -119,7 +119,7 @@ importers:
         specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
-  packages/firmware:
+  src/packages/firmware:
     dependencies:
       zod:
         specifier: 4.3.6
@@ -135,7 +135,7 @@ importers:
         specifier: 4.1.4
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.8(@types/node@24.12.2)(jiti@2.6.1))
 
-  packages/shared-ts:
+  src/packages/shared-ts:
     dependencies:
       zod:
         specifier: 4.3.6

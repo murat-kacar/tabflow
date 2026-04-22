@@ -8,7 +8,7 @@ The Tenant API is the runtime backend for one business tenant.
 
 Base behavior today:
 
-- initializes tenant schema from `infra/postgres/migrations/tenant/0001_initial.sql`
+- initializes tenant schema from `src/infra/postgres/migrations/tenant/0001_initial.sql`
 - seeds tenant profile, starter tables `000` and `999`, and starter menu catalog on empty databases
 - seeds a default tenant admin on empty databases
 - optionally seeds initial per-table device keys from configuration

@@ -9,10 +9,10 @@ old VPS runtime state.
 
 Included:
 
-- Application source under `apps/`
-- Shared packages under `packages/`
+- Application source under `src/apps/`
+- Shared packages under `src/packages/`
 - Product and architecture documentation under `docs/`
-- PostgreSQL schema migrations under `infra/postgres/migrations/`
+- PostgreSQL schema migrations under `src/infra/postgres/migrations/`
 - Root build and workspace configuration files
 
 Intentionally excluded:

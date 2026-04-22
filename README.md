@@ -26,17 +26,17 @@ the source architecture is stable.
 ## Layout
 
 ```text
-apps/
+src/apps/
   platform-api/   Platform admin API and tenant provisioning
   platform-worker/   Provisioning worker source
   platform-web/   Platform admin web app
   tenant-api/     Tenant runtime API and device WebSocket API
   tenant-web/     Customer menu and tenant admin web app
-packages/
+src/packages/
   shared-dotnet/  Shared .NET primitives, contracts, and platform core
   shared-ts/      Shared TypeScript schemas and client helpers
   firmware/       ESP32 firmware source and config generator
-infra/
+src/infra/
   postgres/       Platform and tenant migrations
 docs/             Architecture and operations documentation
 ```

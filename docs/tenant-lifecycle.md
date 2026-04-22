@@ -168,6 +168,6 @@ Tenant provisioning should prepare per-table `.ino` artifacts containing:
 
 Generated firmware `.ino` files contain secrets and must not be committed.
 The committed Arduino source lives under
-`packages/firmware/arduino/tabflow-table-display/`, while generated
+`src/packages/firmware/arduino/tabflow-table-display/`, while generated
 `.ino` files stay in ignored runtime artifact paths or local flashing
 workspaces.

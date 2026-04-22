@@ -48,7 +48,7 @@ Systemd units:
 
 - `tabflow-platform-api.service`
 - `tabflow-platform-operator.service`
-  source repo path now lives under `apps/platform-worker`
+  source repo path now lives under `src/apps/platform-worker`
 - `tabflow-platform-web.service`
 - `tabflow-tenant-api.service`
 - `tabflow-tenant-web.service`

@@ -10,7 +10,7 @@ They must not know platform internals.
 Source location:
 
 ```text
-packages/firmware/arduino/tabflow-table-display/
+src/packages/firmware/arduino/tabflow-table-display/
   firmware.ino
   config.example.h
 ```

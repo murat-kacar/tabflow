@@ -1,4 +1,4 @@
 packages:
-  - "apps/*"
-  - "packages/shared-ts"
-  - "packages/firmware"
+  - "src/apps/*"
+  - "src/packages/shared-ts"
+  - "src/packages/firmware"

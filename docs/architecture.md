@@ -37,23 +37,23 @@ TabFlow uses a .NET + TypeScript architecture:
 ## Application Boundary
 
 ```text
-apps/platform-api
+src/apps/platform-api
   Platform admin API, tenant registry, lifecycle job records, tenant state,
   platform admin auth, and future provisioning orchestration.
 
-apps/platform-worker
+src/apps/platform-worker
   Background worker source that watches platform provisioning jobs and performs
   tenant setup orchestration through explicit application services.
 
-apps/platform-web
+src/apps/platform-web
   Platform admin UI for managing cafes, domains, tenant state, and provisioning.
 
-apps/tenant-api
+src/apps/tenant-api
   Tenant business API, tenant schema bootstrap, catalog/tables read API,
   QR token lifecycle, device WebSocket API, order, bill, auth, service station,
   and kitchen fulfillment flows.
 
-apps/tenant-web
+src/apps/tenant-web
   Customer menu UI plus tenant admin and kitchen/KDS operational surfaces.
 ```
 
@@ -63,13 +63,13 @@ tenant runtime concerns must remain separate from platform admin concerns.
 ## Package Boundary
 
 ```text
-packages/shared-dotnet
+src/packages/shared-dotnet
   Shared backend contracts, primitives, and reusable platform core.
 
-packages/shared-ts
+src/packages/shared-ts
   Shared frontend contracts, validation schemas, and typed clients.
 
-packages/firmware
+src/packages/firmware
   ESP32 firmware source and per-table config generation tools.
 ```
 

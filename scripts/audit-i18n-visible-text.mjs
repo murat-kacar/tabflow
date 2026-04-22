@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const root = process.cwd();
-const scanRoots = ["apps/tenant-web/app", "apps/platform-web/app"];
+const scanRoots = ["src/apps/tenant-web/app", "src/apps/platform-web/app"];
 const extensions = new Set([".ts", ".tsx"]);
 const ignoredFragments = [
   "/i18n/dictionaries/tr.ts",

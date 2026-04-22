@@ -265,7 +265,7 @@ Current worker behavior:
 
 ## Platform Worker
 
-`apps/platform-worker` is the worker responsible for:
+`src/apps/platform-worker` is the worker responsible for:
 
 - polling pending or failed `tenant.create` jobs
 - allocating deterministic runtime metadata such as DB name, DB user, and ports
