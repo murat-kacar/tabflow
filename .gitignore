@@ -1,7 +1,40 @@
-# Dependencies and package manager artifacts
-node_modules/
+# Default: ignore everything
+*
 
-# Frontend build outputs and tool caches
+# Keep directories traversable
+!*/
+
+# Repo metadata and root text config
+!.gitignore
+!.gitattributes
+!.editorconfig
+!.npmrc
+!.nvmrc
+!.node-version
+!LICENSE
+
+# Source, docs, project, config, and migration text files
+!*.md
+!*.json
+!*.cs
+!*.csproj
+!*.sln
+!*.props
+!*.targets
+!*.ts
+!*.tsx
+!*.css
+!*.mjs
+!*.yaml
+!*.yml
+!*.sql
+!*.svg
+!*.ino
+!*.example.h
+!.gitkeep
+
+# Never track dependency, build, cache, runtime, local, or secret artifacts
+node_modules/
 .next/
 .turbo/
 dist/
@@ -10,12 +43,10 @@ coverage/
 .cache/
 **/.cache/
 
-# .NET build outputs
 bin/
 obj/
 TestResults/
 
-# Deployment and generated runtime artifacts
 .deploy/
 runtime/generated/
 **/runtime/generated/
@@ -23,7 +54,6 @@ runtime/generated/
 **/firmware/masa*/config.h
 packages/firmware/arduino/**/config.h
 
-# Environment and machine-local configuration
 .env
 .env.*
 !.env.example
@@ -33,7 +63,6 @@ packages/firmware/arduino/**/config.h
 **/appsettings.Local.json
 **/appsettings.*.local.json
 
-# Logs, temp files, pid files, local databases, and backups
 *.log
 logs/
 tmp/
@@ -48,19 +77,16 @@ temp/
 *.bak
 *.cache
 
-# Secrets and certificate material
 *.pem
 *.key
 *.crt
 *.pfx
 *.p12
 
-# Editor and IDE files
 .vs/
 .vscode/
 .idea/
 
-# OS metadata
 .DS_Store
 Thumbs.db
 **/.DS_Store
