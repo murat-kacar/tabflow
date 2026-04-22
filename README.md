@@ -41,6 +41,27 @@ src/infra/
 docs/             Architecture and operations documentation
 ```
 
+## Conventions
+
+Test layout:
+
+- backend and shared `.NET` code use sibling `tests/` directories
+- frontend and shared TypeScript code use co-located `*.test.*` files
+- frontend app harness/setup files may live in app-local `test/` directories
+
+Build artifact layout:
+
+- Next.js apps keep `.next/`
+- TypeScript package outputs stay tool-local such as `dist/`
+- .NET outputs stay in `bin/` and `obj/`
+- this repository intentionally does not impose a synthetic root `build/`
+  directory
+
+Tooling root:
+
+- `src/` is the canonical source root for workspace and monorepo tooling
+- repo tooling should point at `src/apps/*` and `src/packages/*`
+
 ## Design Rules
 
 - No hard-coded production domain.

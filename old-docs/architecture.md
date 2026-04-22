@@ -127,3 +127,55 @@ Current execution split:
 - TypeScript package tests use Vitest.
 - React component tests use Vitest + Testing Library + jsdom.
 - E2E browser tests are intentionally deferred until real user flows exist.
+
+Current test directory convention:
+
+- backend and shared `.NET` code use sibling `tests/` directories next to the
+  source-bearing app or package
+- frontend and shared TypeScript code prefer co-located test files such as
+  `*.test.ts` and `*.test.tsx`
+- frontend app-level test harness files may live under app-local `test/`
+  directories such as `src/apps/tenant-web/test/`
+
+Examples:
+
+- `src/apps/platform-api/tests`
+- `src/apps/tenant-api/tests`
+- `src/packages/shared-dotnet/tests`
+- `src/apps/platform-web/app/page.test.tsx`
+- `src/apps/tenant-web/test/setup.ts`
+
+## Build Artifact Boundary
+
+TabFlow keeps build artifacts in the natural output directory of each toolchain
+instead of forcing a synthetic repository-wide `build/` root.
+
+Current convention:
+
+- Next.js apps emit `.next/`
+- TypeScript package builds may emit `dist/`
+- .NET projects emit `bin/` and `obj/`
+- deployment publish outputs are environment-owned and live outside the source
+  tree
+
+This keeps tool defaults intact and reduces custom build indirection. Artifact
+paths must remain covered by `.gitignore`.
+
+## Tooling Root Convention
+
+`src/` is the canonical source root for monorepo tooling.
+
+That means repository tooling should resolve source-bearing workspaces from:
+
+- `src/apps/*`
+- `src/packages/*`
+- `src/infra/*` when infrastructure tooling is introduced
+
+Current repository tooling already follows this root convention for:
+
+- `pnpm-workspace.yaml`
+- TypeScript config inheritance
+- source-aware audit scripts
+
+Future tooling such as Turborepo or Nx should adopt `src/` as the source root
+instead of introducing a competing root layout.

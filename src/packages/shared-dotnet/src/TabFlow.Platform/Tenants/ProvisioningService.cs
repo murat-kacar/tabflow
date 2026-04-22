@@ -730,9 +730,9 @@ public sealed class ProvisioningService(
         Type=simple
         WorkingDirectory={{options.TenantWebRoot}}
         EnvironmentFile={{options.TenantEnvRoot}}/%i-web.env
-        ExecStartPre=/bin/mkdir -p {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/.next
-        ExecStartPre=/bin/sh -c 'rm -rf {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/.next/static && ln -s {{options.TenantWebRoot}}/.next/static {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/.next/static'
-        ExecStart={{options.NodeBinary}} {{options.TenantWebRoot}}/.next/standalone/apps/tenant-web/server.js
+        ExecStartPre=/bin/mkdir -p {{options.TenantWebRoot}}/.next/standalone/src/apps/tenant-web/.next
+        ExecStartPre=/bin/sh -c 'rm -rf {{options.TenantWebRoot}}/.next/standalone/src/apps/tenant-web/.next/static && ln -s {{options.TenantWebRoot}}/.next/static {{options.TenantWebRoot}}/.next/standalone/src/apps/tenant-web/.next/static'
+        ExecStart={{options.NodeBinary}} {{options.TenantWebRoot}}/.next/standalone/src/apps/tenant-web/server.js
         Restart=always
         RestartSec=5
         User=root
