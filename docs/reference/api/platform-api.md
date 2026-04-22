@@ -106,10 +106,14 @@ GET /api/platform/tenants/audit
 ```http
 GET  /api/platform/auth/bootstrap-status
 POST /api/platform/auth/login
+PATCH /api/platform/auth/profile/preferences
 ```
 
 Bootstrap owner creation may happen at startup when no platform admins exist and
 bootstrap credentials are configured.
+
+Profile preference updates are called by platform web with the current actor
+context and currently cover admin-facing UI preferences such as locale.
 
 ## Status Model
 

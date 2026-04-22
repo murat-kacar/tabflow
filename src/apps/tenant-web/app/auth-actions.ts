@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDictionary } from "./i18n/server";
+import { createCustomerSessionToken, setCustomerSessionCookie } from "./lib/customer-session";
 import {
   closeTenantBill,
   createAdminOrder,
@@ -19,12 +20,12 @@ import {
   saveAdminTableLayouts,
   saveFloorLayoutDocument,
   splitTenantBill,
-  updateFirmwareDefaults,
   updateAdminTable,
+  updateFirmwareDefaults,
   updateKitchenItemStatus,
-  verifyTableToken,
   updateStation,
-  updateTenantOrderStatus
+  updateTenantOrderStatus,
+  verifyTableToken
 } from "./lib/tenant-api";
 import { bootstrapTenantAdmin, loginTenantAdmin } from "./lib/tenant-auth-api";
 import {
@@ -33,10 +34,6 @@ import {
   getTenantSession,
   setTenantSessionCookie
 } from "./lib/tenant-session";
-import {
-  createCustomerSessionToken,
-  setCustomerSessionCookie
-} from "./lib/customer-session";
 
 export type TenantLoginActionState = {
   ok: boolean;
@@ -500,7 +497,8 @@ export async function createTableAction(
       layoutX: 0,
       layoutY: 0,
       isActive: formData.get("isActive") === "on",
-      firmwareWifiSsidOverride: String(formData.get("firmwareWifiSsidOverride") ?? "").trim() || null,
+      firmwareWifiSsidOverride:
+        String(formData.get("firmwareWifiSsidOverride") ?? "").trim() || null,
       firmwareWifiPasswordOverride:
         String(formData.get("firmwareWifiPasswordOverride") ?? "").trim() || null
     });
@@ -539,7 +537,8 @@ export async function updateTableAction(
       layoutX: Number(formData.get("layoutX") ?? 0),
       layoutY: Number(formData.get("layoutY") ?? 0),
       isActive: formData.get("isActive") === "on",
-      firmwareWifiSsidOverride: String(formData.get("firmwareWifiSsidOverride") ?? "").trim() || null,
+      firmwareWifiSsidOverride:
+        String(formData.get("firmwareWifiSsidOverride") ?? "").trim() || null,
       firmwareWifiPasswordOverride:
         String(formData.get("firmwareWifiPasswordOverride") ?? "").trim() || null
     });

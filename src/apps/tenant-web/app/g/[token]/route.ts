@@ -24,9 +24,10 @@ export async function GET(
 
     await setCustomerSessionCookie(sessionToken, session.expiresAt);
     const primaryDomain = verified.tenantPrimaryDomain.trim().toLowerCase();
-    const baseUrl = primaryDomain.startsWith("http://") || primaryDomain.startsWith("https://")
-      ? primaryDomain
-      : `https://${primaryDomain}`;
+    const baseUrl =
+      primaryDomain.startsWith("http://") || primaryDomain.startsWith("https://")
+        ? primaryDomain
+        : `https://${primaryDomain}`;
 
     return NextResponse.redirect(new URL("/menu", baseUrl));
   } catch {

@@ -2263,13 +2263,7 @@ function SelectedTablePanel({
   );
 }
 
-function ProvisioningPanel({
-  profile,
-  t
-}: {
-  profile: TenantProfile;
-  t: FloorCashCopy;
-}) {
+function ProvisioningPanel({ profile, t }: { profile: TenantProfile; t: FloorCashCopy }) {
   const [firmwareState, firmwareAction, firmwarePending] = useActionState(
     updateFirmwareDefaultsAction,
     firmwareDefaultsInitialState

@@ -25,6 +25,7 @@ Current official route baseline:
 - `/stations`
 - `/stations/[stationCode]`
 - `/pda`
+- `/g/[token]`
 - `/menu`
 
 ## Shared Runtime Language
@@ -136,6 +137,7 @@ Reference behavior:
 
 Purpose:
 
+- fresh QR gateway handling through `/g/[token]`
 - customer browsing
 - open check visibility
 - order composition

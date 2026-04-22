@@ -290,7 +290,8 @@ export const en = {
     cartEyebrow: "Your order",
     cartTitle: "Order summary",
     sessionBadge: "Table session",
-    tableOnlyHint: "This QR session belongs only to this table. Orders are routed into the live tenant flow.",
+    tableOnlyHint:
+      "This QR session belongs only to this table. Orders are routed into the live tenant flow.",
     emptyCart: "Select products to build your order summary here.",
     totalLabel: "Estimated total",
     generalNote: "General note",

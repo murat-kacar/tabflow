@@ -150,8 +150,7 @@ export const tr: typeof en = {
     setupStationsDetail: "aktif istasyon var. Barista, bar, nargile ve mutfak hatlarını yönet.",
     setupStationsCta: "İstasyonları yönet",
     setupCatalog: "Katalog kapsamı",
-    setupCatalogDetail:
-      "ürün operasyon modelinde. Ürün sihirbazı sonraki aşamada ayrılacak.",
+    setupCatalogDetail: "ürün operasyon modelinde. Ürün sihirbazı sonraki aşamada ayrılacak.",
     setupCatalogCta: "Kataloğu yönet",
     checkStationStructure: "İstasyon yapısı",
     checkStationReady: "aktif istasyon tanımlı.",
@@ -173,7 +172,8 @@ export const tr: typeof en = {
     attentionOpenBillLabel: "Açık hesap takibi",
     attentionOpenBillDetail: "hesap açık durumda ve kasa takibi gerektiriyor.",
     attentionFallbackLabel: "Fallback eksik",
-    attentionFallbackDetail: "Ürünlerin boşlukta kalmaması için bir fallback istasyonu tanımlanmalı.",
+    attentionFallbackDetail:
+      "Ürünlerin boşlukta kalmaması için bir fallback istasyonu tanımlanmalı.",
     quickActionsEyebrow: "Hızlı İşlemler",
     quickDeviceTitle: "Cihaz sağlığını takip et",
     quickDeviceDetail: "cihaz saha kontrolü bekliyor. Cihaz listesi sonraki sprintte ayrışacak.",
@@ -290,7 +290,8 @@ export const tr: typeof en = {
     cartEyebrow: "Siparişin",
     cartTitle: "Sipariş özeti",
     sessionBadge: "Masa oturumu",
-    tableOnlyHint: "Bu QR oturumu yalnızca bu masaya aittir. Siparişler canlı tenant akışına düşer.",
+    tableOnlyHint:
+      "Bu QR oturumu yalnızca bu masaya aittir. Siparişler canlı tenant akışına düşer.",
     emptyCart: "Sipariş özetini burada oluşturmak için ürün seç.",
     totalLabel: "Tahmini toplam",
     generalNote: "Genel not",

@@ -1,6 +1,6 @@
 "use client";
 
-import type { MenuCategorySummary, MenuItemSummary, TenantCatalog } from "@tabflow/shared-ts";
+import type { MenuItemSummary, TenantCatalog } from "@tabflow/shared-ts";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   type CustomerOrderActionState,
@@ -65,9 +65,7 @@ function readCookie(name: string): string | null {
     return null;
   }
 
-  const match = document.cookie
-    .split("; ")
-    .find((entry) => entry.startsWith(`${name}=`));
+  const match = document.cookie.split("; ").find((entry) => entry.startsWith(`${name}=`));
   return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : null;
 }
 
@@ -118,7 +116,10 @@ export function CustomerMenu({
   initialTheme: ThemeMode;
   translations: Record<Locale, CustomerMenuCopy>;
 }) {
-  const [orderState, submitAction, pending] = useActionState(submitCustomerOrderAction, initialState);
+  const [orderState, submitAction, pending] = useActionState(
+    submitCustomerOrderAction,
+    initialState
+  );
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [activeView, setActiveView] = useState<"menu" | "info">("menu");
@@ -131,7 +132,8 @@ export function CustomerMenu({
 
   const t = translations[locale];
   const categories = catalog.categories;
-  const activeCategory = categories.find((category) => category.id === activeCategoryId) ?? categories[0];
+  const activeCategory =
+    categories.find((category) => category.id === activeCategoryId) ?? categories[0];
   const flatItems = useMemo(() => categories.flatMap((category) => category.items), [categories]);
   const selectedItem = flatItems.find((item) => item.id === selectedItemId) ?? null;
   const cartEntries = flatItems.filter((item) => (quantities[item.id] ?? 0) > 0);
@@ -146,7 +148,7 @@ export function CustomerMenu({
   useEffect(() => {
     setLocale(detectLocale(initialLocale));
     setTheme(detectTheme());
-  }, [initialLocale, initialTheme]);
+  }, [initialLocale]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -165,9 +167,7 @@ export function CustomerMenu({
   }, [theme]);
 
   const shellClass =
-    theme === "night"
-      ? "bg-[#111111] text-[#efe5d1]"
-      : "bg-[#f6f0e1] text-[#241c12]";
+    theme === "night" ? "bg-[#111111] text-[#efe5d1]" : "bg-[#f6f0e1] text-[#241c12]";
   const panelClass =
     theme === "night"
       ? "border border-white/10 bg-[#1a1a1a]/90 shadow-[0_20px_80px_rgba(0,0,0,0.45)]"
@@ -202,7 +202,9 @@ export function CustomerMenu({
                 <div className="flex flex-wrap items-center gap-3">
                   <span
                     className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] ${
-                      theme === "night" ? "bg-white/8 text-[#c9a84c]" : "bg-[#efe2c4] text-[#8b6825]"
+                      theme === "night"
+                        ? "bg-white/8 text-[#c9a84c]"
+                        : "bg-[#efe2c4] text-[#8b6825]"
                     }`}
                   >
                     {session.tenantDisplayName}
@@ -246,25 +248,38 @@ export function CustomerMenu({
 
               <div className={`grid gap-4 rounded-[1.5rem] p-4 ${softClass}`}>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}>
-                    <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <div
+                    className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}
+                  >
+                    <p
+                      className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                    >
                       {t.metrics.categories}
                     </p>
                     <p className="mt-2 text-3xl font-semibold">{heroCategoryCount}</p>
                   </div>
-                  <div className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}>
-                    <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <div
+                    className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}
+                  >
+                    <p
+                      className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                    >
                       {t.metrics.items}
                     </p>
                     <p className="mt-2 text-3xl font-semibold">{heroItemCount}</p>
                   </div>
                 </div>
-                <div className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                <div
+                  className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}
+                >
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                  >
                     {t.preferenceCardTitle}
                   </p>
                   <p className="mt-2 text-sm font-medium">
-                    {locale === "tr" ? t.turkish : t.english} • {theme === "night" ? t.nightMode : t.dayMode}
+                    {locale === "tr" ? t.turkish : t.english} •{" "}
+                    {theme === "night" ? t.nightMode : t.dayMode}
                   </p>
                   <p className={`mt-2 text-sm leading-6 ${mutedClass}`}>{t.preferenceCardBody}</p>
                 </div>
@@ -276,7 +291,9 @@ export function CustomerMenu({
             <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_360px]">
               <aside className={`overflow-hidden rounded-[2rem] ${panelClass}`}>
                 <div className={`border-b px-5 py-4 ${borderClass}`}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                  >
                     {t.categoriesEyebrow}
                   </p>
                   <h2 className="mt-2 text-xl font-semibold">{t.categoriesTitle}</h2>
@@ -297,11 +314,15 @@ export function CustomerMenu({
                         onClick={() => setActiveCategoryId(category.id)}
                         type="button"
                       >
-                        <div className={`absolute inset-0 bg-gradient-to-br ${categoryTheme(index)} opacity-80`} />
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${categoryTheme(index)} opacity-80`}
+                        />
                         <div className="relative">
                           <div
                             className={`flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-semibold ${
-                              theme === "night" ? "bg-black/30 text-[#f8edd4]" : "bg-white/80 text-[#6c4d18]"
+                              theme === "night"
+                                ? "bg-black/30 text-[#f8edd4]"
+                                : "bg-white/80 text-[#6c4d18]"
                             }`}
                           >
                             {categoryInitials(category.name)}
@@ -309,7 +330,9 @@ export function CustomerMenu({
                           <p className="mt-3 text-sm font-semibold uppercase tracking-[0.12em]">
                             {category.name}
                           </p>
-                          <p className={`mt-1 text-xs ${mutedClass}`}>{category.items.length} {t.itemsCount}</p>
+                          <p className={`mt-1 text-xs ${mutedClass}`}>
+                            {category.items.length} {t.itemsCount}
+                          </p>
                         </div>
                       </button>
                     );
@@ -319,17 +342,24 @@ export function CustomerMenu({
 
               <section className={`overflow-hidden rounded-[2rem] ${panelClass}`}>
                 <div className={`border-b px-5 py-4 sm:px-7 ${borderClass}`}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                  >
                     {t.featuredEyebrow}
                   </p>
                   <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <h2 className="text-3xl font-semibold">{activeCategory?.name}</h2>
                       <p className={`mt-2 text-sm ${mutedClass}`}>
-                        {t.categoryBody.replace("{{count}}", String(activeCategory?.items.length ?? 0))}
+                        {t.categoryBody.replace(
+                          "{{count}}",
+                          String(activeCategory?.items.length ?? 0)
+                        )}
                       </p>
                     </div>
-                    <div className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${softClass}`}>
+                    <div
+                      className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${softClass}`}
+                    >
                       {activeCategory?.stationName ?? t.stationFallback}
                     </div>
                   </div>
@@ -352,7 +382,9 @@ export function CustomerMenu({
                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_10rem)]" />
                           <div
                             className={`relative inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                              theme === "night" ? "bg-black/25 text-[#f7ebd0]" : "bg-white/80 text-[#6c4d18]"
+                              theme === "night"
+                                ? "bg-black/25 text-[#f7ebd0]"
+                                : "bg-white/80 text-[#6c4d18]"
                             }`}
                           >
                             {itemPreviewLabel(item)}
@@ -378,13 +410,18 @@ export function CustomerMenu({
                                   : "bg-[#fcf7ef] text-[#241c12] placeholder:text-[#8d7756]"
                               }`}
                               onChange={(event) =>
-                                setNotes((current) => ({ ...current, [item.id]: event.target.value }))
+                                setNotes((current) => ({
+                                  ...current,
+                                  [item.id]: event.target.value
+                                }))
                               }
                               placeholder={t.notePlaceholder}
                               value={notes[item.id] ?? ""}
                             />
                             <div className="flex items-center justify-between gap-3">
-                              <div className={`inline-flex items-center gap-2 rounded-full px-2 py-2 ${softClass}`}>
+                              <div
+                                className={`inline-flex items-center gap-2 rounded-full px-2 py-2 ${softClass}`}
+                              >
                                 <button
                                   className={`h-9 w-9 rounded-full text-lg font-semibold transition ${subtleButtonClass}`}
                                   onClick={() =>
@@ -397,7 +434,9 @@ export function CustomerMenu({
                                 >
                                   -
                                 </button>
-                                <span className="min-w-8 text-center text-sm font-semibold">{quantity}</span>
+                                <span className="min-w-8 text-center text-sm font-semibold">
+                                  {quantity}
+                                </span>
                                 <button
                                   className={`h-9 w-9 rounded-full text-lg font-semibold transition ${subtleButtonClass}`}
                                   onClick={() =>
@@ -434,14 +473,18 @@ export function CustomerMenu({
 
               <aside className={`overflow-hidden rounded-[2rem] ${panelClass}`}>
                 <div className={`border-b px-5 py-4 ${borderClass}`}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                  >
                     {t.cartEyebrow}
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold">{t.cartTitle}</h2>
                 </div>
                 <div className="space-y-5 p-5">
                   <div className={`rounded-[1.5rem] p-4 ${softClass}`}>
-                    <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                    <p
+                      className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                    >
                       {t.sessionBadge}
                     </p>
                     <p className="mt-2 text-lg font-semibold">
@@ -452,7 +495,9 @@ export function CustomerMenu({
 
                   <div className="space-y-3">
                     {cartEntries.length === 0 ? (
-                      <div className={`rounded-[1.5rem] border border-dashed p-4 text-sm ${borderClass} ${mutedClass}`}>
+                      <div
+                        className={`rounded-[1.5rem] border border-dashed p-4 text-sm ${borderClass} ${mutedClass}`}
+                      >
                         {t.emptyCart}
                       </div>
                     ) : (
@@ -462,11 +507,15 @@ export function CustomerMenu({
                             <div>
                               <p className="font-semibold">{item.name}</p>
                               <p className={`mt-1 text-sm ${mutedClass}`}>
-                                {quantities[item.id]} x {formatMoney(item.priceMinor, item.currencyCode)}
+                                {quantities[item.id]} x{" "}
+                                {formatMoney(item.priceMinor, item.currencyCode)}
                               </p>
                             </div>
                             <p className="font-semibold">
-                              {formatMoney(item.priceMinor * (quantities[item.id] ?? 0), item.currencyCode)}
+                              {formatMoney(
+                                item.priceMinor * (quantities[item.id] ?? 0),
+                                item.currencyCode
+                              )}
                             </p>
                           </div>
                           {notes[item.id] ? (
@@ -479,13 +528,19 @@ export function CustomerMenu({
 
                   <div className={`rounded-[1.5rem] p-4 ${softClass}`}>
                     <div className="flex items-center justify-between gap-3">
-                      <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                      <p
+                        className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                      >
                         {t.totalLabel}
                       </p>
-                      <p className="text-2xl font-semibold">{formatMoney(totalMinor, currentCurrency)}</p>
+                      <p className="text-2xl font-semibold">
+                        {formatMoney(totalMinor, currentCurrency)}
+                      </p>
                     </div>
                     <label className="mt-4 block">
-                      <span className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                      <span
+                        className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                      >
                         {t.generalNote}
                       </span>
                       <textarea
@@ -500,7 +555,9 @@ export function CustomerMenu({
                       />
                     </label>
                     <label className="mt-4 block">
-                      <span className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                      <span
+                        className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                      >
                         {t.checkoutProofLabel}
                       </span>
                       <input
@@ -513,13 +570,19 @@ export function CustomerMenu({
                         placeholder={t.checkoutProofPlaceholder}
                         value={checkoutToken}
                       />
-                      <p className={`mt-2 text-xs leading-5 ${mutedClass}`}>{t.checkoutProofHint}</p>
+                      <p className={`mt-2 text-xs leading-5 ${mutedClass}`}>
+                        {t.checkoutProofHint}
+                      </p>
                     </label>
                   </div>
 
                   {flatItems.map((item) => (
                     <div key={item.id}>
-                      <input name={`qty-${item.id}`} type="hidden" value={quantities[item.id] ?? 0} />
+                      <input
+                        name={`qty-${item.id}`}
+                        type="hidden"
+                        value={quantities[item.id] ?? 0}
+                      />
                       <input name={`note-${item.id}`} type="hidden" value={notes[item.id] ?? ""} />
                     </div>
                   ))}
@@ -534,7 +597,9 @@ export function CustomerMenu({
                     {pending ? t.sending : t.sendOrder}
                   </button>
                   {orderState.message ? (
-                    <p className={`text-sm ${orderState.ok ? "text-emerald-500" : "text-rose-500"}`}>
+                    <p
+                      className={`text-sm ${orderState.ok ? "text-emerald-500" : "text-rose-500"}`}
+                    >
                       {orderState.message}
                     </p>
                   ) : null}
@@ -545,7 +610,9 @@ export function CustomerMenu({
             <section className={`overflow-hidden rounded-[2rem] ${panelClass}`}>
               <div className="grid gap-6 p-5 lg:grid-cols-[1.2fr_0.8fr] lg:p-8">
                 <div>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                  >
                     {t.infoEyebrow}
                   </p>
                   <h2 className="mt-2 text-3xl font-semibold">{t.infoTitle}</h2>
@@ -554,42 +621,62 @@ export function CustomerMenu({
                   </p>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     <div className={`rounded-[1.5rem] p-5 ${softClass}`}>
-                      <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                      <p
+                        className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                      >
                         {t.wifiCardTitle}
                       </p>
                       <p className="mt-3 text-lg font-semibold">{t.wifiPendingTitle}</p>
                       <p className={`mt-2 text-sm leading-6 ${mutedClass}`}>{t.wifiPendingBody}</p>
                     </div>
                     <div className={`rounded-[1.5rem] p-5 ${softClass}`}>
-                      <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                      <p
+                        className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                      >
                         {t.contactCardTitle}
                       </p>
                       <p className="mt-3 text-lg font-semibold">{session.tenantDisplayName}</p>
-                      <p className={`mt-2 text-sm leading-6 ${mutedClass}`}>{session.tenantPrimaryDomain}</p>
+                      <p className={`mt-2 text-sm leading-6 ${mutedClass}`}>
+                        {session.tenantPrimaryDomain}
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div className={`rounded-[1.75rem] p-6 ${softClass}`}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}>
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${mutedClass}`}
+                  >
                     {t.infoPanelTitle}
                   </p>
                   <div className="mt-4 space-y-4">
-                    <div className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}>
-                      <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${mutedClass}`}>
+                    <div
+                      className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}
+                    >
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-[0.18em] ${mutedClass}`}
+                      >
                         {t.infoRows.tenant}
                       </p>
                       <p className="mt-2 text-base font-semibold">{session.tenantDisplayName}</p>
                     </div>
-                    <div className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}>
-                      <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${mutedClass}`}>
+                    <div
+                      className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}
+                    >
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-[0.18em] ${mutedClass}`}
+                      >
                         {t.infoRows.table}
                       </p>
                       <p className="mt-2 text-base font-semibold">
                         {session.tableName} #{session.tableNumber.toString().padStart(3, "0")}
                       </p>
                     </div>
-                    <div className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}>
-                      <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${mutedClass}`}>
+                    <div
+                      className={`rounded-[1.25rem] p-4 ${theme === "night" ? "bg-black/20" : "bg-white"}`}
+                    >
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-[0.18em] ${mutedClass}`}
+                      >
                         {t.infoRows.domain}
                       </p>
                       <p className="mt-2 text-base font-semibold">{session.tenantPrimaryDomain}</p>
@@ -603,14 +690,14 @@ export function CustomerMenu({
       </form>
 
       {selectedItem ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-black/60 p-4 backdrop-blur-sm sm:items-center sm:justify-center"
-          onClick={() => setSelectedItemId(null)}
-        >
-          <div
-            className={`w-full max-w-xl overflow-hidden rounded-[2rem] ${panelClass}`}
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 p-4 backdrop-blur-sm sm:items-center sm:justify-center">
+          <button
+            aria-label="Close item details"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setSelectedItemId(null)}
+            type="button"
+          />
+          <div className={`relative w-full max-w-xl overflow-hidden rounded-[2rem] ${panelClass}`}>
             <div className={`relative h-52 bg-gradient-to-br ${itemTheme(2)} p-5`}>
               <button
                 className={`absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full ${subtleButtonClass}`}
@@ -663,7 +750,9 @@ export function CustomerMenu({
       >
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <div className="flex items-center justify-between gap-3 rounded-full px-2 py-1">
-            <span className={`pl-2 text-[11px] font-semibold uppercase tracking-[0.22em] ${mutedClass}`}>
+            <span
+              className={`pl-2 text-[11px] font-semibold uppercase tracking-[0.22em] ${mutedClass}`}
+            >
               {t.languageLabel}
             </span>
             <div className="flex rounded-full p-1 shadow-inner">
@@ -686,7 +775,9 @@ export function CustomerMenu({
             </div>
           </div>
           <div className="flex items-center justify-between gap-3 rounded-full px-2 py-1">
-            <span className={`pl-2 text-[11px] font-semibold uppercase tracking-[0.22em] ${mutedClass}`}>
+            <span
+              className={`pl-2 text-[11px] font-semibold uppercase tracking-[0.22em] ${mutedClass}`}
+            >
               {t.themeLabel}
             </span>
             <div className="flex rounded-full p-1 shadow-inner">
