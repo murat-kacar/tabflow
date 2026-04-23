@@ -18,3 +18,4 @@ Reference entrypoints:
 - [`./api/README.md`](./api/README.md)
 - [`./database/README.md`](./database/README.md)
 - [`./firmware.md`](./firmware.md)
+- [`./glossary.md`](./glossary.md)
