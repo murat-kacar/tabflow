@@ -50,23 +50,28 @@ the current surface family.
 
 ### Platform Host
 
-Every platform surface is `Interactive Server`. The platform admin audience
-is small, desktop-based, and always online. Interactive Server minimizes the
-code needed for CRUD screens, modals, and job monitoring. The reconnect cost
-is negligible because client count is low.
+Every platform surface is `Interactive Server`. The platform admin
+audience is small, desktop-based, and always online. Interactive Server
+minimizes the code needed for CRUD screens, modals, and job monitoring.
+The reconnect cost is negligible because client count is low.
 
 ### Tenant Host
 
+Render mode is assigned by surface family:
+
 | Surface family | Mode | Why |
 | --- | --- | --- |
-| `/` welcome | Static SSR | Anonymous, mostly static content |
-| `/g/{token}` QR landing | Static SSR | One-shot handoff into a session |
-| `/menu` customer menu and cart | Static SSR | Mobile data, short session, wide fanout, no interactive payoff to justify SignalR per phone |
-| `/login`, `/change-password` | Static SSR | Single-form surfaces |
-| `/console/**` admin surfaces | Interactive Server | Forms, modals, drag-and-drop, live metrics |
-| `/service` floor and cash | Interactive Server | Live table state, push-driven updates, rich interaction |
-| `/pda` waiter workspace | Interactive Server | Mobile staff device on tenant Wi-Fi; Interactive Server gives the same code ergonomics as the console surfaces |
-| `/stations` and `/stations/{stationCode}` | Interactive Server | Push-driven kitchen display; urgency, new-ticket alerts, status progression |
+| Public customer (welcome, QR landing, menu and cart) | Static SSR | Mobile data, short session, wide fanout, no interactive payoff to justify SignalR per phone |
+| Authentication (login, change-password) | Static SSR | Single-form surfaces |
+| Admin console | Interactive Server | Forms, modals, drag-and-drop, live metrics |
+| Floor and cash workspace | Interactive Server with server push | Live table state, push-driven updates, rich interaction |
+| Waiter PDA | Interactive Server | Mobile staff device on tenant Wi-Fi; Interactive Server gives the same code ergonomics as the console surfaces |
+| Station board | Interactive Server with server push | Push-driven fulfillment display; urgency, new-ticket alerts, status progression |
+
+The per-route render-mode column lives in
+[`./runtime-surfaces.md`](./runtime-surfaces.md). That table is the
+authoritative source; changes land there and this document describes
+the family-level reasoning only.
 
 Customer surfaces never open a SignalR connection. Staff surfaces do.
 

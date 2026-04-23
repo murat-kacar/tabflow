@@ -90,22 +90,16 @@ own systemd unit.
 
 ## Runtime Surfaces
 
-The tenant runtime surface family is:
+The full route map, role matrix, render mode per surface, event-bus
+topology, and per-surface product notes live in
+[`./runtime-surfaces.md`](./runtime-surfaces.md). That document is the
+single authority; every other reference to a specific route, role, or
+surface reads back into it.
 
-1. Customer menu
-2. Customer QR landing
-3. Tenant authentication
-4. Tenant admin console
-5. Floor and cash workspace
-6. Waiter / mobile PDA workspace
-7. Station board
-
-These surfaces share one runtime contract and one operational state language
-while remaining purpose-built per role. The full route map, render mode, and
-allowed role per surface live in
-[`./runtime-surfaces.md`](./runtime-surfaces.md).
-
-Render-mode strategy is recorded in [`./render-modes.md`](./render-modes.md).
+Render-mode strategy is recorded in
+[`./render-modes.md`](./render-modes.md). Product reasoning around
+surfaces lives in
+[`../../explanation/concepts/operational-surfaces.md`](../../explanation/concepts/operational-surfaces.md).
 
 ## API Surface
 

@@ -225,22 +225,20 @@ revalidation logic by hand.
 
 ### Decision
 
-Each surface declares its render mode explicitly. Platform and tenant hosts
-use the following baseline:
+Each surface declares its render mode explicitly. The baseline:
 
-| Surface family | Render mode |
-| --- | --- |
-| Platform host, all surfaces | Interactive Server |
-| Tenant host, public customer surfaces (`/`, `/g/{token}`, `/menu`) | Static SSR with enhanced forms and navigation |
-| Tenant host, authentication surfaces (`/login`, `/change-password`) | Static SSR with enhanced forms |
-| Tenant host, admin console (`/console/**`) | Interactive Server |
-| Tenant host, floor and cash workspace (`/service`) | Interactive Server with server push |
-| Tenant host, waiter PDA (`/pda`) | Interactive Server |
-| Tenant host, station board (`/stations/**`) | Interactive Server with server push |
+- Platform host: Interactive Server for every surface.
+- Tenant host: Static SSR for public customer and authentication
+  surfaces; Interactive Server for admin console, floor and cash
+  workspace, waiter PDA, and station boards.
 
-Interactive WebAssembly and Interactive Auto are not used in the current
-baseline. Offline-capable staff surfaces are not a baseline product
-requirement.
+The authoritative per-route render-mode table lives in
+[`./runtime-surfaces.md`](./runtime-surfaces.md). Changes to a specific
+route's render mode are applied there, not duplicated into this ADR.
+
+Interactive WebAssembly and Interactive Auto are not used in the
+current baseline. Offline-capable staff surfaces are not a baseline
+product requirement.
 
 ### Consequences
 
