@@ -4,16 +4,19 @@ This document is the reference map for every runtime surface served by the
 platform host and the tenant host.
 
 It is the authoritative mirror of the topology agreed for Refactor 3 and is
-the document every other reference reads back into.
+the document every other reference reads back into. When a route, role,
+render mode, or runtime anchor is listed somewhere else in the docs, it is
+a pointer to this file.
 
 ## Hosts
 
 TabFlow runs two host shapes:
 
-- **Platform host** — one process, serves the control-plane admin
-  surface and the platform health probes.
+- **Platform host** — one process, serves the control-plane admin surface
+  and the platform health probes. Example: `https://admin.example.com`.
 - **Tenant host** — one process per tenant, serves every tenant-facing
-  surface and the ESP32 device endpoint.
+  surface and the ESP32 device endpoint. Example:
+  `https://<tenant-domain>`.
 
 Each host is a Blazor Web App backed by ASP.NET Core 10. See
 [`./system-overview.md`](./system-overview.md) for the host shape and
@@ -39,14 +42,18 @@ Each host is a Blazor Web App backed by ASP.NET Core 10. See
 | `station_device` | A single station terminal. Station-scoped fulfillment board only. |
 
 The authorization model and the station-device identity decision are
-described in [`../../explanation/concepts/authorization.md`](../../explanation/concepts/authorization.md).
+described in
+[`../../explanation/concepts/authorization.md`](../../explanation/concepts/authorization.md).
 
 ## Route Map
 
+Route IDs are assigned sequentially within each family for readability.
+They are stable references across the docs tree.
+
 Render-mode column values:
 
-- `static` — Blazor Static SSR with enhanced forms and navigation. No SignalR
-  connection is opened.
+- `static` — Blazor Static SSR with enhanced forms and navigation. No
+  SignalR connection is opened.
 - `interactive` — Blazor Interactive Server. Component state lives in the
   host process and is synchronized over SignalR.
 
@@ -68,58 +75,59 @@ Render-mode column values:
 | ID | Route | Roles | Render mode | Purpose |
 | --- | --- | --- | --- | --- |
 | T-01 | `/` | anonymous | static | Welcome and QR prompt |
-| T-12 | `/menu` | customer session | static | Customer menu, cart, order submission |
-| T-13 | `/g/{token}` | anonymous | static | QR token verification and session bootstrap |
+| T-02 | `/menu` | customer session | static | Customer menu, cart, order submission |
+| T-03 | `/g/{token}` | anonymous | static | QR token verification, table-session bootstrap, access-cookie issue |
 
 ### Tenant Host — Authentication
 
 | ID | Route | Roles | Render mode | Purpose |
 | --- | --- | --- | --- | --- |
-| T-02 | `/login` | anonymous | static | Tenant identity sign-in |
-| T-03 | `/change-password` | any tenant user | static | Password change |
+| T-04 | `/login` | anonymous | static | Tenant identity sign-in |
+| T-05 | `/change-password` | any tenant user | static | Password change |
 
 ### Tenant Host — Console
 
 | ID | Route | Roles | Render mode | Purpose |
 | --- | --- | --- | --- | --- |
-| T-04 | `/console` | `owner`, `manager` | interactive | Overview, metrics, attention queue |
-| T-05 | `/console/catalog` | `owner`, `manager` | interactive | Catalog management |
-| T-06 | `/console/stations` | `owner`, `manager` | interactive | Station management |
-| T-07 | `/console/tables` | `owner`, `manager` | interactive | Floor layout and table management |
-| T-14 | `/console/users` | `owner` | interactive | Tenant user and role management |
-| T-15 | `/console/firmware` | `owner`, `manager` | interactive | ESP32 firmware defaults |
-| T-16 | `/console/audit` | `owner`, `manager` | interactive | Tenant audit log |
+| T-06 | `/console` | `owner`, `manager` | interactive | Overview, metrics, attention queue |
+| T-07 | `/console/catalog` | `owner`, `manager` | interactive | Catalog management |
+| T-08 | `/console/stations` | `owner`, `manager` | interactive | Station management |
+| T-09 | `/console/tables` | `owner`, `manager` | interactive | Floor layout and table management |
+| T-10 | `/console/users` | `owner`, `manager` | interactive | Tenant user and role management, gated by `Console:ManageUsersBelowOwner` so managers cannot edit owner rows |
+| T-11 | `/console/firmware` | `owner`, `manager` | interactive | ESP32 firmware defaults |
+| T-12 | `/console/audit` | `owner`, `manager` | interactive | Tenant audit log |
 
 ### Tenant Host — Operations
 
 | ID | Route | Roles | Render mode | Purpose |
 | --- | --- | --- | --- | --- |
-| T-08 | `/service` | `cashier`, `manager`, `owner` | interactive | Floor and cash workspace |
-| T-09 | `/pda` | `cashier`, `manager`, `owner` | interactive | Mobile waiter workspace |
+| T-13 | `/service` | `cashier`, `manager`, `owner` | interactive | Floor and cash workspace |
+| T-14 | `/pda` | `cashier`, `manager`, `owner` | interactive | Mobile waiter workspace |
 
 ### Tenant Host — Station
 
 | ID | Route | Roles | Render mode | Purpose |
 | --- | --- | --- | --- | --- |
-| T-10 | `/stations` | `station_device` | interactive | Station selection |
-| T-11 | `/stations/{stationCode}` | `station_device` | interactive | Station fulfillment board |
+| T-15 | `/stations` | `station_device` | interactive | Station selection |
+| T-16 | `/stations/{stationCode}` | `station_device` | interactive | Station fulfillment board |
 
 ### Tenant Host — Device Endpoint
 
 | ID | Route | Auth | Purpose |
 | --- | --- | --- | --- |
-| D-01 | `wss://.../ws/masa/{tableNumber}?anahtar={deviceKey}` | Device key | ESP32 token push and rotation |
+| D-01 | `wss://<tenant-domain>/ws/tables/{tableNumber}?deviceKey={deviceKey}` | Device key | ESP32 token push and rotation |
 
 ### Tenant Host — HTTP Endpoints
 
 | Group | Routes | Purpose |
 | --- | --- | --- |
 | Health | `GET /health`, `/health/live`, `/health/ready` | Probes |
-| Public | `GET /api/public/catalog`, `POST /api/public/token/verify`, `GET /api/public/session`, `POST /api/public/session/logout`, `POST /api/public/orders` | Customer-facing HTTP contracts. See [`../api/tenant-api.md`](../api/tenant-api.md). |
+| Public | `GET /api/public/profile`, `GET /api/public/catalog`, `GET /api/public/session`, `POST /api/public/orders` | Customer-facing HTTP contracts. See [`../api/tenant-api.md`](../api/tenant-api.md). |
 
-Administrative HTTP endpoints are not part of the runtime surface. Admin and
-staff interactions run through Blazor components that depend on application
-services directly. See [`./decisions.md`](./decisions.md) AD-0003.
+Administrative HTTP endpoints are not part of the runtime surface. Admin
+and staff interactions run through Blazor components that depend on
+application services directly. See [`./decisions.md`](./decisions.md)
+AD-0003.
 
 ## Shared Runtime Language
 
@@ -133,7 +141,7 @@ Order state:
 - `served`
 - `cancelled`
 
-Operational anchors:
+Operational anchors, consumed on every staff surface:
 
 - table number
 - order id
@@ -145,24 +153,40 @@ Operational anchors:
 - device or QR health
 - timing or elapsed time
 
+Ticket-card anchors on T-13 (floor and cash) and T-15 / T-16 (station
+board):
+
+- table number
+- order id
+- item name and quantity
+- item note and order note
+- elapsed time
+
+Urgency bands on T-15 / T-16:
+
+- 0–3 minutes: normal
+- 3–7 minutes: warning
+- 7+ minutes: urgent
+
 ## Real-Time Event Bus
 
-The tenant host publishes domain events to an in-process event bus after the
-originating transaction commits. Interactive Server components subscribe and
-re-render without polling. See [`./decisions.md`](./decisions.md) AD-0006.
+The tenant host publishes domain events to an in-process event bus after
+the originating transaction commits. Interactive Server components
+subscribe and re-render without polling. See
+[`./decisions.md`](./decisions.md) AD-0006.
 
 | Event | Published by | Consumed by |
 | --- | --- | --- |
-| `order.submitted` | Customer order submit, waiter order submit | T-08 floor and cash, T-11 station board |
-| `order.status_changed` | Station board status transitions, waiter actions | T-08, T-11, relevant PDA views |
-| `bill.opened` | Order submission opens a new bill on a table | T-08 |
-| `bill.closed`, `bill.moved`, `bill.merged`, `bill.split` | Cashier bill operations | T-08 |
-| `table.opened`, `table.closed` | QR join flow, cashier actions | T-08 |
-| `device.connected`, `device.disconnected` | ESP32 WebSocket lifecycle | T-04 dashboard, T-08 table cards |
+| `order.submitted` | Customer order submit, waiter order submit | T-13 floor and cash, T-16 station board |
+| `order.status_changed` | Station board status transitions, waiter actions | T-13, T-16, relevant PDA views |
+| `bill.opened` | Order submission opens a new bill on a table | T-13 |
+| `bill.closed`, `bill.moved`, `bill.merged`, `bill.split` | Cashier bill operations | T-13 |
+| `table.opened`, `table.closed` | QR join flow, cashier actions | T-13 |
+| `device.connected`, `device.disconnected` | ESP32 WebSocket lifecycle | T-06 dashboard, T-13 table cards |
 
-Event types stay a closed enumeration. New events are added through a small
-commit that covers the event record, publication point, and subscriber
-surfaces in one change.
+Event types stay a closed enumeration. New events are added through a
+small commit that covers the event record, publication point, and
+subscriber surfaces in one change.
 
 ## Surface Notes
 
@@ -181,19 +205,19 @@ Baseline navigation:
 - `Jobs`
 - `Audit`
 
-### Tenant Admin Console
+### Tenant Admin Console (T-06 through T-12)
 
 Purpose:
 
 - Setup and governance
-- Menu, stations, floor layout, users
+- Menu, stations, floor layout, users, firmware defaults, audit
 - Exception surface-up
 
 Baseline navigation:
 
 - `Overview`
-- `Stations`
 - `Catalog`
+- `Stations`
 - `Tables`
 - `Users`
 - `Firmware defaults`
@@ -209,14 +233,14 @@ Overview expectations:
 
 Station management expectations:
 
-- station cards show name, code, color, type, active state, product count,
-  operator count, and fallback status
-- station detail supports reorder, disable, fallback selection, and product
-  coverage review
-- product routing is item-level; category-level routing may act as a default
-  helper
+- station cards show name, code, color, type, active state, product
+  count, operator count, and fallback status
+- station detail supports reorder, disable, fallback selection, and
+  product coverage review
+- product routing is item-level; category-level routing may act as a
+  default helper
 
-### Floor And Cash Workspace
+### Floor And Cash Workspace (T-13)
 
 Purpose:
 
@@ -234,9 +258,10 @@ Baseline views:
 
 Primary mental model:
 
-- one workspace reveals both physical floor flow and bill and payment flow
-- operators should not need to jump between a decorative floor planner and a
-  separate cashier screen to understand live table state
+- one workspace reveals both physical floor flow and bill and payment
+  flow
+- operators should not need to jump between a decorative floor planner
+  and a separate cashier screen to understand live table state
 
 Table-card anchors:
 
@@ -264,7 +289,7 @@ Interaction principles:
 - closing a check requires a stronger confirmation than normal table
   selection
 
-### Station Board
+### Station Board (T-15 and T-16)
 
 Purpose:
 
@@ -273,27 +298,14 @@ Purpose:
 - Urgency visibility
 
 Variants include kitchen, barista, bar, hookah, fastfood, and dispatch
-stations.
+stations. The ticket-card anchors and urgency bands live in
+[Shared Runtime Language](#shared-runtime-language).
 
 Status columns:
 
 - `new`
 - `preparing`
 - `ready`
-
-Urgency bands:
-
-- 0–3 minutes: normal
-- 3–7 minutes: warning
-- 7+ minutes: urgent
-
-Ticket-card anchors:
-
-- table number
-- order id
-- item name and quantity
-- item note and order note
-- elapsed time
 
 Operator actions:
 
@@ -309,7 +321,7 @@ Visual direction:
 - large timers and action buttons
 - readable from distance and under pressure
 
-### Waiter / Mobile PDA
+### Waiter / Mobile PDA (T-14)
 
 Purpose:
 
@@ -321,10 +333,10 @@ Direction:
 - quick table selection
 - fast note entry
 - minimal navigation chrome
-- protected actions run under the waiter's authenticated tenant identity,
-  not through a customer QR session
+- protected actions run under the waiter's authenticated tenant
+  identity, not through a customer QR session
 
-### Customer Menu
+### Customer Menu (T-01, T-02, T-03)
 
 Purpose:
 
@@ -339,8 +351,8 @@ Security direction:
 - order submission remains the critical security boundary and requires a
   fresh QR checkout proof
 
-Customer surfaces are Static SSR. They do not open a SignalR connection. The
-cart lives on the server, bound to the table session. See
+Customer surfaces are Static SSR. They do not open a SignalR connection.
+The cart lives on the server, bound to the table session. See
 [`../../explanation/concepts/customer-session-model.md`](../../explanation/concepts/customer-session-model.md).
 
 ## Station-First Fulfillment
@@ -353,10 +365,10 @@ TabFlow is station-first rather than kitchen-only.
 - Admins may view all stations. Station-device identities are scoped to a
   single station.
 
-Each tenant maintains one fallback station so routing failures do not hide
-items operationally. Item-level station assignment is the final routing
-source. Category-level station assignment may remain as a default helper
-only.
+Each tenant maintains one fallback station so routing failures do not
+hide items operationally. Item-level station assignment is the final
+routing source. Category-level station assignment may remain as a default
+helper only.
 
 ## Floor Layout Model
 
@@ -369,17 +381,26 @@ Floor and cash operation is not a flat table list.
 - Fixed floor objects (cashier bank, entrance, kitchen pass) act as
   edit-friendly anchors rather than runtime order or billing entities.
 
-Edit mode is explicit and separate from normal operations mode. Placement
-records hold coordinates, size, shape, rotation, and z-order per layout.
+Edit mode is explicit and separate from normal operations mode.
+Placement records hold coordinates, size, shape, rotation, and z-order
+per layout.
 
 ## Station-Device Access
 
-Station operators access only `/stations` and `/stations/{stationCode}`.
+Station operators access only T-15 `/stations` and T-16
+`/stations/{stationCode}`.
 
-The authentication pattern for the station-device role is not finalized in
-Refactor 3 and depends on the station hardware decision. The identity
+The authentication pattern for the `station_device` role is not finalized
+in Refactor 3 and depends on the station hardware decision. The identity
 abstraction is stable: a `station_device` role exists, its routes are
-authorization-protected, and the rest of the stack is written against that
-abstraction. The concrete authentication flow will land when the hardware
-choice is made. See
-[`../../explanation/concepts/authorization.md`](../../explanation/concepts/authorization.md).
+authorization-protected, and the rest of the stack is written against
+that abstraction.
+
+Among the candidates listed in
+[`../../explanation/concepts/authorization.md`](../../explanation/concepts/authorization.md),
+a pairing-code plus device-cookie flow is the most hardware-independent
+option: it works on any device with a browser and a cookie store, which
+covers every plausible station terminal short of a fully custom firmware.
+The final decision still depends on the hardware class, but that
+candidate is the safe default if the project has to land something
+before the hardware is chosen.

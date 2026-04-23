@@ -109,8 +109,13 @@ TabFlow uses two ASP.NET Core Authorization primitives:
 - Named authorization policies for composed rules
 
 Policy naming follows the form `Surface:Action`, for example
-`Console:WriteCatalog`, `Console:ManageUsers`, `Service:CloseBill`,
-`Station:MarkReady`.
+`Console:WriteCatalog`, `Console:ManageUsersBelowOwner`,
+`Service:CloseBill`, `Station:MarkReady`.
+
+`Console:ManageUsersBelowOwner` is the policy that gates the `/console/users`
+surface. It allows `owner` and `manager` to enter the surface and enforces
+the "managers cannot edit owner rows" rule at the application service, so
+a manager can reach the page but cannot promote or demote an owner.
 
 Policies are registered at host startup. Route attributes, Razor
 `@attribute`, and `AuthorizeView` all resolve to the same policy set.
@@ -161,21 +166,30 @@ flow for that role is not finalized in Refactor 3.
 ### What Is Deferred
 
 The authentication mechanism itself depends on the station hardware choice.
-The options under consideration:
+The options under consideration, ordered by how hardware-independent they
+are:
 
-- A pairing code plus device cookie flow, where a manager issues a code on
-  `/console/stations/{id}/devices`, the station terminal enters the code
-  once, and the host issues a long-lived, revokable cookie bound to that
-  device.
-- A URL that encodes a scoped, revokable token. This removes the login step
-  entirely but requires the URL itself to be treated as a secret.
-- Reuse of Identity with a synthetic user row per station terminal.
+1. **Pairing code plus device cookie** — a manager issues a code on
+   `/console/stations/{id}/devices`, the station terminal enters the code
+   once, and the host issues a long-lived, revokable cookie bound to that
+   device. This works on any device with a browser and a cookie store,
+   which covers every plausible station terminal class, and is the safe
+   default if the project has to land something before the hardware is
+   chosen.
+2. **Identity user per station** — reuse ASP.NET Core Identity with a
+   synthetic user row per station terminal. This reuses the existing
+   Identity infrastructure but requires a human-friendly way to sign in
+   on a shared terminal.
+3. **Scoped URL token** — a URL that encodes a revokable token, removing
+   the login step entirely. This is the lowest-friction option for
+   kiosk-style terminals but requires the URL itself to be treated as a
+   secret.
 
-The decision will land when the station hardware class is chosen. Until
-then, the `/stations` route carries an `AuthorizationPolicy` named
-`StationDevice` whose implementation is a placeholder. The placeholder is a
-single clearly commented seam so the final mechanism can slot in without
-touching the rest of the surface.
+The final decision will land when the station hardware class is chosen.
+Until then, the `/stations` route carries an `AuthorizationPolicy` named
+`StationDevice` whose implementation is a placeholder. The placeholder is
+a single clearly commented seam so the final mechanism can slot in
+without touching the rest of the surface.
 
 ### Threat Notes
 

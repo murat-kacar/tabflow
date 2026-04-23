@@ -26,6 +26,7 @@ The stack choice is recorded in
 ```text
 src/apps/
   platform/                 ASP.NET Core host for the platform control plane
+  platform-worker/          Background worker for tenant provisioning jobs
   tenant/                   ASP.NET Core host for one tenant runtime
 
 src/packages/
@@ -35,14 +36,21 @@ src/packages/
 src/infra/
   postgres/                 Migrations and database assets
 
-docs/                       Active documentation tree
-docs.next/                  Draft documentation tree (active during Refactor 3)
+docs/                       Documentation tree
 ```
 
-`src/` is the canonical source root for tooling. Each host project references
-the shared packages it needs. There are no web-tier or API-tier subprojects;
-Blazor components, minimal API endpoints, and hosted services live inside the
-same host project.
+`src/` is the canonical source root for tooling. Each host project
+references the shared packages it needs. There are no web-tier or API-tier
+subprojects; Blazor components, minimal API endpoints, and hosted services
+live inside the same host project.
+
+The platform host runs the control-plane admin surface. The platform
+worker is a separate `BackgroundService` process that picks up
+provisioning jobs from the platform database and drives the runtime
+orchestration described in
+[`../../how-to/provision-tenant.md`](../../how-to/provision-tenant.md).
+Keeping it separate from the admin host keeps long-running provisioning
+work off the request pipeline.
 
 ## Application Boundaries
 
