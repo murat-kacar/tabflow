@@ -1,35 +1,48 @@
-# `docs.next/` — TabFlow Documentation (Refactor 3 Draft)
+# TabFlow Documentation
 
-This is the **in-progress rewrite** of the TabFlow documentation tree for the
-third architectural refactor (Blazor unification).
+This is the TabFlow documentation tree.
 
-Until this tree is locked, the authoritative source is still [`../docs/`](../docs/).
+It follows a Diátaxis-inspired structure so readers can quickly find the
+kind of information they need:
 
-## Status
+- `tutorials/` — step-by-step learning material
+- `how-to/` — task-oriented operational guides
+- `reference/` — stable facts, contracts, and system reference
+- `explanation/` — conceptual and architectural reasoning
+- `meta/` — documentation governance and maintenance notes
 
-- The legacy tree `docs/` remains valid for any active runbook or contract
-  question until the swap commit.
-- `docs.next/` is the future `docs/`. When review is complete, a single commit
-  renames `docs/` to `docs.archive/` and `docs.next/` to `docs/`.
-- During the draft window, any divergence between the two trees is expected.
-  The legacy tree describes the running system. The draft tree describes the
-  target system after Refactor 3.
+## Start Here
 
-## Structure
+- New contributor or teammate: [`tutorials/getting-started.md`](./tutorials/getting-started.md)
+- Need to perform a task: [`how-to/`](./how-to/README.md)
+- Need exact system facts: [`reference/`](./reference/README.md)
+- Need to understand why the system is shaped this way: [`explanation/`](./explanation/README.md)
+- Need docs-tree maintenance rules: [`meta/`](./meta/README.md)
 
-`docs.next/` mirrors the [Diátaxis](https://diataxis.fr/) taxonomy already used
-by the legacy tree:
+## Fast Paths
 
-- `tutorials/` — guided learning
-- `how-to/` — task-oriented procedures
-- `reference/` — stable facts and contracts
-- `explanation/` — reasoning, concepts, decisions
-- `meta/` — documentation governance
+- Active architecture decisions: [`reference/architecture/decisions.md`](./reference/architecture/decisions.md)
+- System overview: [`reference/architecture/system-overview.md`](./reference/architecture/system-overview.md)
+- Runtime surface map: [`reference/architecture/runtime-surfaces.md`](./reference/architecture/runtime-surfaces.md)
+- Render-mode strategy: [`reference/architecture/render-modes.md`](./reference/architecture/render-modes.md)
+- Capability matrix: [`reference/architecture/capability-matrix.md`](./reference/architecture/capability-matrix.md)
+- Platform vs tenant concepts: [`explanation/concepts/multi-tenancy.md`](./explanation/concepts/multi-tenancy.md)
+- Authorization model: [`explanation/concepts/authorization.md`](./explanation/concepts/authorization.md)
+- Customer QR and session model: [`explanation/concepts/customer-session-model.md`](./explanation/concepts/customer-session-model.md)
+- Tenant runtime surfaces (product view): [`explanation/concepts/operational-surfaces.md`](./explanation/concepts/operational-surfaces.md)
+- Database schema: [`reference/database/schema.md`](./reference/database/schema.md)
+- Tenant public HTTP and device WebSocket: [`reference/api/tenant-api.md`](./reference/api/tenant-api.md)
+- Firmware runtime contract: [`reference/firmware.md`](./reference/firmware.md)
+- Provision a tenant: [`how-to/provision-tenant.md`](./how-to/provision-tenant.md)
+- Deploy or update a host runtime: [`how-to/deploy-to-production.md`](./how-to/deploy-to-production.md)
 
-## Authoring Rules
+## Documentation Rules
 
-- Prefer revising an existing source-of-truth document over opening a new one.
-- Keep titles short, noun-based, and stable.
-- One commit per document during draft; atomic history helps review.
-- Lock order: decisions → system overview → runtime surfaces → supporting
-  references → how-to and tutorials → minor revisions.
+- Prefer fewer, stronger source-of-truth documents.
+- Create new files only when a topic truly needs to stand alone.
+- Keep task guidance in `how-to/` and stable facts in `reference/`.
+- Reasoning, tradeoffs, and concepts belong in `explanation/`.
+- Architecture decisions are recorded in
+  [`reference/architecture/decisions.md`](./reference/architecture/decisions.md).
+  Longer reasoning for a decision lives in
+  [`explanation/decisions/`](./explanation/decisions/README.md).
