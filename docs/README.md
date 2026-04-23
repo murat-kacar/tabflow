@@ -23,10 +23,14 @@ of information they need:
 
 - Tenant runtime and surface map:
   [reference/architecture/system-overview.md](./reference/architecture/system-overview.md)
+- Current capability matrix:
+  [reference/architecture/capability-matrix.md](./reference/architecture/capability-matrix.md)
 - Platform vs tenant concepts:
   [explanation/concepts/multi-tenancy.md](./explanation/concepts/multi-tenancy.md)
 - Customer QR/session model:
   [explanation/concepts/customer-session-model.md](./explanation/concepts/customer-session-model.md)
+- Firmware runtime contract:
+  [reference/firmware.md](./reference/firmware.md)
 - Provision a tenant:
   [how-to/provision-tenant.md](./how-to/provision-tenant.md)
 - Deploy or update a host runtime:

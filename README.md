@@ -93,10 +93,14 @@ pnpm --filter @tabflow/tenant-web build
   contributor onboarding path.
 - [docs/reference/architecture/system-overview.md](docs/reference/architecture/system-overview.md):
   source tree, boundaries, runtime model, and capability snapshot.
+- [docs/reference/architecture/capability-matrix.md](docs/reference/architecture/capability-matrix.md):
+  implementation status matrix.
 - [docs/reference/api/README.md](docs/reference/api/README.md): API governance
   and API reference entrypoint.
 - [docs/reference/database/schema.md](docs/reference/database/schema.md):
   platform and tenant database ownership.
+- [docs/reference/firmware.md](docs/reference/firmware.md): ESP32 firmware
+  hardware profile, runtime contract, and generated artifact ownership.
 - [docs/explanation/concepts/tenant-lifecycle.md](docs/explanation/concepts/tenant-lifecycle.md):
   tenant lifecycle model.
 - [docs/explanation/concepts/customer-session-model.md](docs/explanation/concepts/customer-session-model.md):

@@ -81,6 +81,20 @@ Tradeoffs:
 - token issuance and validation complexity increases
 - rollout requires staged migration across platform and tenant web/API pairs
 
+### Migration Outline
+
+1. Introduce token issuer and validator primitives in shared backend packages.
+2. Allow dual-mode auth through existing key headers and signed internal tokens.
+3. Shift web applications to token-based service calls.
+4. Remove static key requirements from mutable endpoints after rollout.
+5. Keep documented emergency break-glass fallback outside the normal request
+   path.
+
+### Non-Goals
+
+- public OAuth/OIDC provider integration for end users
+- removing actor-level authorization checks
+
 ## AD-0003: Keep Platform And Tenant Separate
 
 ### Status

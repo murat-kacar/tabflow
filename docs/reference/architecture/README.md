@@ -12,5 +12,6 @@ Use it for:
 Current documents:
 
 - [system-overview.md](./system-overview.md)
+- [capability-matrix.md](./capability-matrix.md)
 - [runtime-surfaces.md](./runtime-surfaces.md)
 - [decisions.md](./decisions.md)
