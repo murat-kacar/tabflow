@@ -7,4 +7,4 @@ TabFlow progressively rather than solve a narrow production task.
 
 Current starting point:
 
-- [getting-started.md](./getting-started.md)
+- [`./getting-started.md`](./getting-started.md)

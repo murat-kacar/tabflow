@@ -11,5 +11,5 @@ Use it for:
 
 Current meta documents:
 
-- `contributing.md`
-- `changelog.md`
+- [`./contributing.md`](./contributing.md)
+- [`./changelog.md`](./changelog.md)

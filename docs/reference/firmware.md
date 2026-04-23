@@ -1,10 +1,10 @@
 # Firmware Reference
 
-This document is the stable reference for the ESP32 table display firmware and
-its tenant-runtime contract.
+This document is the stable reference for the ESP32 table display firmware
+and its tenant-runtime contract.
 
-Firmware is part of tenant lifecycle operations, but devices are tenant runtime
-clients. They must not know platform internals.
+Firmware is part of tenant lifecycle operations, but devices are tenant
+runtime clients. They must not know platform internals.
 
 ## Source Location
 
@@ -16,8 +16,9 @@ src/packages/firmware/arduino/tabflow-table-display/
   config.example.h
 ```
 
-`config.example.h` is the safe committed template. A real `config.h` contains
-Wi-Fi credentials and a device key, so it must remain outside source control.
+`config.example.h` is the safe committed template. A real `config.h`
+contains Wi-Fi credentials and a device key, so it must remain outside
+source control.
 
 ## Hardware Profile
 
@@ -26,7 +27,7 @@ Current locked hardware profile:
 - ESP32-C3 Super Mini V1.6.0.1
 - 1.8 inch TFT SPI 128x160 V1.1
 - Adafruit GFX
-- Adafruit ST7735/ST7789
+- Adafruit ST7735 or ST7789
 
 Current prototype pin map:
 
@@ -43,25 +44,25 @@ TFT VCC      -> 3V3
 
 Pins intentionally avoided:
 
-- GPIO8 and GPIO9 because of boot/strapping risk
-- GPIO20 and GPIO21 to avoid USB/serial interference
+- GPIO8 and GPIO9 because of boot and strapping risk
+- GPIO20 and GPIO21 to avoid USB and serial interference
 
-GPIO2 is also boot/strapping-sensitive, but the current physical wiring uses it
-for TFT A0/DC. This is accepted for the current prototype profile. If boot
-instability appears, move A0/DC to a safer free GPIO and update generated
-firmware config output at the same time.
+GPIO2 is also boot and strapping sensitive, but the current physical wiring
+uses it for TFT A0/DC. This is accepted for the current prototype profile.
+If boot instability appears, move A0/DC to a safer free GPIO and update the
+generated firmware config output at the same time.
 
 ## Runtime Contract
 
-The firmware does not generate QR codes. Tenant API owns token generation and
-WebSocket delivery.
+The firmware does not generate QR codes. The tenant host owns token
+generation and WebSocket delivery.
 
 Device config contains:
 
 - table id
 - backend host and port
 - device key
-- Wi-Fi SSID/password for the physical environment
+- Wi-Fi SSID and password for the physical environment
 - display pin constants
 - firmware timing constants
 
@@ -69,12 +70,21 @@ Device behavior:
 
 - connects to Wi-Fi with sleep disabled
 - syncs time for TLS
-- connects to tenant API WebSocket at `wss://<backend-host>/ws/masa/<table-number>`
-- authenticates with table id and device key
+- connects to the tenant host WebSocket at
+  `wss://<backend-host>/ws/tables/<table-number>?deviceKey=<device-key>`
+- authenticates with the table id and device key (constant-time compare
+  on the server)
 - receives `auth_ok`
 - receives `new_token`
 - renders backend-produced QR matrix data
-- keeps the last valid QR until backend sends a replacement or expiry state
+- keeps the last valid QR until the backend sends a replacement or
+  expiry state
+
+The WebSocket path and query parameter were renamed in Refactor 3 from
+the Turkish-language form (`/ws/masa/{tableNumber}?anahtar=...`) to the
+English form above to match world-convention naming. Firmware releases
+that predate the rename cannot connect to a Refactor 3 tenant host and
+must be reflashed with a build that targets the new path.
 
 Current token payload fields:
 
@@ -84,14 +94,14 @@ Current token payload fields:
 - `qr_side`
 - `qr_bits_hex`
 
-`qr_side` and `qr_bits_hex` are produced by tenant API using the runtime QR
-encoder. Firmware should remain backend-driven and must not grow its own QR
-generation logic.
+`qr_side` and `qr_bits_hex` are produced by the tenant host using the
+runtime QR encoder. Firmware stays backend-driven and must not grow its own
+QR generation logic.
 
 ## Generated Artifacts
 
-Tenant provisioning and table creation may generate per-table flash-ready `.ino`
-artifacts.
+Tenant provisioning and table creation may generate per-table flash-ready
+`.ino` artifacts.
 
 Rules:
 
@@ -110,17 +120,17 @@ runtime/generated/tenants/<tenant-code>/firmware/
   masa-balkon-003.ino
 ```
 
-Production deployments should point provisioning output at a restricted host
-runtime directory outside the source tree.
+Production deployments should point provisioning output at a restricted
+host runtime directory outside the source tree.
 
-Generated filenames should come from the current table label and be slugged into
-a flash-ready single sketch name, for example:
+Generated filenames should come from the current table label and be slugged
+into a flash-ready single sketch name, for example:
 
 ```text
 masa-balkon-003.ino
 2-kat-bahce-banko-002.ino
 ```
 
-The generated sketch contains the shared firmware source plus device-specific
-defines for tenant domain, Wi-Fi defaults, table id, device key, pin map, and
-timing constants.
+The generated sketch contains the shared firmware source plus
+device-specific defines for tenant domain, Wi-Fi defaults, table id, device
+key, pin map, and timing constants.

@@ -1,20 +1,27 @@
 # Tenant API Reference
 
-The tenant API is the runtime backend for one business tenant.
+The tenant API is the externally visible HTTP surface of a tenant host.
 
-## Baseline Responsibilities
+After Refactor 3 the tenant host runs a Blazor Web App. Most server work
+happens through Razor components and dependency-injected application
+services, not through an internal HTTP layer. This document covers only
+the HTTP endpoints that remain in the external contract: the health
+probes, the customer-facing public endpoints, and the ESP32 device
+WebSocket.
 
-The tenant API currently owns:
+Administrative and staff surfaces do not appear in this reference. They
+interact with the domain directly through Blazor components. See
+[`../architecture/runtime-surfaces.md`](../architecture/runtime-surfaces.md).
 
-- tenant schema bootstrap
-- tenant profile and public catalog contracts
-- table and device state
-- QR token lifecycle
-- customer access/session bootstrap
-- orders and bills
-- tenant admin auth baseline
-- tenant admin operational CRUD surfaces
-- station and kitchen-facing runtime flows
+## Base
+
+Each tenant host serves on its own domain. Example:
+
+```text
+https://<tenant-domain>/
+```
+
+All listed endpoints are relative to that host.
 
 ## Health
 
@@ -24,22 +31,41 @@ GET /health/live
 GET /health/ready
 ```
 
-## Core Public Endpoints
+- `/health` returns service metadata.
+- `/health/live` returns liveness without external dependency checks.
+- `/health/ready` additionally checks tenant database readiness.
+
+Responses are plain JSON. Probes are unauthenticated.
+
+## Public Endpoints
+
+These endpoints serve the customer-facing flow on top of the Static SSR
+menu surface. They are HTTP endpoints because HTTP is the natural
+contract for the device-agnostic customer browser.
+
+QR-token join does not appear here. The join flow is owned by the
+Static SSR page at `/g/{token}` (route T-03 in
+[`../architecture/runtime-surfaces.md`](../architecture/runtime-surfaces.md)):
+the page GET validates the token, opens the table session, issues the
+access cookie, and redirects to `/menu` in one round trip. There is no
+separate HTTP endpoint that duplicates that work.
 
 ### Tenant Profile
 
 ```http
-GET /api/tenant/profile
+GET /api/public/profile
 ```
 
-Returns tenant identity such as:
+Returns:
 
-- code
-- display name
-- primary domain
-- currency
-- language
-- time zone
+- `code`
+- `displayName`
+- `primaryDomain`
+- `languageCode`
+- `currencyCode`
+- `timeZone`
+
+Anonymous. Safe to cache per tenant host.
 
 ### Public Catalog
 
@@ -49,184 +75,72 @@ GET /api/public/catalog
 
 Returns:
 
-- tenant summary
-- active categories
-- available menu items
+- Tenant summary
+- Active categories
+- Available menu items
 
-### Public Tables
+Anonymous. The payload is scoped to customer-relevant fields only.
+Internal routing and pricing-construction fields stay server-side.
 
-```http
-GET /api/public/tables
-```
-
-### QR Token Verification
+### Customer Session
 
 ```http
-POST /api/public/token/verify
-Content-Type: application/json
-
-{
-  "token": "F6F83B6A11653E"
-}
+GET /api/public/session
 ```
 
-Current behavior:
+Returns the current session state for the cookie-bearing browser,
+including the active table label and the current cart summary.
 
-- verifies a still-active, unused table token
-- consumes the token
-- creates or joins the live table session model
-- issues a browser-scoped access ticket
-- allows tenant web to open a signed customer-facing session cookie
+A customer-initiated logout endpoint is intentionally not exposed.
+Access tickets become invalid automatically when the parent table
+session closes; a browser-side logout would not add operational value.
 
-### Customer Session Status
-
-```http
-GET  /api/public/session
-POST /api/public/session/logout
-X-Customer-Session-Token: <session-token>
-```
-
-Direction of travel:
-
-- current model is an intermediate baseline
-- target model separates:
-  - canonical table session
-  - browser-scoped access ticket
-  - fresh checkout proof
-
-### Public Order Create
+### Customer Order Submission
 
 ```http
 POST /api/public/orders
-X-Customer-Session-Token: <session-token>
 ```
 
-Runtime security direction:
+Body includes the order items assembled from the server-side cart and a
+fresh QR checkout-proof token produced by a second scan of the current
+table QR at submit time.
 
-- browsing and read flows may remain lightweight
-- final order submission is the critical security boundary
-- order submit should require a fresh QR checkout proof
+Behavior:
 
-## Tenant Admin Surface
+- Verifies that the access ticket belongs to the still-open table
+  session.
+- Verifies and consumes the fresh QR checkout proof from the request
+  body.
+- Atomically converts the cart into an order and order items.
+- Publishes `order.submitted` on the in-process event bus so the floor
+  and cash workspace and the relevant station boards react immediately.
 
-### Bootstrap And Login
+Checkout-proof verification is inlined into this endpoint rather than
+split into a separate `verify` call. Submission is the only place a
+checkout proof is meaningful, so colocating the check keeps the protocol
+single-round-trip and avoids duplicated verify plumbing.
 
-```http
-GET  /api/admin/bootstrap-status
-POST /api/admin/bootstrap
-POST /api/admin/auth/login
-POST /api/admin/auth/change-password
-```
-
-Current default admin baseline on empty tenant databases:
-
-- default email: `admin@<tenant-code>.tabflow.uk`
-- runtime may override with `initialAdminEmail`
-- default password: `TabFlow123.`
-- first login must force password change
-
-### Protected Admin Headers
-
-Protected `/api/admin/*` endpoints currently use:
-
-```http
-X-Tenant-Admin-Key: <secret>
-X-Tenant-Admin-Id: <guid>
-X-Tenant-Admin-Email: <email>
-```
-
-### Current Admin Capability Areas
-
-The current runtime baseline includes protected tenant admin flows for:
-
-- catalog management
-- table CRUD and summaries
-- device listing and key/token operations
-- order visibility
-- station management
-- kitchen/station board workflows
-
-## WebSocket Surface
-
-Devices connect through:
+## Device WebSocket
 
 ```text
-/ws/masa/{tableNumber}
+wss://<tenant-domain>/ws/tables/{tableNumber}?deviceKey={deviceKey}
 ```
 
-This is used for device-side QR/token refresh and live device/runtime coupling.
+Authentication:
 
-## Device And Firmware Baseline
+- `{deviceKey}` is compared with the stored `device_key_hash` for the
+  table using a constant-time comparison.
+- Only one device connection is accepted per table.
 
-Committed firmware source lives under:
+Message flow:
 
-```text
-src/packages/firmware/arduino/tabflow-table-display/
-```
+- Server sends `auth_ok` on successful handshake.
+- Server sends `new_token` payloads when the current QR token rotates.
+- Server sends `refresh` when operational state invalidates the current
+  QR.
+- Client sends `ping`; server replies with `pong`.
 
-Current locked hardware profile:
-
-- ESP32-C3 Super Mini V1.6.0.1
-- 1.8 inch TFT SPI 128x160 V1.1
-- Adafruit GFX
-- Adafruit ST7735/ST7789
-
-Current prototype pin map:
-
-```text
-TFT SCK/SCLK -> GPIO0
-TFT SDA/MOSI -> GPIO1
-TFT A0/DC    -> GPIO2
-TFT RESET    -> GPIO3
-TFT CS       -> GPIO4
-```
-
-Pins intentionally avoided:
-
-- GPIO8 and GPIO9 because of boot/strapping risk
-- GPIO20 and GPIO21 to avoid USB/serial interference
-
-Current prototype caveat:
-
-- GPIO2 is accepted today for TFT A0/DC because of current physical wiring
-- if boot instability appears, firmware generation and the committed firmware
-  baseline should move A0/DC to a safer free GPIO together
-
-The tenant runtime owns QR generation and delivery. Firmware does not generate
-QR codes locally.
-
-### Runtime Contract
-
-Device config currently carries:
-
-- table id
-- backend host and port
-- device key
-- Wi-Fi credentials for the physical site
-- display pin constants
-- firmware timing constants
-
-Device behavior baseline:
-
-- join Wi-Fi
-- sync time for TLS
-- open a WebSocket to the tenant runtime
-- receive fresh token payloads
-- render backend-produced QR matrix data
-
-Current runtime direction:
-
-- device join/auth should stay backend-owned
-- QR/token generation should stay in tenant runtime
-- generated firmware should stay a table-specific single-file artifact rather
-  than a manually edited source fork
-
-Expected message types include:
-
-- `auth_ok`
-- `new_token`
-
-Current token payload baseline includes:
+Token payload fields:
 
 - `url`
 - `ttl_seconds`
@@ -234,34 +148,50 @@ Current token payload baseline includes:
 - `qr_side`
 - `qr_bits_hex`
 
-### Generated Artifacts
+The payload is backend-produced. Firmware does not generate QR codes
+locally. Details live in [`../firmware.md`](../firmware.md).
 
-Tenant runtime provisioning generates per-table flash-ready `.ino` artifacts.
+Refactor 3 replaced the legacy Turkish-language path
+`/ws/masa/{tableNumber}?anahtar={deviceKey}` with the English-language
+path above. Firmware releases that predate that rename must be upgraded
+before they can connect to a Refactor 3 tenant host.
 
-Rules:
+## Error Rules
 
-- generated `.ino` files contain secrets
-- they are runtime outputs and must not be committed
-- committed source stays under `src/packages/firmware`
-- generated artifacts belong in runtime-owned output roots
+- Validation errors return `400` with a problem-details body.
+- Missing or expired session returns `401`.
+- Authorization failures return `403`.
+- Missing resources return `404`.
+- Rate-limit-exceeded responses return `429`.
+- Provisioning or runtime infrastructure problems surface through
+  `/health` and provisioning job state, not through customer-facing
+  endpoints.
 
-Reference output layout:
+## Absent Surfaces
 
-```text
-runtime/generated/tenants/<tenant-code>/firmware/
-  masa-000.ino
-  masa-999.ino
-  masa-balkon-003.ino
-```
+The following endpoint families are not part of the external tenant API:
 
-Naming rule:
+- `/api/admin/**` was removed with Refactor 3. Admin and staff surfaces
+  interact with the domain through Blazor components, not through an
+  internal HTTP layer.
+- `/api/public/token/verify` was removed with Refactor 3. Token join
+  runs inside the `/g/{token}` Static SSR page; checkout proof is
+  inlined into `POST /api/public/orders`.
+- `/api/public/session/logout` was removed with Refactor 3; see
+  [Customer Session](#customer-session) for the rationale.
+- Tenant-side audit log export is not an external endpoint today. Audit
+  review runs inside the tenant admin console.
 
-- generated filename should come from the current table label
-- the result should be slugged into a flash-ready single sketch name
+## Versioning
 
-Output-root rule:
+Public customer endpoints stay unversioned on the current major.
+Additive, non-breaking changes are allowed. A breaking change introduces
+a new major surface in parallel, for example `/api/v2/public/**`. See
+[`./README.md`](./README.md).
 
-- local defaults may place generated artifacts under a repo-adjacent runtime
-  tree
-- production deployments should point provisioning output at a restricted host
-  runtime directory outside the source tree
+## Related
+
+- [`../architecture/runtime-surfaces.md`](../architecture/runtime-surfaces.md)
+- [`../architecture/system-overview.md`](../architecture/system-overview.md)
+- [`../firmware.md`](../firmware.md)
+- [`../../explanation/concepts/customer-session-model.md`](../../explanation/concepts/customer-session-model.md)

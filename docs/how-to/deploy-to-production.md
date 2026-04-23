@@ -1,6 +1,8 @@
 # Deploy To Production
 
-This guide describes the current host-side deployment shape used by TabFlow.
+This guide describes the host-side deployment shape for TabFlow after
+Refactor 3. The runtime model is covered at an architectural level in
+[`../reference/architecture/system-overview.md`](../reference/architecture/system-overview.md).
 
 ## Runtime Layout
 
@@ -10,117 +12,135 @@ Source code stays in:
 /opt/tabflow
 ```
 
-Published backend artifacts live outside the repository:
+Published host artifacts live outside the repository:
 
 ```text
-/opt/tabflow-deploy/platform-api
-/opt/tabflow-deploy/platform-operator
-/opt/tabflow-deploy/tenant-api
+/opt/tabflow-deploy/platform
+/opt/tabflow-deploy/platform-worker
+/opt/tabflow-deploy/tenant
 ```
 
-Host-managed environment and config live under:
+Host-managed environment and configuration live under:
 
 ```text
 /etc/tabflow
-/etc/tabflow/platform-api.env
-/etc/tabflow/platform-api.appsettings.json
-/etc/tabflow/platform-web.env
-/etc/tabflow/platform-operator.env
-/etc/tabflow/tenant-api.env
-/etc/tabflow/tenant-api.appsettings.json
-/etc/tabflow/tenant-web.env
-/etc/tabflow/tenants/<code>-api.env
-/etc/tabflow/tenants/<code>-web.env
+/etc/tabflow/platform.env
+/etc/tabflow/platform.appsettings.json
+/etc/tabflow/platform-worker.env
+/etc/tabflow/tenant.env
+/etc/tabflow/tenant.appsettings.json
+/etc/tabflow/tenants/<code>.env
 ```
 
-Generated runtime artifacts and logs live outside the repository tree.
-
-Typical runtime-owned output roots:
+Runtime-owned output, including generated firmware and logs, lives under:
 
 ```text
 /var/lib/tabflow/runtime/generated
 /var/log/tabflow
 ```
 
-## Current Hosts
+## Hosts
 
-- `https://staging.tabflow.uk` -> platform web + platform API
-- `https://<tenant>.tabflow.uk` -> tenant web + tenant API
+Each side runs as a single ASP.NET Core host process.
 
-Nginx terminates TLS before proxying to host-local services.
+- Platform host — serves the platform admin UI and platform health probes.
+- Tenant host — one process per tenant, serves every tenant-facing surface
+  and the ESP32 device WebSocket.
 
-## Current Service Model
+Example host assignment:
 
-Systemd units currently include:
+- `https://<platform-host>` routes to the platform host.
+- `https://<tenant-domain>` routes to that tenant's host.
 
-- `tabflow-platform-api.service`
-- `tabflow-platform-operator.service`
-- `tabflow-platform-web.service`
-- `tabflow-tenant-api.service`
-- `tabflow-tenant-web.service`
-- `tabflow-tenant-api@<tenant-code>.service`
-- `tabflow-tenant-web@<tenant-code>.service`
+Nginx terminates TLS and proxies to the local port of the target host.
 
-Current runtime behavior:
-
-- API services run published .NET binaries from `/opt/tabflow-deploy/...`
-- web services run Next.js standalone output from the repository build tree
-- services read runtime values through `EnvironmentFile=` under `/etc/tabflow`
-
-Tenant web services run Next.js standalone output from:
+## Systemd Units
 
 ```text
-src/apps/tenant-web/.next/standalone/src/apps/tenant-web/server.js
+tabflow-platform.service
+tabflow-platform-worker.service
+tabflow-tenant@<tenant-code>.service
 ```
 
-Platform web uses the same standalone pattern under `src/apps/platform-web`.
+- `tabflow-platform.service` runs the platform host.
+- `tabflow-platform-worker.service` runs the provisioning worker.
+- `tabflow-tenant@<tenant-code>.service` is the templated tenant host unit.
+  One enabled instance per tenant.
 
-Naming note:
+Each unit reads configuration through `EnvironmentFile=` under
+`/etc/tabflow` and optional tenant-specific overrides under
+`/etc/tabflow/tenants/`.
 
-- the source application now lives under `src/apps/platform-worker`
-- the current live host service and publish directory still retain the older
-  `platform-operator` runtime name
-- the runtime naming should be treated as authoritative until the host service
-  is intentionally renamed
+Compared with the previous iteration, there are no longer separate
+`*-api.service` and `*-web.service` units per side. A single unit covers
+both the API surface and the Blazor UI for each host.
+
+## Nginx
+
+Nginx holds:
+
+- One TLS termination block per domain.
+- One `proxy_pass` per host. No separate `location /api/` block is needed;
+  the ASP.NET Core host handles both UI routes and the remaining
+  `/api/public/**`, `/ws/masa/**`, and `/health*` paths in the same
+  process.
+- Websocket headers enabled so `/ws/masa/...` passes through cleanly.
+
+Per-tenant vhosts are generated during provisioning and reload nginx when
+the tenant goes active.
 
 ## Standard Deployment Flow
 
-1. pull the latest source into `/opt/tabflow`
-2. publish backend applications to `/opt/tabflow-deploy/...`
-3. build Next.js applications in the source tree
-4. update systemd or runtime config only when source layout/runtime contracts
-   have changed
-5. restart the affected services
-6. reload Nginx when host or static routing changes
-7. run smoke checks against internal health and public entrypoints
+1. Pull the latest source into `/opt/tabflow`.
+2. Publish the platform host: `dotnet publish src/apps/platform -c Release
+   -o /opt/tabflow-deploy/platform`.
+3. Publish the platform worker: `dotnet publish src/apps/platform-worker
+   -c Release -o /opt/tabflow-deploy/platform-worker`.
+4. Publish the tenant host: `dotnet publish src/apps/tenant -c Release -o
+   /opt/tabflow-deploy/tenant`.
+5. Update systemd or runtime configuration only when source layout or
+   runtime contracts have changed.
+6. Restart the affected services.
+7. Reload nginx when host-level routing changes.
+8. Run smoke checks against internal health endpoints and customer entry
+   points.
 
-## Automated Tenant Provisioning Flow
+## Automated Tenant Provisioning
 
-Once DNS exists for a tenant host, the platform operator may complete the host
-runtime lifecycle automatically:
+Once DNS exists for a tenant host, the platform worker may complete the
+host runtime lifecycle automatically:
 
-1. create the tenant database
-2. write tenant API/web environment files
-3. ensure templated `systemd` units exist
-4. generate and enable an Nginx vhost
-5. obtain TLS through Certbot
-6. start tenant API and web instances
-7. verify health and mark the tenant `active`
+1. Create the tenant database and database user.
+2. Write the tenant-specific environment file under
+   `/etc/tabflow/tenants/`.
+3. Ensure the templated `tabflow-tenant@<tenant-code>.service` instance is
+   enabled.
+4. Generate and enable an nginx vhost for the tenant domain.
+5. Obtain TLS through Certbot.
+6. Start the tenant host.
+7. Run EF Core migrations and seed tenant defaults.
+8. Verify health and mark the tenant `active`.
 
-## Expected Smoke Checks
+Details of the provisioning flow, including the initial owner password
+handling, live in [`./provision-tenant.md`](./provision-tenant.md).
 
-At minimum:
+## Smoke Checks
 
-- internal API health endpoints return `ok`
-- public login pages return `200`
-- expected static assets are reachable
-- tenant domains route to the correct tenant runtime
+At minimum, after any deployment:
+
+- `GET /health/ready` on the platform host returns `ok`.
+- `GET /health/ready` on at least one tenant host returns `ok`.
+- Platform admin sign-in page returns `200`.
+- Tenant customer entry page returns `200` on a known tenant domain.
+- Expected static assets are reachable.
+- The platform worker is up and polling the provisioning queue.
 
 ## Operating Principle
 
-The repository remains source-first:
+The repository stays source-first:
 
-- no active production secrets inside the source tree
-- no host-owned environment files inside the source tree
-- published runtime artifacts live outside the repository checkout
-- host-specific state is explicit rather than hidden inside source docs
+- No active production secrets inside the source tree.
+- No host-owned environment files inside the source tree.
+- Published host artifacts live outside the repository checkout.
+- Host-specific state is explicit under `/etc/tabflow`, not hidden inside
+  source documents.

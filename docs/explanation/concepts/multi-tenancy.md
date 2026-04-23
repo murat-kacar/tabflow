@@ -1,14 +1,14 @@
 # Multi-Tenancy
 
-TabFlow uses a control-plane/runtime split rather than treating the whole system
-as one flat application.
+TabFlow uses a control-plane and runtime split rather than treating the
+whole system as one flat application.
 
 ## Core Idea
 
 The platform and tenants are different things.
 
-- the platform owns registry state and lifecycle orchestration
-- each tenant owns runtime business state
+- The platform owns registry state and lifecycle orchestration.
+- Each tenant owns runtime business state.
 
 The platform is not a tenant and should not behave like one.
 
@@ -23,47 +23,64 @@ This separation keeps:
 
 ## Database View
 
-Platform database owns:
+The platform database owns:
 
-- platform admins
+- platform identity (ASP.NET Core Identity store)
 - tenant registry
-- tenant domains
+- tenant domain assignment
 - provisioning jobs
+- platform audit log
 
-Tenant databases own:
+Each tenant database owns:
 
+- tenant identity (ASP.NET Core Identity store scoped to this tenant)
+- tenant profile
 - menu and product state
+- floor layout, zones, and table placements
 - tables
 - device keys
-- QR/session lifecycle
+- QR tokens, table session state, access tickets, and customer cart items
 - orders and bills
-- tenant-local admins
+- stations and station routing
+- tenant audit log
+
+See [`../../reference/database/schema.md`](../../reference/database/schema.md)
+for the schema map.
 
 ## Runtime View
 
-The platform handles:
+The platform host handles:
 
 - tenant creation
 - tenant status changes
 - provisioning visibility
 - control-plane operations
+- platform audit
 
-The tenant runtime handles:
+Each tenant host handles:
 
 - customer menu access
 - floor and cash operations
 - station and kitchen flows
+- waiter and mobile workflow
 - tenant-local operational behavior
+- tenant audit
+
+Each tenant runs its own ASP.NET Core host process against its own database.
+See [`../../reference/architecture/system-overview.md`](../../reference/architecture/system-overview.md)
+and [`../../reference/architecture/decisions.md`](../../reference/architecture/decisions.md)
+AD-0001 and AD-0003.
 
 ## Provisioning As The Bridge
 
 Provisioning is the bridge between the two worlds.
 
-It takes platform-owned registry state and turns it into tenant-owned runtime
-state without collapsing the two into one application boundary.
+It takes platform-owned registry state and turns it into tenant-owned
+runtime state without collapsing the two into one application boundary.
 
-Related concept documents:
+## Related
 
-- [`tenant-lifecycle.md`](./tenant-lifecycle.md)
-- [`customer-session-model.md`](./customer-session-model.md)
-- [`operational-surfaces.md`](./operational-surfaces.md)
+- [`./tenant-lifecycle.md`](./tenant-lifecycle.md)
+- [`./customer-session-model.md`](./customer-session-model.md)
+- [`./operational-surfaces.md`](./operational-surfaces.md)
+- [`./authorization.md`](./authorization.md)
