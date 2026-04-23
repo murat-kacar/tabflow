@@ -29,6 +29,38 @@
   surface only; retired `reference/api/platform-api.md`.
 - Updated every concept document that referenced a hard-coded parent
   domain so the platform does not impose a specific domain choice.
+- Added the operational how-to set:
+  `how-to/local-development.md`, `how-to/ci.md`,
+  `how-to/restart-tenant.md`, `how-to/inspect-provisioning-job.md`,
+  `how-to/backup-and-restore.md`, `how-to/rotate-secrets.md`.
+- Added `reference/glossary.md` as the canonical term index.
+- Added `reference/architecture/slos.md` as the single SLI, SLO, and
+  error-budget reference.
+- Added a deployment and flow diagram to
+  `reference/architecture/system-overview.md`.
+- Consolidated route map, role matrix, render mode, ticket-card
+  anchors, and urgency bands into
+  `reference/architecture/runtime-surfaces.md` as the single
+  authority. Removed the duplicated tables from
+  `reference/architecture/decisions.md`,
+  `reference/architecture/render-modes.md`,
+  `reference/architecture/system-overview.md`, and
+  `explanation/concepts/operational-surfaces.md`.
+- Renumbered tenant route IDs sequentially as T-01..T-16 within their
+  surface families; renumbered the ESP32 device WebSocket as D-01.
+- Renamed the device WebSocket path from the Turkish-language
+  `/ws/masa/{tableNumber}?anahtar=...` to the English
+  `/ws/tables/{tableNumber}?deviceKey=...`.
+- Removed the `POST /api/public/token/verify` and
+  `POST /api/public/session/logout` endpoints; join runs inside the
+  Static SSR `/g/{token}` page and checkout-proof validation is
+  inlined into `POST /api/public/orders`.
+- Reordered the station-device auth candidates in
+  `explanation/concepts/authorization.md` so the
+  hardware-independent pairing-code path is the safe default until a
+  station hardware choice locks.
+- Expanded `meta/contributing.md` with the docs-first workflow
+  principles and the swap-commit checklist.
 
 ## 2026-04-22
 
