@@ -37,10 +37,10 @@ dedicated reference document returns at that point.
 ## OpenAPI
 
 OpenAPI documents are planned as committed artifacts under
-`docs.next/reference/openapi/` once the tenant public surface stabilizes on
-Blazor:
+[`./openapi/`](./openapi/README.md) once the tenant public surface
+stabilizes on Blazor:
 
-- `docs.next/reference/openapi/tenant-public-v1.yaml`
+- [`./openapi/tenant-public-v1.yaml`](./openapi/README.md)
 
 The document will be generated from ASP.NET Core endpoint metadata and
 committed with a diff check in CI so contract drift is visible in review.

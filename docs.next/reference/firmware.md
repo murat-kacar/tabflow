@@ -71,13 +71,20 @@ Device behavior:
 - connects to Wi-Fi with sleep disabled
 - syncs time for TLS
 - connects to the tenant host WebSocket at
-  `wss://<backend-host>/ws/masa/<table-number>`
-- authenticates with the table id and device key
+  `wss://<backend-host>/ws/tables/<table-number>?deviceKey=<device-key>`
+- authenticates with the table id and device key (constant-time compare
+  on the server)
 - receives `auth_ok`
 - receives `new_token`
 - renders backend-produced QR matrix data
-- keeps the last valid QR until the backend sends a replacement or expiry
-  state
+- keeps the last valid QR until the backend sends a replacement or
+  expiry state
+
+The WebSocket path and query parameter were renamed in Refactor 3 from
+the Turkish-language form (`/ws/masa/{tableNumber}?anahtar=...`) to the
+English form above to match world-convention naming. Firmware releases
+that predate the rename cannot connect to a Refactor 3 tenant host and
+must be reflashed with a build that targets the new path.
 
 Current token payload fields:
 
