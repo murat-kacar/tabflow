@@ -1,45 +1,57 @@
 # API Reference
 
-This folder is the source of truth for externally relevant API contracts inside
-the repository documentation tree.
+This folder documents the HTTP surfaces that remain external to each host
+after Refactor 3.
 
-Split documents by surface only when the API domains are truly separate.
+Most server logic in TabFlow runs through Blazor components calling
+dependency-injected application services. That surface is not an HTTP API
+and is documented under
+[`../architecture/runtime-surfaces.md`](../architecture/runtime-surfaces.md)
+and the surrounding architecture references rather than here.
 
-## Governance Baseline
+## Remaining External HTTP Surfaces
 
-Current contract baseline:
+Only two HTTP contracts stay externally visible:
 
-- APIs are currently unversioned on their runtime paths
-- current semantics are treated as `v1`
-- additive non-breaking changes are allowed within the current major
-- breaking changes should introduce a new major surface in parallel
+- Tenant host public endpoints and the ESP32 device WebSocket. Documented
+  in [`./tenant-api.md`](./tenant-api.md).
+- Platform host health probes. Not documented as a separate reference
+  because the surface is only `/health`, `/health/live`, and
+  `/health/ready`, all covered in
+  [`../architecture/system-overview.md`](../architecture/system-overview.md).
 
-Planned majoring direction:
+A dedicated `platform-api.md` would duplicate those two lines and encourage
+growth of an HTTP surface that no external caller needs. If a platform
+external API is ever introduced for deliberate third-party integration, a
+dedicated reference document returns at that point.
 
-- `platform-api`: `/api/v2/platform/...`
-- `tenant-api`: `/api/v2/public/...` and `/api/v2/admin/...`
+## Governance
 
-## OpenAPI Publication Direction
+- External contracts stay unversioned on the current major. The current
+  major is treated as `v1`.
+- Additive, non-breaking changes are allowed within the current major.
+- Breaking changes introduce a new major surface in parallel, for example
+  `/api/v2/public/**`, and the old major stays online through a
+  deprecation window.
 
-Current source scope:
+## OpenAPI
 
-- OpenAPI is exposed for local/development use
-- stable repository-hosted artifacts are a planned next step
+OpenAPI documents are planned as committed artifacts under
+[`../openapi/`](../openapi/README.md) once the tenant public surface
+stabilizes on Blazor:
 
-Expected future artifact shape:
+- [`../openapi/tenant-public-v1.yaml`](../openapi/README.md)
 
-- `docs/openapi/platform-api-v1.json`
-- `docs/openapi/tenant-api-v1.json`
+The document will be generated from ASP.NET Core endpoint metadata and
+committed with a diff check in CI so contract drift is visible in review.
 
 ## Deprecation Rule
 
-Deprecated endpoints or fields should be documented with:
+Any endpoint marked deprecated must carry:
 
 - deprecation date
-- replacement contract
+- replacement contract reference
 - sunset date
 
-Current API references:
-
-- [platform-api.md](./platform-api.md)
-- [tenant-api.md](./tenant-api.md)
+Deprecations are noted in the document that owns the endpoint and in
+`meta/changelog.md` at the time they land.

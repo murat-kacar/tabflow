@@ -1,322 +1,281 @@
 # System Overview
 
-TabFlow is a multi-tenant cafe operations platform with a strict split between
-the platform control plane and tenant runtimes.
+TabFlow is a multi-tenant cafe operations platform. The system is split
+between a platform control plane and one tenant runtime per cafe. Both
+sides run as single ASP.NET Core host processes built with Blazor Web
+App.
 
 This document is the primary architecture snapshot for the repository.
 
-## Scope
+## System Shape
 
-This document covers:
+```text
+                 ┌───────────────────────────────────────────┐
+                 │               Platform Host               │
+                 │  Blazor Web App (Interactive Server)      │
+                 │  Admin console, tenant registry, jobs UI  │
+                 └──────────────┬────────────────────────────┘
+                                │
+                                │ enqueues provisioning jobs
+                                ▼
+                 ┌───────────────────────────────────────────┐
+                 │            Platform Worker                │
+                 │  BackgroundService, picks up              │
+                 │  `tenant.create` jobs from the platform   │
+                 │  database and orchestrates runtime setup  │
+                 └──────────────┬────────────────────────────┘
+                                │
+    ┌───────────────────────────┼────────────────────────────┐
+    ▼                           ▼                            ▼
+┌────────────────┐       ┌────────────────┐          ┌────────────────┐
+│ Tenant Host A  │  ...  │ Tenant Host N  │          │   PostgreSQL   │
+│  Blazor Web    │       │  Blazor Web    │          │   - platform   │
+│  App, one      │       │  App, one      │   ◄──    │   - tenant_a   │
+│  process per   │       │  process per   │          │   - tenant_b   │
+│  tenant cafe   │       │  tenant cafe   │          │   - ...        │
+└───┬────────┬───┘       └───┬────────┬───┘          └────────────────┘
+    │        │               │        │
+    │ WS     │ HTTP          │ WS     │ HTTP
+    ▼        ▼               ▼        ▼
+┌────────┐ ┌────────┐    ┌────────┐ ┌────────┐
+│ ESP32  │ │ Staff  │    │ ESP32  │ │ Staff  │
+│ table  │ │ & cust │    │ table  │ │ & cust │
+│ device │ │ browse │    │ device │ │ browse │
+└────────┘ └────────┘    └────────┘ └────────┘
+```
 
-- source tree shape
-- application and package boundaries
-- platform vs tenant responsibilities
-- data ownership boundaries
-- runtime packaging boundary at a high level
-
-This document does not replace host-specific runbooks or deployment steps.
+- The platform host and the platform worker share the platform
+  database.
+- Each tenant host is one process, bound to one tenant database.
+- Nginx terminates TLS and proxies to the platform host or the tenant
+  host that matches the requested domain; it is not drawn for
+  readability.
 
 ## Stack
 
-TabFlow uses:
+| Layer | Choice |
+| --- | --- |
+| Runtime | .NET 10 |
+| Web framework | ASP.NET Core 10 with Blazor Web App |
+| Data access | EF Core 10 with Npgsql |
+| Storage | PostgreSQL 17 |
+| Authentication | ASP.NET Core Identity (cookie scheme) |
+| Real-time fan-out | In-process `System.Threading.Channels` event bus |
+| Firmware | ESP32-C3 Arduino sketch generated per table |
 
-- ASP.NET Core on .NET 10 for backend APIs and worker processes
-- Next.js with TypeScript for web applications
-- Tailwind CSS 4 for UI styling
-- PostgreSQL 17 for data storage
+The stack choice is recorded in
+[`./decisions.md`](./decisions.md) under AD-0002, AD-0007, and AD-0008.
 
 ## Source Tree
 
-Current canonical source roots:
-
 ```text
 src/apps/
-  platform-api
-  platform-worker
-  platform-web
-  tenant-api
-  tenant-web
+  platform/                 ASP.NET Core host for the platform control plane
+  platform-worker/          Background worker for tenant provisioning jobs
+  tenant/                   ASP.NET Core host for one tenant runtime
 
 src/packages/
-  shared-dotnet
-  shared-ts
-  firmware
+  shared-dotnet/            Shared domain, application service, and primitive code
+  firmware/                 ESP32 firmware source and generation inputs
 
 src/infra/
-  postgres
+  postgres/                 Migrations and database assets
+
+docs/                       Documentation tree
 ```
 
-Repository support roots:
+`src/` is the canonical source root for tooling. Each host project
+references the shared packages it needs. There are no web-tier or API-tier
+subprojects; Blazor components, minimal API endpoints, and hosted services
+live inside the same host project.
 
-```text
-docs/
-```
-
-`src/` is the canonical source root for workspace-aware tooling.
+The platform host runs the control-plane admin surface. The platform
+worker is a separate `BackgroundService` process that picks up
+provisioning jobs from the platform database and drives the runtime
+orchestration described in
+[`../../how-to/provision-tenant.md`](../../how-to/provision-tenant.md).
+Keeping it separate from the admin host keeps long-running provisioning
+work off the request pipeline.
 
 ## Application Boundaries
 
-### `src/apps/platform-api`
+### `src/apps/platform`
 
-The control-plane API.
-
-Owns:
-
-- platform admin auth bootstrap and login baseline
-- tenant registry
-- tenant domains
-- tenant status changes
-- provisioning job creation and visibility
-- platform-side audit surface
-
-It is not a tenant runtime API.
-
-### `src/apps/platform-worker`
-
-The background worker that watches provisioning jobs and performs platform-side
-tenant lifecycle orchestration.
+The platform host.
 
 Owns:
 
-- provisioning job pickup and retry behavior
-- runtime artifact preparation
-- host/runtime metadata orchestration
-- tenant runtime activation path coordination
+- Platform admin authentication and identity storage
+- Tenant registry
+- Tenant domain assignment
+- Tenant status and regional settings
+- Provisioning job creation, pickup, and visibility
+- Platform-level audit log
 
-### `src/apps/platform-web`
+The platform host is not a tenant runtime. It must not access tenant business
+tables during normal request handling.
 
-The platform admin web application.
+### `src/apps/tenant`
 
-Owns:
-
-- platform admin login UX
-- tenant create/update views
-- provisioning visibility
-- control-plane operational surfaces
-
-### `src/apps/tenant-api`
-
-The runtime backend for one tenant.
+The tenant host. One instance per tenant, bound to one tenant database.
 
 Owns:
 
-- tenant schema bootstrap
-- tenant profile and catalog contracts
-- table and device state
-- QR token lifecycle
-- customer access/session bootstrap
-- orders, bills, and station/kitchen flows
-- tenant admin runtime operations
+- Tenant schema bootstrap through EF Core migrations
+- Tenant profile and public catalog surfaces
+- Table and device state
+- QR token lifecycle, table session lifecycle, and customer access tickets
+- Customer cart and order submission
+- Tenant admin, manager, cashier, and station surfaces
+- Tenant-level audit log
+- ESP32 device WebSocket endpoint
 
-### `src/apps/tenant-web`
+Each tenant host runs in its own process, against its own database, under its
+own systemd unit.
 
-The runtime frontend for one tenant.
+## Runtime Surfaces
 
-Owns:
+The full route map, role matrix, render mode per surface, event-bus
+topology, and per-surface product notes live in
+[`./runtime-surfaces.md`](./runtime-surfaces.md). That document is the
+single authority; every other reference to a specific route, role, or
+surface reads back into it.
 
-- customer menu surface
-- tenant admin surface
-- floor/cash operations surface
-- station and kitchen-facing surfaces
+Render-mode strategy is recorded in
+[`./render-modes.md`](./render-modes.md). Product reasoning around
+surfaces lives in
+[`../../explanation/concepts/operational-surfaces.md`](../../explanation/concepts/operational-surfaces.md).
 
-## Operational Surface Set
+## API Surface
 
-The current tenant-facing operational surface family is:
+With Blazor Web App, most server logic is invoked directly through dependency
+injection from Razor components and hosted services. HTTP endpoints are kept
+to the cases where HTTP is the natural contract:
 
-1. customer menu
-2. tenant admin console
-3. floor and cash workspace
-4. station board
-5. waiter/mobile PDA workspace
+| Endpoint group | Purpose |
+| --- | --- |
+| `/health`, `/health/live`, `/health/ready` | Liveness and readiness probes |
+| `/api/public/**` | Customer-facing contracts that require explicit HTTP semantics (token verify, order submit) |
+| `/ws/masa/{tableNumber}` | ESP32 device WebSocket endpoint |
 
-These surfaces should share one runtime contract and one operational language
-while still feeling purpose-built for their user role.
+There are no `/api/admin/**` endpoints. Admin and staff surfaces interact with
+the domain through Blazor component bindings and application services, not
+through an internal HTTP layer.
 
-For the deeper surface rationale and role split, see:
-
-- [`../../explanation/concepts/operational-surfaces.md`](../../explanation/concepts/operational-surfaces.md)
-- [`./runtime-surfaces.md`](./runtime-surfaces.md)
-
-## Runtime Operational Principles
-
-### Station-First Fulfillment
-
-TabFlow uses a station-first model rather than a kitchen-only model.
-
-That means:
-
-- products route to stations
-- stations are the fulfillment unit
-- the same order may split operationally across different stations
-- admins can view all stations, while operators can be scoped to the stations
-  that matter to them
-
-### Shared Status Language
-
-All major tenant runtime surfaces should speak the same order-state language:
-
-- `submitted`
-- `preparing`
-- `ready`
-- `served`
-- `cancelled`
-
-And they should share the same mental anchors:
-
-- table number
-- order id
-- item name
-- quantity
-- notes
-- station
-- open check status
-- device or QR health
-- timing or elapsed time
-
-## Package Boundaries
-
-### `src/packages/shared-dotnet`
-
-Shared backend primitives and reusable platform/worker core.
-
-### `src/packages/shared-ts`
-
-Shared TypeScript schemas, validation helpers, and typed client helpers.
-
-### `src/packages/firmware`
-
-ESP32 firmware source and generation inputs for per-table runtime artifacts.
-
-## Platform And Tenant Split
-
-The platform is not a tenant.
-
-The platform owns control-plane state and lifecycle orchestration. Tenants own
-runtime business state.
-
-This split is intentional and should remain explicit in code, docs, and runtime
-operations.
+Full endpoint reference lives in
+[`../api/tenant-api.md`](../api/tenant-api.md).
 
 ## Data Ownership
 
-### Platform Database Owns
+### Platform Database
 
-- platform admins
-- tenant registry
-- tenant domains
-- provisioning jobs
-- platform audit logs
-- secret references and registry metadata
+Owns:
 
-### Tenant Databases Own
+- Platform admin identity rows (ASP.NET Core Identity store)
+- Tenant registry and domain assignment
+- Provisioning jobs
+- Platform audit log
+- Secret references and registry metadata
 
-- tenant profile
-- menu categories and items
-- tables
-- device keys
-- QR token and table/session lifecycle
-- orders and bills
-- tenant-local admin users
-- station and kitchen-local operational state
+The platform database does not hold tenant business state.
 
-The platform should not depend on tenant business tables for normal control
-plane operation.
+### Tenant Database
+
+Owns:
+
+- Tenant profile
+- Tenant identity rows (admins, managers, cashiers, and station operators)
+- Menu categories, items, and station routing
+- Floor layouts, zones, table placements, and fixed floor objects
+- Tables and device keys
+- QR token, table session, and access ticket state
+- Customer cart state bound to the active table session
+- Orders and bills
+- Station and kitchen-facing operational state
+- Tenant audit log
+
+The schema reference lives in [`../database/schema.md`](../database/schema.md).
 
 ## Runtime Model
 
-The repository is source-first.
+The repository is source-first. Host-side state and secrets live outside the
+repository.
 
 High-level runtime split:
 
-- source code remains in `/opt/tabflow`
-- published backend artifacts live under `/opt/tabflow-deploy/...`
-- host-managed environment/config lives under `/etc/tabflow`
-- generated runtime artifacts live outside the source tree
+- source code stays in `/opt/tabflow`
+- published host artifacts live under `/opt/tabflow-deploy/platform` and
+  `/opt/tabflow-deploy/tenant`
+- host-managed environment and config live under `/etc/tabflow`
+- generated runtime artifacts live outside the source tree, for example
+  firmware sketches under a runtime-owned output root
 
-Web applications currently run from Next.js standalone output generated from the
-repository build tree.
+Nginx terminates TLS and proxies to the platform host or to the tenant host
+that matches the requested domain. Each tenant host listens on a host-local
+port selected at provisioning time.
+
+The deployment procedure lives in
+[`../../how-to/deploy-to-production.md`](../../how-to/deploy-to-production.md).
 
 ## Provisioning Principle
 
-Creating a tenant is a job-oriented control-plane action.
+Creating a tenant is a job-oriented control-plane action:
 
-Expected shape:
+1. Reserve tenant registry state in the platform database.
+2. Create a `tenant.create` provisioning job.
+3. Let the platform worker perform runtime orchestration.
+4. Make lifecycle state visible and retryable through job status.
 
-1. reserve tenant registry state
-2. create a provisioning job
-3. let the worker perform runtime orchestration
-4. make lifecycle state visible and retryable
-
-Infrastructure side effects should not be hidden inside frontend request
-handlers.
-
-For lifecycle reasoning, see:
-
-- [`../../explanation/concepts/tenant-lifecycle.md`](../../explanation/concepts/tenant-lifecycle.md)
-
-## Current Capability Snapshot
-
-Implemented:
-
-- platform tenant registry API
-- platform admin auth baseline and audit trail
-- platform runtime visibility
-- provisioning worker baseline
-- tenant schema bootstrap
-- public catalog and session bootstrap
-- customer order and open bill baseline
-- tenant admin catalog, table, station, kitchen, and device operations
-- device WebSocket token push
-- baseline waiter/mobile workflow UI
-
-Planned:
-
-- advanced payment lifecycle and richer bill operations
-
-Out of scope for the current repository:
-
-- production secret management automation
-- fully generalized runtime packaging/host automation inside the repo
+Infrastructure side effects are not allowed inside synchronous request
+handlers. The full provisioning flow lives in
+[`../../how-to/provision-tenant.md`](../../how-to/provision-tenant.md) and the
+lifecycle reasoning lives in
+[`../../explanation/concepts/tenant-lifecycle.md`](../../explanation/concepts/tenant-lifecycle.md).
 
 ## Non-Functional Baseline
 
-Current quality targets:
+Quality targets (availability, latency, provisioning success ratio)
+live in [`./slos.md`](./slos.md). That document also defines the
+measurement sources and the error-budget policy.
 
-- platform API availability target: `99.9%`
-- tenant API availability target: `99.9%`
-- public catalog latency target: `p95 < 300 ms`
-- admin mutation latency target: `p95 < 500 ms`
-- successful tenant provisioning ratio target: `> 99%`
+Observability direction:
 
-Current observability direction:
+- Structured logs with request id, tenant code when available, actor
+  identity when available, and endpoint context
+- Step-level provisioning visibility
+- Metrics and tracing are exported through the OpenTelemetry .NET SDK;
+  the SLO dashboards read from that stream
 
-- structured logs with request id, tenant code when available, actor identity
-  when available, and endpoint context
-- step-level provisioning visibility
-- metrics and tracing are expected but not fully established in-repo yet
+Security direction:
 
-Current security direction:
-
-- no secrets in source control
-- app-to-app auth should move toward short-lived internal identity
-- admin and device credentials must remain rotatable
-- raw secret material should only be shown at creation/rotation time
+- No secrets in source control
+- Platform and tenant hosts authenticate users through ASP.NET Core
+  Identity cookies; handwritten HMAC session schemes have been removed
+- Admin, manager, cashier, and device credentials remain rotatable
+- Raw secret material is only shown at creation or rotation time
 
 ## Testing And Tooling Conventions
 
 ### Test Layout
 
-- backend and shared `.NET` code use sibling `tests/` directories
-- frontend and shared TypeScript code use co-located `*.test.*` files
-- frontend app harness files may live in app-local `test/` directories
+- Host and package tests live under sibling `tests/` directories next to the
+  code they exercise.
+- End-to-end Blazor tests may use `Microsoft.AspNetCore.Mvc.Testing` with
+  `WebApplicationFactory` and `bUnit` for component-level tests.
 
 ### Build Artifacts
 
-Tool-native output locations remain intact:
-
-- Next.js: `.next/`
-- TypeScript packages: `dist/` where applicable
 - .NET: `bin/` and `obj/`
+- EF Core migrations: checked into `src/infra/postgres/migrations/**`
+- Generated firmware: written to a runtime-owned output root, never committed
 
 The repository intentionally does not impose a synthetic root build directory.
+
+## Platform And Tenant Split
+
+The platform is not a tenant. The platform owns control-plane state and
+tenant lifecycle orchestration. Tenants own runtime business state. This
+separation is explicit in code, in database boundaries, in host processes, and
+in documentation. The rationale lives in
+[`./decisions.md`](./decisions.md) under AD-0001 and in
+[`../../explanation/concepts/multi-tenancy.md`](../../explanation/concepts/multi-tenancy.md).

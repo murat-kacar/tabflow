@@ -1,8 +1,8 @@
 # Why PostgreSQL 17
 
-PostgreSQL 17 is the chosen database baseline for TabFlow because it fits the
-current control-plane/runtime split without pulling the system toward a
-vendor-specific platform stack.
+PostgreSQL 17 is the chosen database baseline for TabFlow because it fits
+the current control-plane and tenant-runtime split without pulling the
+system toward a vendor-specific platform stack.
 
 ## Why It Fits
 
@@ -38,7 +38,9 @@ In TabFlow, database shape affects:
 - tenant isolation
 - provisioning design
 - auditability
-- runtime safety for orders, bills, and device/session state
+- runtime safety for orders, bills, and device and session state
 
 That makes the database choice an architectural decision, not a trivial
-implementation detail.
+implementation detail. The active decision record lives in
+[`../../reference/architecture/decisions.md`](../../reference/architecture/decisions.md)
+under AD-0007.

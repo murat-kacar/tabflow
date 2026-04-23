@@ -1,99 +1,105 @@
 # Provision A Tenant
 
-This guide describes the canonical tenant provisioning flow from the platform
-control plane perspective.
+This guide describes the canonical tenant provisioning flow from the
+platform control plane perspective.
 
 ## Inputs
 
 Required:
 
-- tenant code
-- display name
-- primary domain
-- language
-- currency
-- time zone
+- Tenant code (lowercase `a-z`, `0-9`, hyphen, 3 to 63 characters, no
+  leading or trailing hyphen)
+- Display name
+- Primary domain (lowercase, no scheme, no trailing dot)
+- Language code
+- Currency code
+- Time zone
 
 Optional:
 
-- intended first tenant admin email
+- Intended first tenant owner email
 
 ## Flow
 
-1. Validate tenant code and primary domain.
-2. Capture tenant regional settings.
-3. Optionally capture the intended first tenant admin email.
+1. Validate the tenant code and primary domain.
+2. Capture the regional settings.
+3. Optionally capture the intended first tenant owner email.
 4. Reserve tenant registry state in the platform database.
 5. Create a `tenant.create` provisioning job.
-6. Allocate runtime identifiers such as database name, database user, and
-   internal ports.
-7. Prepare runtime configuration and runtime artifacts.
+6. Allocate runtime identifiers: database name, database user, host-local
+   port.
+7. Prepare the runtime configuration and the runtime artifacts.
 8. Generate per-table firmware sketches for the seeded tables.
-9. Create the tenant database and database user.
-10. Apply tenant migrations.
+9. Create the tenant database and the tenant-scoped database user.
+10. Apply tenant EF Core migrations.
 11. Seed tenant defaults:
-    - tenant profile
-    - starter tables `000` and `999`
-    - starter catalog
-    - default tenant admin
+    - Tenant profile
+    - Starter tables (`000` and `999`)
+    - Starter catalog baseline
+    - Default tenant owner user
 12. Verify tenant runtime health.
 13. Mark the tenant `active`.
 
-## Expected Default Admin Baseline
+## Default Owner Baseline
 
-When the runtime initializes an empty tenant database:
+When a tenant database is initialized:
 
-- email defaults to `admin@<tenant-code>.tabflow.uk`
-- runtime may override with `initialAdminEmail`
-- default password is `TabFlow123.`
-- first successful login must force password change
+- The initial owner email defaults to a tenant-scoped address derived from
+  the configured platform email template, or the optional
+  `initialOwnerEmail` input.
+- The initial owner password is generated at provisioning time.
+- The generated password is shown exactly once, at the end of the
+  provisioning flow, to the operator who initiated the create.
+- The generated password is never written to disk, to configuration, or to
+  the audit log. Only a hashed version persists.
+- First successful login forces a password change.
 
 ## Verification
 
 Provisioning is considered successful when:
 
-- provisioning job completes successfully
-- tenant API health responds correctly
-- tenant web becomes reachable on the assigned domain
-- seeded defaults are present
-
-Expected seeded defaults:
-
-- starter tables `000` and `999`
-- starter catalog baseline
-- default tenant admin
-- per-table ready-to-flash firmware sketches for seeded tables
+- The provisioning job completes successfully.
+- Tenant host `GET /health/ready` responds `ok`.
+- The tenant domain is reachable on HTTPS.
+- Seeded defaults are present:
+  - Starter tables `000` and `999`
+  - Starter catalog baseline
+  - Default tenant owner
+  - Per-table ready-to-flash firmware sketches
 
 ## Collision Handling
 
-Provisioning must fail safely when:
+Provisioning fails safely when:
 
-- tenant code already exists
-- primary domain already exists
-- generated database name already exists
-- generated database user already exists
+- Tenant code already exists.
+- Primary domain already exists.
+- Generated database name already exists.
+- Generated database user already exists.
 
-Registry collisions should fail fast. Runtime collisions should surface through
-job failure details so they can be corrected and retried deliberately.
+Registry collisions fail fast. Runtime collisions surface through job
+failure detail so they can be corrected and retried deliberately.
 
 ## Failure Model
 
-Provisioning is job-based and must remain observable.
+Provisioning is job-based and stays observable.
 
-Expected failure rules:
-
-- duplicate code/domain fails fast
-- runtime collisions and host-side faults are captured as job failures
-- retryable steps remain retryable through the worker path
-- infrastructure side effects must not be hidden in frontend request handlers
+- Duplicate code or domain fails fast.
+- Runtime collisions and host-side faults are captured as job failures.
+- Retryable steps stay retryable through the worker.
+- Infrastructure side effects never run inside synchronous request
+  handlers.
 
 ## Follow-Up
 
 After a successful tenant create:
 
-1. verify public runtime reachability
-2. sign in with the default tenant admin credentials
-3. change the default password on first login
-4. verify customer menu, admin surfaces, and table/device baseline
+1. Verify that the tenant domain is reachable over HTTPS.
+2. Sign in at `https://<tenant-domain>/login` with the generated owner
+   password from provisioning.
+3. Change the password at the forced `/change-password` prompt.
+4. Verify the customer menu at `/`, the admin console at `/console`, and
+   the station board at `/stations` through a station-device identity
+   once one exists.
 
-If the tenant is no longer needed, prefer archive before destructive delete.
+If the tenant is no longer needed, prefer archive over destructive delete.
+See [`../explanation/concepts/tenant-lifecycle.md`](../explanation/concepts/tenant-lifecycle.md).
