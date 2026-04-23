@@ -11,7 +11,7 @@ It targets the Refactor 3 stack: .NET 10, PostgreSQL 17, Blazor Web App.
 
 No Node.js or pnpm toolchain is required; the old Next.js tree has been
 retired (see
-[`../explanation/decisions/decisions.md`](../explanation/decisions/decisions.md),
+[`../reference/architecture/decisions.md`](../reference/architecture/decisions.md),
 AD-0001).
 
 ## 1. PostgreSQL
