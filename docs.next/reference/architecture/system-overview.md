@@ -1,10 +1,55 @@
 # System Overview
 
 TabFlow is a multi-tenant cafe operations platform. The system is split
-between a platform control plane and one tenant runtime per cafe. Both sides
-run as single ASP.NET Core host processes built with Blazor Web App.
+between a platform control plane and one tenant runtime per cafe. Both
+sides run as single ASP.NET Core host processes built with Blazor Web
+App.
 
 This document is the primary architecture snapshot for the repository.
+
+## System Shape
+
+```text
+                 ┌───────────────────────────────────────────┐
+                 │               Platform Host               │
+                 │  Blazor Web App (Interactive Server)      │
+                 │  Admin console, tenant registry, jobs UI  │
+                 └──────────────┬────────────────────────────┘
+                                │
+                                │ enqueues provisioning jobs
+                                ▼
+                 ┌───────────────────────────────────────────┐
+                 │            Platform Worker                │
+                 │  BackgroundService, picks up              │
+                 │  `tenant.create` jobs from the platform   │
+                 │  database and orchestrates runtime setup  │
+                 └──────────────┬────────────────────────────┘
+                                │
+    ┌───────────────────────────┼────────────────────────────┐
+    ▼                           ▼                            ▼
+┌────────────────┐       ┌────────────────┐          ┌────────────────┐
+│ Tenant Host A  │  ...  │ Tenant Host N  │          │   PostgreSQL   │
+│  Blazor Web    │       │  Blazor Web    │          │   - platform   │
+│  App, one      │       │  App, one      │   ◄──    │   - tenant_a   │
+│  process per   │       │  process per   │          │   - tenant_b   │
+│  tenant cafe   │       │  tenant cafe   │          │   - ...        │
+└───┬────────┬───┘       └───┬────────┬───┘          └────────────────┘
+    │        │               │        │
+    │ WS     │ HTTP          │ WS     │ HTTP
+    ▼        ▼               ▼        ▼
+┌────────┐ ┌────────┐    ┌────────┐ ┌────────┐
+│ ESP32  │ │ Staff  │    │ ESP32  │ │ Staff  │
+│ table  │ │ & cust │    │ table  │ │ & cust │
+│ device │ │ browse │    │ device │ │ browse │
+└────────┘ └────────┘    └────────┘ └────────┘
+```
+
+- The platform host and the platform worker share the platform
+  database.
+- Each tenant host is one process, bound to one tenant database.
+- Nginx terminates TLS and proxies to the platform host or the tenant
+  host that matches the requested domain; it is not drawn for
+  readability.
 
 ## Stack
 
@@ -189,28 +234,23 @@ lifecycle reasoning lives in
 
 ## Non-Functional Baseline
 
-Quality targets:
-
-- Platform host availability target: `99.9%`
-- Tenant host availability target: `99.9%`
-- Public catalog latency target: `p95 < 300 ms`
-- Admin interaction latency target: `p95 < 500 ms` round trip for Interactive
-  Server component updates
-- Successful tenant provisioning ratio target: `> 99%`
+Quality targets (availability, latency, provisioning success ratio)
+live in [`./slos.md`](./slos.md). That document also defines the
+measurement sources and the error-budget policy.
 
 Observability direction:
 
 - Structured logs with request id, tenant code when available, actor
   identity when available, and endpoint context
 - Step-level provisioning visibility
-- Metrics and tracing are expected to be established under the OpenTelemetry
-  .NET SDK
+- Metrics and tracing are exported through the OpenTelemetry .NET SDK;
+  the SLO dashboards read from that stream
 
 Security direction:
 
 - No secrets in source control
-- Platform and tenant hosts authenticate users through ASP.NET Core Identity
-  cookies; handwritten HMAC session schemes have been removed
+- Platform and tenant hosts authenticate users through ASP.NET Core
+  Identity cookies; handwritten HMAC session schemes have been removed
 - Admin, manager, cashier, and device credentials remain rotatable
 - Raw secret material is only shown at creation or rotation time
 

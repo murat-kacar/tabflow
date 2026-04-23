@@ -9,6 +9,7 @@ Current documents:
 - [`./render-modes.md`](./render-modes.md)
 - [`./decisions.md`](./decisions.md)
 - [`./capability-matrix.md`](./capability-matrix.md)
+- [`./slos.md`](./slos.md)
 
 Related reasoning lives in
 [`../../explanation/decisions/`](../../explanation/decisions/README.md).
