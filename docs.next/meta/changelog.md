@@ -1,5 +1,11 @@
 # Docs Changelog
 
+This changelog tracks the evolution of the documentation tree only.
+Product release notes live in the repo-root
+[`../../CHANGELOG.md`](../../CHANGELOG.md) and are kept separate from
+this file. See
+[`./contributing.md`](./contributing.md) for the split rationale.
+
 ## Unreleased — Refactor 3 (Blazor unification)
 
 - Reset architecture decisions as AD-0001..AD-0008 in
