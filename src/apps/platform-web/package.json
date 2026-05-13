@@ -14,7 +14,7 @@
   "dependencies": {
     "@tailwindcss/postcss": "4.2.2",
     "@tabflow/shared-ts": "workspace:*",
-    "next": "16.2.3",
+    "next": "16.2.6",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "tailwindcss": "4.2.2"
